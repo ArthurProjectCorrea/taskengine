@@ -57,7 +57,7 @@ Uma barra flutuante nativa no desktop que permite:
 
 | Camada | Tecnologia |
 |---|---|
-| Frontend desktop | .NET MAUI (XAML) + UraniumUI + Fluent Design (WinUI 3 / Mac Catalyst) |
+| Frontend desktop | .NET MAUI nativo (XAML) — apenas recursos e controles built-in, sem bibliotecas de UI de terceiros |
 | Atalhos & janela | Hooks globais de teclado, janela flutuante transparente/*frameless* |
 | Monitoramento humano | APIs Win32 (User32) / AppKit — janela ativa |
 | Monitoramento de IA | `FileSystemWatcher` (.NET) sobre o diretório do projeto |
