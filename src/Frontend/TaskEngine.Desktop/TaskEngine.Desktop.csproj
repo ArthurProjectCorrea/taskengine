@@ -62,4 +62,16 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 	</ItemGroup>
 
+	<!-- Necessário para NotifyIcon (ícone de bandeja): dá acesso a System.Windows.Forms/System.Drawing.
+	     Framework nativo da Microsoft (Windows Desktop, já instalado na máquina) — não é pacote NuGet
+	     de terceiros. Referenciado diretamente via FrameworkReference (em vez da propriedade
+	     `UseWindowsForms`) porque essa propriedade ativa o SDK.WindowsDesktop por completo, que por sua
+	     vez trata os .xaml deste projeto (inclusive o Platforms\Windows\App.xaml do WinUI) como
+	     Page/ApplicationDefinition do WPF e tenta compilá-los com o markup compiler do WPF — entrando em
+	     conflito irreconciliável com a compilação MauiXaml/WinUI. O FrameworkReference dá o mesmo acesso
+	     a NotifyIcon sem acionar esse pipeline. -->
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+	</ItemGroup>
+
 </Project>
