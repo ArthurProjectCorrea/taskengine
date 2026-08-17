@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Backend/">
+    <Project Path="src/Backend/TaskEngine.Api/TaskEngine.Api.csproj" />
+    <Project Path="src/Backend/TaskEngine.Application/TaskEngine.Application.csproj" />
+    <Project Path="src/Backend/TaskEngine.Domain/TaskEngine.Domain.csproj" />
+    <Project Path="src/Backend/TaskEngine.Infrastructure/TaskEngine.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Frontend/">
+    <Project Path="src/Frontend/TaskEngine.Desktop/TaskEngine.Desktop.csproj" />
+  </Folder>
+</Solution>
