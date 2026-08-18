@@ -85,4 +85,18 @@ public sealed class TaskItem
 
         Status = TaskStatus.Done;
     }
+
+    /// <summary>
+    /// Links this task to the task/item created for it on an external provider. No guard against
+    /// reattaching to a different provider task id - overwriting is an accepted, simpler behavior.
+    /// </summary>
+    public void AttachProviderReference(string providerTaskId)
+    {
+        if (string.IsNullOrWhiteSpace(providerTaskId))
+        {
+            throw new ArgumentException("Provider task id is required.", nameof(providerTaskId));
+        }
+
+        ProviderTaskId = providerTaskId;
+    }
 }

@@ -47,7 +47,7 @@ public sealed class OnboardingViewModel : ObservableObject
     private const string ConnectedProviderSettingKey = "provider:connected";
 
     private readonly IReadOnlyDictionary<string, IProviderAuthenticator> _authenticatorsByProviderId;
-    private readonly IReadOnlyDictionary<string, ITaskProviderClient> _clientsByProviderId;
+    private readonly IProviderClientFactory _providerClientFactory;
     private readonly ICredentialStore _credentialStore;
     private readonly IAppSettingsStore _appSettingsStore;
 
@@ -55,14 +55,22 @@ public sealed class OnboardingViewModel : ObservableObject
     private string? _errorMessage;
     private string? _connectedProviderId;
 
+    /// <summary>
+    /// Takes <see cref="IProviderClientFactory"/> (issue #26), not <c>IEnumerable&lt;ITaskProviderClient&gt;</c>
+    /// as before: issue #26 removed the DI registration of a single <c>ITaskProviderClient</c>
+    /// built at startup with a placeholder token (the same mistake #26's own
+    /// <c>ProviderClientFactory</c> avoids for real task creation) in favor of this factory, which
+    /// resolves the concrete client on demand with the real token from <see cref="ICredentialStore"/>
+    /// - by the time the best-effort schema pre-fetch below runs, that token was just saved.
+    /// </summary>
     public OnboardingViewModel(
         IEnumerable<IProviderAuthenticator> authenticators,
-        IEnumerable<ITaskProviderClient> clients,
+        IProviderClientFactory providerClientFactory,
         ICredentialStore credentialStore,
         IAppSettingsStore appSettingsStore)
     {
         _authenticatorsByProviderId = authenticators.ToDictionary(a => a.ProviderId);
-        _clientsByProviderId = clients.ToDictionary(c => c.ProviderId);
+        _providerClientFactory = providerClientFactory;
         _credentialStore = credentialStore;
         _appSettingsStore = appSettingsStore;
 
@@ -117,11 +125,6 @@ public sealed class OnboardingViewModel : ObservableObject
                 throw new InvalidOperationException($"No authenticator registered for provider '{providerId}'.");
             }
 
-            if (!_clientsByProviderId.TryGetValue(providerId, out var client))
-            {
-                throw new InvalidOperationException($"No task provider client registered for provider '{providerId}'.");
-            }
-
             var authResult = await authenticator.AuthenticateAsync(cancellationToken);
             await _credentialStore.SaveAsync(TokenSettingKey(providerId), authResult.AccessToken, cancellationToken);
             await _appSettingsStore.SetAsync(ConnectedProviderSettingKey, providerId, cancellationToken);
@@ -137,6 +140,7 @@ public sealed class OnboardingViewModel : ObservableObject
             // screen) fetches the schema on demand if it's still missing here.
             try
             {
+                var client = await _providerClientFactory.CreateAsync(providerId, cancellationToken);
                 var schema = await client.GetTaskSchemaAsync(cancellationToken);
                 var schemaJson = JsonSerializer.Serialize(schema);
                 await _appSettingsStore.SetAsync(SchemaSettingKey(providerId), schemaJson, cancellationToken);

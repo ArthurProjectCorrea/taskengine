@@ -1,4 +1,5 @@
 using TaskEngine.Application.Abstractions;
+using TaskEngine.Application.Providers;
 using TaskEngine.Domain.Entities;
 
 namespace TaskEngine.Application.Tasks;
@@ -9,10 +10,12 @@ namespace TaskEngine.Application.Tasks;
 public sealed class CreateTaskUseCase
 {
     private readonly ITaskRepository _taskRepository;
+    private readonly IProviderClientFactory _providerClientFactory;
 
-    public CreateTaskUseCase(ITaskRepository taskRepository)
+    public CreateTaskUseCase(ITaskRepository taskRepository, IProviderClientFactory providerClientFactory)
     {
         _taskRepository = taskRepository;
+        _providerClientFactory = providerClientFactory;
     }
 
     public async Task<TaskDto> ExecuteAsync(CreateTaskRequest request, CancellationToken cancellationToken = default)
@@ -21,6 +24,21 @@ public sealed class CreateTaskUseCase
 
         await _taskRepository.AddAsync(task, cancellationToken);
 
-        return new TaskDto(task.Id, task.Title, task.Description, task.Status.ToString(), task.CreatedAt);
+        if (request.ProviderId is not null)
+        {
+            ITaskProviderClient providerClient = await _providerClientFactory.CreateAsync(request.ProviderId, cancellationToken);
+            ProviderTaskReference reference = await providerClient.CreateTaskAsync(task, request.ProviderFieldValues, cancellationToken);
+
+            task.AttachProviderReference(reference.ExternalId);
+            await _taskRepository.UpdateAsync(task, cancellationToken);
+        }
+
+        return new TaskDto(
+            task.Id,
+            task.Title,
+            task.Description,
+            task.Status.ToString(),
+            task.CreatedAt,
+            ProviderTaskId: task.ProviderTaskId);
     }
 }

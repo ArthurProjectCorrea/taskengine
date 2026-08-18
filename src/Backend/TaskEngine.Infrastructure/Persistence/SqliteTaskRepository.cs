@@ -38,6 +38,27 @@ public sealed class SqliteTaskRepository : ITaskRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task UpdateAsync(TaskItem task, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE tasks
+            SET title = $title, description = $description, status = $status,
+                provider_task_id = $providerTaskId, created_at = $createdAt
+            WHERE id = $id;
+            """;
+
+        command.Parameters.AddWithValue("$id", task.Id.ToString());
+        command.Parameters.AddWithValue("$title", task.Title);
+        command.Parameters.AddWithValue("$description", (object?)task.Description ?? DBNull.Value);
+        command.Parameters.AddWithValue("$status", task.Status.ToString());
+        command.Parameters.AddWithValue("$providerTaskId", (object?)task.ProviderTaskId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$createdAt", SqliteDateTimeOffsetFormat.ToText(task.CreatedAt));
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task<TaskItem?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         await using var connection = await OpenConnectionAsync(cancellationToken);
