@@ -12,5 +12,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/TaskEngine.Application.Tests/TaskEngine.Application.Tests.csproj" />
     <Project Path="tests/TaskEngine.Domain.Tests/TaskEngine.Domain.Tests.csproj" />
+    <Project Path="tests/TaskEngine.Infrastructure.Tests/TaskEngine.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>
