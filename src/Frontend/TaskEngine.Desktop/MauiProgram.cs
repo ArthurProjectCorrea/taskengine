@@ -57,10 +57,11 @@ public static class MauiProgram
         services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
         services.AddSingleton<ITaskRepository, SqliteTaskRepository>();
 
-        // TODO: ClientId é um placeholder até o Arthur registrar o GitHub App real (ver issue #22).
-        // Sem client secret de propósito: fluxo Authorization Code + PKCE para client público.
+        // Client ID do GitHub App real registrado pelo Arthur (ver issue #22). Não é segredo -
+        // client_id de um cliente público PKCE vai literalmente na URL de autorização, visível
+        // no navegador; por isso não há client secret aqui (fluxo Authorization Code + PKCE).
         services.AddSingleton(new GitHubOAuthOptions(
-            ClientId: "TODO_GITHUB_APP_CLIENT_ID",
+            ClientId: "Ov23liY5GoHGRKLB1dfZ",
             Scopes: ["repo", "read:project"]));
         services.AddSingleton<IProviderAuthenticator, GitHubOAuthAuthenticator>();
 
