@@ -8,10 +8,17 @@ PRs que violem a regra de dependência (ex.: `Domain` referenciando um pacote de
 
 ## Branches
 
-- `main` — sempre estável e buildável.
-- `feature/<descrição-curta>` — novas funcionalidades.
-- `fix/<descrição-curta>` — correções de bug.
-- `chore/<descrição-curta>` — manutenção, dependências, configuração.
+O roadmap é fasado em **V1 → V2 → V3** (ver README.md). Cada fase tem sua própria branch de integração de longa duração, criada a partir da issue guarda-chuva da fase (ex.: `28-v1-fluxo-manual-completo-tarefa-provedor-tracking-humano` para a V1):
+
+- `main` — sempre estável e buildável; só recebe merge da branch de versão ativa quando ela está **funcionalmente completa**. Todo push em `main` dispara o [release semântico](#release-semântico).
+- `<n>-v1-...` / `<n>-v2-...` / `<n>-v3-...` — branch de integração da fase, uma por versão do roadmap.
+- `<n>-<slug>` — branch de uma issue individual (criada com `gh issue develop <n> --checkout`), sempre a partir da branch de versão ativa, **nunca a partir de `main`**. O PR dessa branch aponta para a branch de versão, não para `main`.
+
+Fluxo por issue: `gh issue develop <n> --checkout` (a partir da branch de versão) → implementar → commit com `Closes #<n>` → PR `(#<n>)` apontando para a branch de versão → merge. Só quando a versão inteira estiver pronta é que a branch de versão vira PR para `main`.
+
+## Release semântico
+
+`.github/workflows/release.yml` roda em todo push em `main`. Ele calcula a próxima versão a partir dos [Conventional Commits](#commits-semânticos) desde a última tag (`feat` → minor, `fix` → patch, `BREAKING CHANGE` → major; nenhum dos dois → nenhuma release), cria a tag, publica `TaskEngine.Desktop` (win-x64, self-contained) e anexa o artefato compactado a uma GitHub Release. Sem Node.js/npm — só GitHub Actions e `dotnet publish`, consistente com a política de não introduzir toolchains extras.
 
 ## Commits semânticos
 

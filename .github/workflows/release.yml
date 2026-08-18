@@ -1,0 +1,61 @@
+name: Release
+
+# Roda a cada push em `main`. `main` só recebe merges de uma branch de versão
+# (ex.: v1) quando ela está funcionalmente completa - ver CONTRIBUTING.md.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calcula a próxima versão a partir dos Conventional Commits
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: false
+          release_branches: main
+
+      - name: Setup .NET
+        if: steps.tag_version.outputs.new_tag != ''
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publica o TaskEngine.Desktop (win-x64, self-contained)
+        if: steps.tag_version.outputs.new_tag != ''
+        run: >
+          dotnet publish src/Frontend/TaskEngine.Desktop/TaskEngine.Desktop.csproj
+          -c Release
+          -f net10.0-windows10.0.19041.0
+          -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -o publish/TaskEngine.Desktop
+
+      - name: Compacta o artefato publicado
+        if: steps.tag_version.outputs.new_tag != ''
+        shell: pwsh
+        run: >
+          Compress-Archive
+          -Path publish/TaskEngine.Desktop/*
+          -DestinationPath TaskEngine.Desktop-${{ steps.tag_version.outputs.new_tag }}-win-x64.zip
+
+      - name: Cria a GitHub Release
+        if: steps.tag_version.outputs.new_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          name: ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+          files: TaskEngine.Desktop-${{ steps.tag_version.outputs.new_tag }}-win-x64.zip
