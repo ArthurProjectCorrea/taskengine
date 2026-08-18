@@ -13,7 +13,21 @@ public interface ITaskProviderClient
 {
     string ProviderId { get; }
 
-    Task<ProviderTaskReference> CreateTaskAsync(TaskItem task, CancellationToken cancellationToken);
+    /// <summary>
+    /// Fetches the fields this provider (and connected project/board) expects for task
+    /// creation, so the task creation UI can render them dynamically.
+    /// </summary>
+    Task<ProviderTaskSchema> GetTaskSchemaAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <paramref name="fieldValues"/> keys match <see cref="ProviderFieldDefinition.Key"/> from
+    /// <see cref="GetTaskSchemaAsync"/>. For <see cref="ProviderFieldType.SingleSelect"/> fields
+    /// the value must be the option's <see cref="ProviderFieldOption.Id"/>, not its display name.
+    /// </summary>
+    Task<ProviderTaskReference> CreateTaskAsync(
+        TaskItem task,
+        IReadOnlyDictionary<string, string>? fieldValues,
+        CancellationToken cancellationToken);
 
     Task UpdateStatusAsync(ProviderTaskReference reference, TaskStatus status, CancellationToken cancellationToken);
 }
