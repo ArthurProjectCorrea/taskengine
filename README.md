@@ -45,12 +45,23 @@ Uma barra flutuante nativa no desktop que permite:
 [7. Sincronização Final] ──> Conclui no provedor + adiciona o worklog de horas
 ```
 
+## Roadmap: V1 (manual) → V2 (IA) → V3 (nuvem)
+
+O desenvolvimento é dividido em fases:
+
+- **V1 — fluxo manual (fase atual):** criação de tarefa, integração com provedor e monitoramento de tempo funcionando de ponta a ponta **sem nenhuma IA envolvida**. Ao concluir uma tarefa, o usuário revisa manualmente tudo que foi modificado durante o período (arquivos, navegador etc.) e escolhe item por item o que conta para o tempo registrado.
+- **V2 — fluxo assistido por IA (só depois da V1 estar 100% funcional):** a IA passa a estruturar tarefas a partir de texto informal e a pré-filtrar/sugerir os itens da tela de revisão, para o usuário só validar em vez de escolher tudo manualmente.
+- **V3 — sincronização em nuvem (depois da V2):** guardar métricas/configurações do usuário em nuvem para recuperar dados e logins já configurados em outro computador. Fora de escopo até lá.
+
+A IA é deliberadamente a **última** peça do produto a ser construída, não a primeira — e a nuvem vem depois da IA.
+
 ## Escopo fechado do MVP 1.0
 
-- **Provedor de tarefas integrado (1 apenas):** Jira, GitHub Projects ou ClickUp.
-- **Provedor de IA:** API de nuvem (OpenAI / Claude).
-- **Ambiente:** single-user / desktop individual — sem backend enterprise multi-usuário.
-- **Monitoramento de atividade:** foco de janela ativa (humano) + eventos de edição no sistema de arquivos local (agentes de IA).
+- **Provedor de tarefas:** arquitetura **genérica desde o início** (porta/interface na Application, várias implementações possíveis) — não fica hard-coded a um único provedor. Primeira implementação: **GitHub** (mais acessível). Depois de validado, outros provedores (Jira, ClickUp etc.) são adicionados sem reestruturar.
+- **Autenticação com o provedor:** login via **OAuth** sempre que o provedor suportar (ex.: "Entrar com GitHub" pelo navegador), em vez de exigir que o usuário gere e cole um token de API manualmente.
+- **Provedor de IA (V2, não V1):** API de nuvem (OpenAI / Claude) — entra só depois da V1 estar completa.
+- **Ambiente:** single-user / desktop individual — sem backend enterprise multi-usuário, **sem nuvem, sem sincronização entre computadores e sem identificação de usuário único** (V3, fora de escopo). Tudo fica no SQLite local da máquina. Se o usuário abrir o app em outro computador, não tem acesso ao histórico anterior (começa do zero ali); se abrir em dois computadores ao mesmo tempo, cada um conta o tempo de forma independente — esse cenário não é tratado.
+- **Monitoramento de atividade:** foco de janela ativa (humano) + eventos de edição no sistema de arquivos local — alimentam a tela de revisão manual da V1; a atribuição automática humano/IA fica para a V2. Quando/como o monitoramento liga e desliga (consultar o provedor pelas tarefas em andamento do usuário logado vs. monitorar continuamente enquanto o app estiver aberto) é uma decisão em aberto — ver issue #11.
 - **Dashboard:** painel individual de histórico de tarefas e horas, local à máquina do usuário.
 
 ## Stack tecnológica

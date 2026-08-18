@@ -35,6 +35,8 @@ Casos de uso (*use cases* / *application services*) que orquestram entidades do 
 
 Define **interfaces (ports)** para tudo que é externo — ex.: `ITaskProviderClient`, `ITimeTrackingRepository`, `IAiTaskStructurer`, `ISecretStore` — implementadas depois em Infrastructure. A Application nunca sabe *como* algo é persistido ou chamado via rede, só declara o contrato.
 
+`ITaskProviderClient` (e afins) é desenhado desde o início para **múltiplas implementações**: o provedor de tarefas não é fixo no código — a primeira implementação é o GitHub, mas o contrato precisa comportar outros provedores (Jira, ClickUp etc.) depois, sem reestruturar a Application. Ver [ISSUES_PLAN.md]/issues #8 e #22 para o racional (arquitetura genérica + login OAuth em vez de token manual).
+
 DTOs de entrada/saída dos casos de uso vivem aqui, separados das entidades de Domain.
 
 ### `TaskEngine.Infrastructure`
@@ -42,7 +44,7 @@ DTOs de entrada/saída dos casos de uso vivem aqui, separados das entidades de D
 Implementações concretas dos ports definidos em Application:
 
 - Persistência local em **SQLite** (`Microsoft.Data.Sqlite` / `sqlite-net-pcl`).
-- Clientes HTTP para os provedores de tarefas (Jira / GitHub Projects / ClickUp) via `HttpClient` + `System.Text.Json`.
+- Clientes HTTP para os provedores de tarefas — primeira implementação: GitHub, via `HttpClient` + `System.Text.Json`, com autenticação OAuth. Outros provedores (Jira, ClickUp etc.) são adicionados depois, implementando o mesmo port.
 - Integração com IA (Semantic Kernel / `Microsoft.Extensions.AI`, provedor OpenAI `gpt-4o-mini`, com espaço para um provedor offline via LLamaSharp/Ollama).
 - Monitoramento de SO: foco de janela ativa (Win32 `User32` / AppKit) e `FileSystemWatcher` para detectar edições de agentes de IA.
 - Armazenamento seguro de credenciais via DPAPI (Windows) / Keychain (macOS).
