@@ -60,11 +60,13 @@ Antes de abrir um PR, garanta que:
 
 - `dotnet build TaskEngine.slnx` builda com **0 erros e 0 avisos**.
 - `dotnet format TaskEngine.slnx --verify-no-changes` não acusa diffs pendentes.
+- `dotnet test TaskEngine.slnx` passa (lógica de Domain/Application deve ter testes unitários — projetos `tests/*.Tests`).
 - Novas dependências não introduzem vulnerabilidades conhecidas (`dotnet list package --vulnerable --include-transitive`).
 
 ## Checklist de PR
 
 - [ ] Build limpo (0 erros, 0 avisos).
+- [ ] Testes unitários passando (`dotnet test`), com cobertura para as invariantes novas/alteradas.
 - [ ] Regra de dependência da Clean Architecture respeitada.
 - [ ] Commits seguem Conventional Commits.
 - [ ] Código de UI (`TaskEngine.Desktop`) não contém lógica de negócio.
