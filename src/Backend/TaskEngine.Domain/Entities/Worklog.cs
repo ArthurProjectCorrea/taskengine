@@ -30,6 +30,28 @@ public sealed class Worklog
         return new Worklog(Guid.NewGuid(), workSessionId, taskId, humanMinutes, aiMinutes);
     }
 
+    /// <summary>
+    /// Rehydrates a <see cref="Worklog"/> from persisted state, including <see cref="ApprovedAt"/>
+    /// and <see cref="SyncedAt"/>. Unlike <see cref="Create"/> + <see cref="Approve"/>/<see cref="MarkSynced"/>,
+    /// this does not re-validate "new object" invariants (e.g. approve-before-sync ordering) -
+    /// the data was already validated when the entity was first created.
+    /// </summary>
+    public static Worklog Restore(
+        Guid id,
+        Guid workSessionId,
+        Guid taskId,
+        double humanMinutes,
+        double aiMinutes,
+        DateTimeOffset? approvedAt,
+        DateTimeOffset? syncedAt)
+    {
+        return new Worklog(id, workSessionId, taskId, humanMinutes, aiMinutes)
+        {
+            ApprovedAt = approvedAt,
+            SyncedAt = syncedAt,
+        };
+    }
+
     public void Approve(DateTimeOffset approvedAt)
     {
         if (ApprovedAt is not null)

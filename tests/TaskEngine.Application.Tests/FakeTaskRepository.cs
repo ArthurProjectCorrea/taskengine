@@ -17,4 +17,14 @@ public sealed class FakeTaskRepository : ITaskRepository
         _tasks.Add(task);
         return Task.CompletedTask;
     }
+
+    public Task<TaskItem?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(_tasks.FirstOrDefault(t => t.Id == id));
+    }
+
+    public Task<IReadOnlyList<TaskItem>> ListAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult<IReadOnlyList<TaskItem>>(_tasks.ToList());
+    }
 }
