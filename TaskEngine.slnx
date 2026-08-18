@@ -9,4 +9,7 @@
   <Folder Name="/src/Frontend/">
     <Project Path="src/Frontend/TaskEngine.Desktop/TaskEngine.Desktop.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TaskEngine.Domain.Tests/TaskEngine.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
