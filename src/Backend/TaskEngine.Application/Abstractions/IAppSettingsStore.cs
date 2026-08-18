@@ -9,4 +9,6 @@ public interface IAppSettingsStore
     Task<string?> GetAsync(string key, CancellationToken cancellationToken);
 
     Task SetAsync(string key, string value, CancellationToken cancellationToken);
+
+    Task DeleteAsync(string key, CancellationToken cancellationToken);
 }

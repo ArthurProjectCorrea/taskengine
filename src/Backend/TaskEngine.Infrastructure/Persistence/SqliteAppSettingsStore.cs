@@ -42,6 +42,16 @@ public sealed class SqliteAppSettingsStore : IAppSettingsStore
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task DeleteAsync(string key, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM app_settings WHERE key = $key;";
+        command.Parameters.AddWithValue("$key", key);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private async Task<SqliteConnection> OpenConnectionAsync(CancellationToken cancellationToken)
     {
         var connection = new SqliteConnection(_pathProvider.ConnectionString);
