@@ -7,10 +7,12 @@
     <Project Path="src/Backend/TaskEngine.Infrastructure/TaskEngine.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Frontend/">
+    <Project Path="src/Frontend/TaskEngine.Desktop.ViewModels/TaskEngine.Desktop.ViewModels.csproj" />
     <Project Path="src/Frontend/TaskEngine.Desktop/TaskEngine.Desktop.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TaskEngine.Application.Tests/TaskEngine.Application.Tests.csproj" />
+    <Project Path="tests/TaskEngine.Desktop.Tests/TaskEngine.Desktop.Tests.csproj" />
     <Project Path="tests/TaskEngine.Domain.Tests/TaskEngine.Domain.Tests.csproj" />
     <Project Path="tests/TaskEngine.Infrastructure.Tests/TaskEngine.Infrastructure.Tests.csproj" />
   </Folder>

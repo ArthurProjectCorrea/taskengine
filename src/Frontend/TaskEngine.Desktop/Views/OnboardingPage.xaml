@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             xmlns:converters="clr-namespace:TaskEngine.Desktop.Converters"
+             x:Class="TaskEngine.Desktop.Views.OnboardingPage"
+             x:DataType="viewModels:OnboardingViewModel"
+             Title="Conectar provedor">
+
+    <ContentPage.Resources>
+        <converters:EnumEqualsConverter x:Key="EnumEqualsConverter" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20">
+
+            <Label
+                Text="Conecte um provedor de tarefas"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+
+            <Label
+                Text="Escolha um provedor abaixo para autenticar. O TaskEngine precisa de um provedor conectado antes de poder criar ou sincronizar tarefas."
+                Style="{StaticResource SubHeadline}"
+                SemanticProperties.HeadingLevel="Level2" />
+
+            <CollectionView ItemsSource="{Binding Providers}"
+                             SelectionMode="None"
+                             BindingContext="{Binding}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:ProviderOption">
+                        <Grid Padding="0,10" ColumnDefinitions="*,Auto">
+                            <Label
+                                Grid.Column="0"
+                                Text="{Binding DisplayName}"
+                                VerticalOptions="Center"
+                                FontSize="16" />
+
+                            <Button
+                                Grid.Column="1"
+                                Text="Conectar"
+                                BindingContext="{Binding}"
+                                Command="{Binding BindingContext.ConnectCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                CommandParameter="{Binding ProviderId}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator
+                IsRunning="{Binding State, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Connecting}"
+                IsVisible="{Binding State, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Connecting}" />
+
+            <Label
+                Text="Conectando..."
+                IsVisible="{Binding State, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Connecting}"
+                TextColor="{StaticResource Gray500}" />
+
+            <Label
+                Text="{Binding ErrorMessage}"
+                IsVisible="{Binding State, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Error}"
+                TextColor="Red" />
+
+            <Label
+                Text="{Binding ConnectedProviderId, StringFormat='Provedor &quot;{0}&quot; conectado com sucesso.'}"
+                IsVisible="{Binding State, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Connected}"
+                TextColor="Green" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

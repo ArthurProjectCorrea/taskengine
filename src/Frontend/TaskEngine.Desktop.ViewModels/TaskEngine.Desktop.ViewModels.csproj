@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Biblioteca de MVVM/view models pura (net10.0, sem MAUI): existe separada de
+       TaskEngine.Desktop (issue #20) porque um projeto de teste xUnit comum não consegue
+       referenciar de forma limpa um projeto MAUI SingleProject (Microsoft.Maui.Resizetizer
+       falha com "duplicate file names" ao tentar reprocessar os ícones/imagens do app a partir
+       do projeto de teste). Nem OnboardingViewModel nem a base de Mvvm/ referenciam
+       Microsoft.Maui.* - só BCL e TaskEngine.Application - então extraí-los para cá permite
+       testá-los com um projeto de teste net10.0 comum, igual aos demais em tests/. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Backend\TaskEngine.Application\TaskEngine.Application.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -62,6 +62,18 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 	</ItemGroup>
 
+	<!-- Composition root (issue #20): primeira referência do frontend ao backend. Infrastructure
+	     traz Application/Domain transitivamente, então essa única referência já dá acesso a todos
+	     os ports (IProviderAuthenticator, ITaskProviderClient, ICredentialStore, IAppSettingsStore)
+	     e suas implementações concretas para registro no DI em MauiProgram.cs. -->
+	<ItemGroup>
+		<ProjectReference Include="..\..\Backend\TaskEngine.Infrastructure\TaskEngine.Infrastructure.csproj" />
+		<!-- Mvvm/ e ViewModels/ (OnboardingViewModel) vivem em um projeto irmão separado, não aqui
+		     - ver comentário no .csproj dele para o motivo (testabilidade sem os problemas de
+		     referenciar um projeto MAUI SingleProject a partir de um projeto de teste xUnit). -->
+		<ProjectReference Include="..\TaskEngine.Desktop.ViewModels\TaskEngine.Desktop.ViewModels.csproj" />
+	</ItemGroup>
+
 	<!-- Necessário para NotifyIcon (ícone de bandeja): dá acesso a System.Windows.Forms/System.Drawing.
 	     Framework nativo da Microsoft (Windows Desktop, já instalado na máquina) — não é pacote NuGet
 	     de terceiros. Referenciado diretamente via FrameworkReference (em vez da propriedade

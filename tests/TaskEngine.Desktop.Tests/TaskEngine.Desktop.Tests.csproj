@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Testa TaskEngine.Desktop.ViewModels (Mvvm/ + OnboardingViewModel), não TaskEngine.Desktop
+       diretamente: TaskEngine.Desktop é um SingleProject MAUI (TargetFrameworks único
+       net10.0-windows10.0.19041.0) e referenciá-lo a partir de um projeto de teste xUnit comum
+       falha no build (Microsoft.Maui.Resizetizer detecta "duplicate file names" ao tentar
+       reprocessar os itens MauiIcon/MauiImage do app referenciado dentro do próprio build do
+       projeto de teste - problema conhecido de MAUI SingleProject sendo referenciado por um
+       projeto não-MAUI). OnboardingViewModel e a base de Mvvm/ não dependem de nada de
+       Microsoft.Maui.*, então vivem em TaskEngine.Desktop.ViewModels (net10.0 puro, sem MAUI),
+       o que evita o problema por completo e ainda deixa este projeto de teste com o mesmo
+       TargetFramework simples dos demais em tests/. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Frontend\TaskEngine.Desktop.ViewModels\TaskEngine.Desktop.ViewModels.csproj" />
+  </ItemGroup>
+
+</Project>
