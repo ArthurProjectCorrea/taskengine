@@ -65,6 +65,14 @@ public sealed class SqliteDatabaseInitializer
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS unmapped_time_entries (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                duration_seconds REAL NOT NULL,
+                justification TEXT NOT NULL,
+                recorded_at TEXT NOT NULL
+            );
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);
