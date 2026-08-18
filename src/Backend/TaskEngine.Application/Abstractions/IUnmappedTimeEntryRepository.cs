@@ -1,6 +1,6 @@
 using TaskEngine.Domain.Entities;
 
-namespace TaskEngine.Application.UnmappedTime.Abstractions;
+namespace TaskEngine.Application.Abstractions;
 
 /// <summary>
 /// Port for persisting <see cref="UnmappedTimeEntry"/> instances. Implemented by
