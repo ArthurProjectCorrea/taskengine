@@ -1,0 +1,69 @@
+using TaskEngine.Domain.Entities;
+
+namespace TaskEngine.Domain.Tests;
+
+public class WorkSessionTests
+{
+    private static readonly DateTimeOffset Start = new(2026, 8, 17, 9, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void Start_CreatesAnOpenSession()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+
+        Assert.True(session.IsOpen);
+        Assert.Null(session.EndedAt);
+    }
+
+    [Fact]
+    public void End_ClosesTheSession()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+
+        session.End(Start.AddHours(1));
+
+        Assert.False(session.IsOpen);
+        Assert.Equal(Start.AddHours(1), session.EndedAt);
+    }
+
+    [Fact]
+    public void End_ThrowsWhenAlreadyClosed()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.End(Start.AddHours(1));
+
+        Assert.Throws<InvalidOperationException>(() => session.End(Start.AddHours(2)));
+    }
+
+    [Fact]
+    public void End_ThrowsWhenEndedAtIsBeforeStartedAt()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+
+        Assert.Throws<ArgumentException>(() => session.End(Start.AddMinutes(-1)));
+    }
+
+    [Fact]
+    public void RecordActivity_ThrowsWhenSessionIsClosed()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.End(Start.AddHours(1));
+
+        Assert.Throws<InvalidOperationException>(
+            () => session.RecordActivity(ActivitySource.Human, Start, Start.AddMinutes(10)));
+    }
+
+    [Fact]
+    public void HumanAndAiDuration_SumOnlyTheirOwnSourceIntervals()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+
+        session.RecordActivity(ActivitySource.Human, Start, Start.AddMinutes(10));
+        session.RecordActivity(ActivitySource.Human, Start.AddMinutes(10), Start.AddMinutes(25));
+        session.RecordActivity(ActivitySource.Ai, Start.AddMinutes(25), Start.AddMinutes(30));
+
+        Assert.Equal(TimeSpan.FromMinutes(25), session.HumanDuration);
+        Assert.Equal(TimeSpan.FromMinutes(5), session.AiDuration);
+        Assert.Equal(3, session.Activities.Count);
+    }
+}
