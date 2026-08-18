@@ -58,7 +58,7 @@ public class SqliteTaskRepositoryTests
         await repository.AddAsync(task, CancellationToken.None);
 
         task.Start();
-        task.AttachProviderReference("gh-99");
+        task.AttachProviderReference("github", "gh-99");
         await repository.UpdateAsync(task, CancellationToken.None);
 
         var loaded = await repository.GetByIdAsync(task.Id, CancellationToken.None);
@@ -67,8 +67,27 @@ public class SqliteTaskRepositoryTests
         Assert.Equal(task.Title, loaded!.Title);
         Assert.Equal(task.Description, loaded.Description);
         Assert.Equal(TaskStatus.InProgress, loaded.Status);
+        Assert.Equal("github", loaded.ProviderId);
         Assert.Equal("gh-99", loaded.ProviderTaskId);
         Assert.Equal(task.CreatedAt, loaded.CreatedAt);
+    }
+
+    [Fact]
+    public async Task AddAsync_ThenGetByIdAsync_RoundTripsProviderId()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var repository = new SqliteTaskRepository(db.PathProvider);
+
+        var task = TaskItem.Create("Write report", "Quarterly summary");
+        task.AttachProviderReference("github", "gh-123");
+
+        await repository.AddAsync(task, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync(task.Id, CancellationToken.None);
+
+        Assert.NotNull(loaded);
+        Assert.Equal("github", loaded!.ProviderId);
+        Assert.Equal("gh-123", loaded.ProviderTaskId);
     }
 
     [Fact]

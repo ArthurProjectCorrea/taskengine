@@ -31,6 +31,36 @@ public class SqliteDatabaseInitializerTests
         Assert.Equal(ExpectedTables, await GetTableNamesAsync(db.PathProvider));
     }
 
+    [Fact]
+    public async Task EnsureCreatedAsync_RunTwice_KeepsTasksProviderIdColumnAndDoesNotThrow()
+    {
+        using var db = new TempSqliteDatabase();
+
+        await db.InitializeAsync();
+        await db.InitializeAsync();
+
+        Assert.Contains("provider_id", await GetTasksColumnNamesAsync(db.PathProvider));
+    }
+
+    private static async Task<List<string>> GetTasksColumnNamesAsync(SqlitePathProvider pathProvider)
+    {
+        await using var connection = new SqliteConnection(pathProvider.ConnectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info('tasks');";
+
+        var names = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+        var nameOrdinal = reader.GetOrdinal("name");
+        while (await reader.ReadAsync())
+        {
+            names.Add(reader.GetString(nameOrdinal));
+        }
+
+        return names;
+    }
+
     private static async Task<List<string>> GetTableNamesAsync(SqlitePathProvider pathProvider)
     {
         await using var connection = new SqliteConnection(pathProvider.ConnectionString);

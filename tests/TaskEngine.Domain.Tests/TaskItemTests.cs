@@ -59,4 +59,37 @@ public class TaskItemTests
 
         Assert.Throws<InvalidOperationException>(() => task.Complete());
     }
+
+    [Fact]
+    public void AttachProviderReference_SetsProviderIdAndProviderTaskId()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        task.AttachProviderReference("github", "gh-42");
+
+        Assert.Equal("github", task.ProviderId);
+        Assert.Equal("gh-42", task.ProviderTaskId);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void AttachProviderReference_ThrowsWhenProviderIdIsEmpty(string? providerId)
+    {
+        var task = TaskItem.Create("Write tests");
+
+        Assert.Throws<ArgumentException>(() => task.AttachProviderReference(providerId!, "gh-42"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void AttachProviderReference_ThrowsWhenProviderTaskIdIsEmpty(string? providerTaskId)
+    {
+        var task = TaskItem.Create("Write tests");
+
+        Assert.Throws<ArgumentException>(() => task.AttachProviderReference("github", providerTaskId!));
+    }
 }

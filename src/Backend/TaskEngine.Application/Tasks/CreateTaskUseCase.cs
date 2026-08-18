@@ -29,7 +29,7 @@ public sealed class CreateTaskUseCase
             ITaskProviderClient providerClient = await _providerClientFactory.CreateAsync(request.ProviderId, cancellationToken);
             ProviderTaskReference reference = await providerClient.CreateTaskAsync(task, request.ProviderFieldValues, cancellationToken);
 
-            task.AttachProviderReference(reference.ExternalId);
+            task.AttachProviderReference(request.ProviderId, reference.ExternalId);
             await _taskRepository.UpdateAsync(task, cancellationToken);
         }
 
