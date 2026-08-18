@@ -20,7 +20,7 @@ public class OnboardingViewModelTests
         var credentialStore = new FakeCredentialStore();
         var appSettingsStore = new FakeAppSettingsStore();
 
-        var viewModel = new OnboardingViewModel([authenticator], [client], credentialStore, appSettingsStore);
+        var viewModel = new OnboardingViewModel([authenticator], new FakeProviderClientFactory(client), credentialStore, appSettingsStore);
 
         await viewModel.ConnectAsync("github", CancellationToken.None);
 
@@ -42,7 +42,7 @@ public class OnboardingViewModelTests
         var credentialStore = new FakeCredentialStore();
         var appSettingsStore = new FakeAppSettingsStore();
 
-        var viewModel = new OnboardingViewModel([authenticator], [client], credentialStore, appSettingsStore);
+        var viewModel = new OnboardingViewModel([authenticator], new FakeProviderClientFactory(client), credentialStore, appSettingsStore);
 
         await viewModel.ConnectAsync("github", CancellationToken.None);
 
@@ -63,7 +63,7 @@ public class OnboardingViewModelTests
         var credentialStore = new FakeCredentialStore();
         var appSettingsStore = new FakeAppSettingsStore();
 
-        var viewModel = new OnboardingViewModel([authenticator], [client], credentialStore, appSettingsStore);
+        var viewModel = new OnboardingViewModel([authenticator], new FakeProviderClientFactory(client), credentialStore, appSettingsStore);
 
         await viewModel.ConnectAsync("github", CancellationToken.None);
 
@@ -86,7 +86,7 @@ public class OnboardingViewModelTests
         var client = new FakeTaskProviderClient("github", SampleSchema);
         var appSettingsStore = new FakeAppSettingsStore();
 
-        var viewModel = new OnboardingViewModel([authenticator], [client], new FakeCredentialStore(), appSettingsStore);
+        var viewModel = new OnboardingViewModel([authenticator], new FakeProviderClientFactory(client), new FakeCredentialStore(), appSettingsStore);
 
         var connectedProviderId = await viewModel.GetAlreadyConnectedProviderIdAsync(CancellationToken.None);
 
@@ -101,7 +101,7 @@ public class OnboardingViewModelTests
         var appSettingsStore = new FakeAppSettingsStore();
         await appSettingsStore.SetAsync("provider:connected", "github", CancellationToken.None);
 
-        var viewModel = new OnboardingViewModel([authenticator], [client], new FakeCredentialStore(), appSettingsStore);
+        var viewModel = new OnboardingViewModel([authenticator], new FakeProviderClientFactory(client), new FakeCredentialStore(), appSettingsStore);
 
         var connectedProviderId = await viewModel.GetAlreadyConnectedProviderIdAsync(CancellationToken.None);
 
@@ -114,7 +114,7 @@ public class OnboardingViewModelTests
         var authenticator = new FakeProviderAuthenticator("github", SuccessfulAuthResult);
         var client = new FakeTaskProviderClient("github", SampleSchema);
 
-        var viewModel = new OnboardingViewModel([authenticator], [client], new FakeCredentialStore(), new FakeAppSettingsStore());
+        var viewModel = new OnboardingViewModel([authenticator], new FakeProviderClientFactory(client), new FakeCredentialStore(), new FakeAppSettingsStore());
 
         var provider = Assert.Single(viewModel.Providers);
         Assert.Equal("github", provider.ProviderId);

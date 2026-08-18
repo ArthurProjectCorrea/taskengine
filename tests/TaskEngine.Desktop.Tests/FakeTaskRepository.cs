@@ -1,41 +1,32 @@
 using TaskEngine.Application.Abstractions;
 using TaskEngine.Domain.Entities;
 
-namespace TaskEngine.Application.Tests;
+namespace TaskEngine.Desktop.Tests;
 
-/// <summary>
-/// Hand-written fake for <see cref="ITaskRepository"/>, no mocking library involved.
-/// </summary>
+/// <summary>Hand-written in-memory fake for <see cref="ITaskRepository"/>, no mocking library.</summary>
 public sealed class FakeTaskRepository : ITaskRepository
 {
-    private readonly List<TaskItem> _tasks = [];
-
-    public IReadOnlyList<TaskItem> Tasks => _tasks;
+    private readonly Dictionary<Guid, TaskItem> _tasks = [];
 
     public Task AddAsync(TaskItem task, CancellationToken cancellationToken)
     {
-        _tasks.Add(task);
+        _tasks[task.Id] = task;
         return Task.CompletedTask;
     }
 
     public Task UpdateAsync(TaskItem task, CancellationToken cancellationToken)
     {
-        var index = _tasks.FindIndex(t => t.Id == task.Id);
-        if (index >= 0)
-        {
-            _tasks[index] = task;
-        }
-
+        _tasks[task.Id] = task;
         return Task.CompletedTask;
     }
 
     public Task<TaskItem?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return Task.FromResult(_tasks.FirstOrDefault(t => t.Id == id));
+        return Task.FromResult(_tasks.GetValueOrDefault(id));
     }
 
     public Task<IReadOnlyList<TaskItem>> ListAsync(CancellationToken cancellationToken)
     {
-        return Task.FromResult<IReadOnlyList<TaskItem>>(_tasks.ToList());
+        return Task.FromResult<IReadOnlyList<TaskItem>>(_tasks.Values.ToList());
     }
 }

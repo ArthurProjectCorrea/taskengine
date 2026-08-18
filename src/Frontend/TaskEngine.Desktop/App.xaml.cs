@@ -44,12 +44,16 @@ public partial class App : Microsoft.Maui.Controls.Application
     }
 
     /// <summary>
-    /// Decisão de startup (issue #20, escopo simples - navegação completa fica para a #2): se já
-    /// existe um provedor conectado (checado via <see cref="OnboardingViewModel.GetAlreadyConnectedProviderIdAsync"/>),
-    /// pula direto para <see cref="AppShell"/>/<see cref="MainPage"/>; caso contrário, mostra
-    /// <see cref="OnboardingPage"/> primeiro. Depois que o onboarding conecta um provedor com
-    /// sucesso, a navegação para o app principal só acontece no próximo start - navegar
-    /// automaticamente na hora exigiria um sistema de navegação que é escopo da #2.
+    /// Decisão de startup (issue #20, ajustada minimamente na #26 - navegação completa
+    /// continua fora de escopo, ver #2): se já existe um provedor conectado (checado via
+    /// <see cref="OnboardingViewModel.GetAlreadyConnectedProviderIdAsync"/>), pula direto para
+    /// <see cref="CreateTaskPage"/> (resolvida via DI, mesmo padrão usado abaixo para
+    /// <see cref="OnboardingPage"/> - nenhum sistema de navegação novo foi introduzido, só a
+    /// página inicial trocou de "AppShell/MainPage" placeholder para a tela real que a #26
+    /// implementa); caso contrário, mostra <see cref="OnboardingPage"/> primeiro. Depois que o
+    /// onboarding conecta um provedor com sucesso, a navegação para <see cref="CreateTaskPage"/>
+    /// só acontece no próximo start - navegar automaticamente na hora exigiria um sistema de
+    /// navegação que é escopo da #2.
     /// </summary>
     private Page ResolveStartupPage()
     {
@@ -61,7 +65,7 @@ public partial class App : Microsoft.Maui.Controls.Application
 
         if (connectedProviderId is not null)
         {
-            return new AppShell();
+            return _serviceProvider.GetRequiredService<CreateTaskPage>();
         }
 
         return _serviceProvider.GetRequiredService<OnboardingPage>();

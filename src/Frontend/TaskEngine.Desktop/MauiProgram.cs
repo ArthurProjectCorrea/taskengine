@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TaskEngine.Application.Abstractions;
+using TaskEngine.Application.Tasks;
 using TaskEngine.Desktop.ViewModels;
 using TaskEngine.Desktop.Views;
 using TaskEngine.Infrastructure.Persistence;
+using TaskEngine.Infrastructure.Providers;
 using TaskEngine.Infrastructure.Providers.GitHub;
 
 namespace TaskEngine.Desktop;
@@ -53,6 +55,7 @@ public static class MauiProgram
         services.AddSingleton<SqliteDatabaseInitializer>();
         services.AddSingleton<IAppSettingsStore, SqliteAppSettingsStore>();
         services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
+        services.AddSingleton<ITaskRepository, SqliteTaskRepository>();
 
         // TODO: ClientId é um placeholder até o Arthur registrar o GitHub App real (ver issue #22).
         // Sem client secret de propósito: fluxo Authorization Code + PKCE para client público.
@@ -61,22 +64,24 @@ public static class MauiProgram
             Scopes: ["repo", "read:project"]));
         services.AddSingleton<IProviderAuthenticator, GitHubOAuthAuthenticator>();
 
-        // TODO: AccessToken/OwnerLogin/ProjectNumber são placeholders. Na prática só fazem sentido
-        // depois que o usuário conecta (AccessToken vem do OAuth) e escolhe o projeto de destino no
-        // GitHub - isso ainda não tem UI própria. Placeholder aqui só permite que GitHubProjectsClient
-        // seja resolvido pelo DI; GetTaskSchemaAsync vai falhar contra a API real até isso ser
-        // preenchido de verdade, o que é aceitável nesta fase (onboarding só lista provedores e
-        // dispara auth - a chamada real ao client já pressupõe token/projeto configurados).
-        services.AddSingleton(new GitHubProjectsOptions(
-            AccessToken: "TODO_GITHUB_PROJECTS_ACCESS_TOKEN",
-            OwnerLogin: "TODO_GITHUB_PROJECTS_OWNER_LOGIN",
-            ProjectNumber: 0));
-        services.AddSingleton<ITaskProviderClient, GitHubProjectsClient>();
+        // IProviderClientFactory (issue #26) substitui o registro antigo de um único
+        // ITaskProviderClient construído aqui no startup com opções placeholder (token/OwnerLogin/
+        // ProjectNumber fixos) - essa fábrica resolve o client concreto sob demanda, injetando o
+        // token real (via ICredentialStore, salvo pelo onboarding) só no momento do uso.
+        // OwnerLogin/ProjectNumber continuam placeholder dentro da própria fábrica (ver
+        // TaskEngine.Infrastructure.Providers.ProviderClientFactory) até existir uma tela de
+        // escolha de projeto do GitHub - fora do escopo da #26.
+        services.AddSingleton<IProviderClientFactory, ProviderClientFactory>();
+
+        services.AddTransient<CreateTaskUseCase>();
     }
 
     private static void RegisterPresentation(IServiceCollection services)
     {
         services.AddTransient<OnboardingViewModel>();
         services.AddTransient<OnboardingPage>();
+
+        services.AddTransient<CreateTaskViewModel>();
+        services.AddTransient<CreateTaskPage>();
     }
 }
