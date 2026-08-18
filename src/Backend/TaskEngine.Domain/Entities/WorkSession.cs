@@ -31,6 +31,28 @@ public sealed class WorkSession
         return new WorkSession(Guid.NewGuid(), taskId, startedAt);
     }
 
+    /// <summary>
+    /// Rehydrates a <see cref="WorkSession"/> from persisted state, including its already
+    /// recorded <paramref name="activities"/>. Unlike <see cref="Start"/> + <see cref="RecordActivity"/>,
+    /// this does not re-validate "new object" invariants (e.g. closed-session guard) - the data
+    /// was already validated when the entity was first created.
+    /// </summary>
+    public static WorkSession Restore(
+        Guid id,
+        Guid taskId,
+        DateTimeOffset startedAt,
+        DateTimeOffset? endedAt,
+        IEnumerable<ActivityInterval> activities)
+    {
+        var session = new WorkSession(id, taskId, startedAt)
+        {
+            EndedAt = endedAt,
+        };
+        session._activities.AddRange(activities);
+
+        return session;
+    }
+
     public void RecordActivity(ActivitySource source, DateTimeOffset startedAt, DateTimeOffset endedAt)
     {
         if (EndedAt is not null)

@@ -8,4 +8,8 @@ namespace TaskEngine.Application.Abstractions;
 public interface ITaskRepository
 {
     Task AddAsync(TaskItem task, CancellationToken cancellationToken);
+
+    Task<TaskItem?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<TaskItem>> ListAsync(CancellationToken cancellationToken);
 }

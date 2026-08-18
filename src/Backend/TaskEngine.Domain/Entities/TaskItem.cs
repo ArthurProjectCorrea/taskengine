@@ -47,6 +47,25 @@ public sealed class TaskItem
             createdAt ?? DateTimeOffset.UtcNow);
     }
 
+    /// <summary>
+    /// Rehydrates a <see cref="TaskItem"/> from persisted state. Unlike <see cref="Create"/>,
+    /// this does not re-validate "new object" invariants (e.g. non-empty title) - the data was
+    /// already validated when the entity was first created.
+    /// </summary>
+    public static TaskItem Restore(
+        Guid id,
+        string title,
+        string? description,
+        TaskStatus status,
+        string? providerTaskId,
+        DateTimeOffset createdAt)
+    {
+        return new TaskItem(id, title, description, providerTaskId, createdAt)
+        {
+            Status = status,
+        };
+    }
+
     public void Start()
     {
         if (Status != TaskStatus.ToDo)
