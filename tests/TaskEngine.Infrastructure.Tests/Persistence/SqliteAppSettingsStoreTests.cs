@@ -42,4 +42,28 @@ public class SqliteAppSettingsStoreTests
 
         Assert.Equal("light", value);
     }
+
+    [Fact]
+    public async Task DeleteAsync_RemovesValue_SoGetAsyncReturnsNull()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var store = new SqliteAppSettingsStore(db.PathProvider);
+
+        await store.SetAsync("theme", "dark", CancellationToken.None);
+        await store.DeleteAsync("theme", CancellationToken.None);
+        var value = await store.GetAsync("theme", CancellationToken.None);
+
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenKeyIsAbsent_DoesNotThrow()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var store = new SqliteAppSettingsStore(db.PathProvider);
+
+        await store.DeleteAsync("missing-key", CancellationToken.None);
+    }
 }
