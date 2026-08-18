@@ -24,14 +24,15 @@ public sealed class SqliteTaskRepository : ITaskRepository
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO tasks (id, title, description, status, provider_task_id, created_at)
-            VALUES ($id, $title, $description, $status, $providerTaskId, $createdAt);
+            INSERT INTO tasks (id, title, description, status, provider_id, provider_task_id, created_at)
+            VALUES ($id, $title, $description, $status, $providerId, $providerTaskId, $createdAt);
             """;
 
         command.Parameters.AddWithValue("$id", task.Id.ToString());
         command.Parameters.AddWithValue("$title", task.Title);
         command.Parameters.AddWithValue("$description", (object?)task.Description ?? DBNull.Value);
         command.Parameters.AddWithValue("$status", task.Status.ToString());
+        command.Parameters.AddWithValue("$providerId", (object?)task.ProviderId ?? DBNull.Value);
         command.Parameters.AddWithValue("$providerTaskId", (object?)task.ProviderTaskId ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAt", SqliteDateTimeOffsetFormat.ToText(task.CreatedAt));
 
@@ -45,7 +46,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         command.CommandText = """
             UPDATE tasks
             SET title = $title, description = $description, status = $status,
-                provider_task_id = $providerTaskId, created_at = $createdAt
+                provider_id = $providerId, provider_task_id = $providerTaskId, created_at = $createdAt
             WHERE id = $id;
             """;
 
@@ -53,6 +54,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         command.Parameters.AddWithValue("$title", task.Title);
         command.Parameters.AddWithValue("$description", (object?)task.Description ?? DBNull.Value);
         command.Parameters.AddWithValue("$status", task.Status.ToString());
+        command.Parameters.AddWithValue("$providerId", (object?)task.ProviderId ?? DBNull.Value);
         command.Parameters.AddWithValue("$providerTaskId", (object?)task.ProviderTaskId ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAt", SqliteDateTimeOffsetFormat.ToText(task.CreatedAt));
 
@@ -64,7 +66,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, title, description, status, provider_task_id, created_at
+            SELECT id, title, description, status, provider_id, provider_task_id, created_at
             FROM tasks
             WHERE id = $id;
             """;
@@ -84,7 +86,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, title, description, status, provider_task_id, created_at
+            SELECT id, title, description, status, provider_id, provider_task_id, created_at
             FROM tasks
             ORDER BY created_at;
             """;
@@ -113,7 +115,8 @@ public sealed class SqliteTaskRepository : ITaskRepository
             title: reader.GetString(1),
             description: reader.IsDBNull(2) ? null : reader.GetString(2),
             status: Enum.Parse<TaskStatus>(reader.GetString(3)),
-            providerTaskId: reader.IsDBNull(4) ? null : reader.GetString(4),
-            createdAt: SqliteDateTimeOffsetFormat.Parse(reader.GetString(5)));
+            providerId: reader.IsDBNull(4) ? null : reader.GetString(4),
+            providerTaskId: reader.IsDBNull(5) ? null : reader.GetString(5),
+            createdAt: SqliteDateTimeOffsetFormat.Parse(reader.GetString(6)));
     }
 }

@@ -77,6 +77,7 @@ public class CreateTaskUseCaseTests
         Assert.Equal("Write report", providerClientFactory.ClientToReturn.LastCreatedTask?.Title);
 
         TaskItem persisted = Assert.Single(repository.Tasks);
+        Assert.Equal("github", persisted.ProviderId);
         Assert.Equal("gh-42", persisted.ProviderTaskId);
         Assert.Equal("gh-42", result.ProviderTaskId);
     }
