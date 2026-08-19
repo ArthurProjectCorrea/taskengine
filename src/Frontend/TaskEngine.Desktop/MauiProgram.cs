@@ -2,7 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TaskEngine.Application.Abstractions;
 using TaskEngine.Application.Tasks;
+using TaskEngine.Desktop.Navigation;
 using TaskEngine.Desktop.ViewModels;
+using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Desktop.Views;
 using TaskEngine.Infrastructure.Persistence;
 using TaskEngine.Infrastructure.Providers;
@@ -84,5 +86,14 @@ public static class MauiProgram
 
         services.AddTransient<CreateTaskViewModel>();
         services.AddTransient<CreateTaskPage>();
+
+        // Shell/navegação (issue #2). Singletons: há uma única janela para o app inteiro - ela
+        // nunca é recriada, só escondida/mostrada (ver MainWindowManager) - então o estado de
+        // navegação (qual seção está ativa) precisa sobreviver a esses ciclos, não ser recriado a
+        // cada resolução do container.
+        services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<SectionViewFactory>();
+        services.AddSingleton<ShellViewModel>();
+        services.AddSingleton<MainShellPage>();
     }
 }

@@ -44,16 +44,17 @@ public partial class App : Microsoft.Maui.Controls.Application
     }
 
     /// <summary>
-    /// Decisão de startup (issue #20, ajustada minimamente na #26 - navegação completa
-    /// continua fora de escopo, ver #2): se já existe um provedor conectado (checado via
+    /// Decisão de startup (issue #20, atualizada na #2 - shell de navegação real): se já existe um
+    /// provedor conectado (checado via
     /// <see cref="OnboardingViewModel.GetAlreadyConnectedProviderIdAsync"/>), pula direto para
-    /// <see cref="CreateTaskPage"/> (resolvida via DI, mesmo padrão usado abaixo para
-    /// <see cref="OnboardingPage"/> - nenhum sistema de navegação novo foi introduzido, só a
-    /// página inicial trocou de "AppShell/MainPage" placeholder para a tela real que a #26
-    /// implementa); caso contrário, mostra <see cref="OnboardingPage"/> primeiro. Depois que o
-    /// onboarding conecta um provedor com sucesso, a navegação para <see cref="CreateTaskPage"/>
-    /// só acontece no próximo start - navegar automaticamente na hora exigiria um sistema de
-    /// navegação que é escopo da #2.
+    /// <see cref="MainShellPage"/> (o shell com a sidebar de navegação - resolvido via DI, mesmo
+    /// padrão usado abaixo para <see cref="OnboardingPage"/>), que por sua vez abre na seção
+    /// Dashboard (hoje uma <see cref="PlaceholderView"/> - a tela real é Fase E); caso contrário,
+    /// mostra <see cref="OnboardingPage"/> primeiro. Depois que o onboarding conecta um provedor
+    /// com sucesso, a navegação para o shell só acontece no próximo start - navegar
+    /// automaticamente na hora não faz parte do escopo da #2 (só o mecanismo de navegação em si).
+    /// <see cref="CreateTaskPage"/> continua registrada no DI (Fase E) mas não é mais o destino de
+    /// startup.
     /// </summary>
     private Page ResolveStartupPage()
     {
@@ -65,7 +66,7 @@ public partial class App : Microsoft.Maui.Controls.Application
 
         if (connectedProviderId is not null)
         {
-            return _serviceProvider.GetRequiredService<CreateTaskPage>();
+            return _serviceProvider.GetRequiredService<MainShellPage>();
         }
 
         return _serviceProvider.GetRequiredService<OnboardingPage>();
@@ -73,9 +74,9 @@ public partial class App : Microsoft.Maui.Controls.Application
 
     /// <summary>
     /// Disparado quando a janela nativa da plataforma foi criada. É aqui que a implementação
-    /// de cada plataforma configura o comportamento de janela flutuante (frameless, sempre no
-    /// topo, fora da barra de tarefas), registra o atalho global, o ícone de bandeja e o
-    /// início automático com o SO — e esconde a janela para o app iniciar residente na bandeja.
+    /// de cada plataforma configura a moldura/tamanho da janela principal, registra o atalho
+    /// global, o ícone de bandeja e o início automático com o SO — e esconde a janela para o app
+    /// iniciar residente na bandeja (mostrada sob demanda via atalho global ou menu de bandeja).
     /// </summary>
     partial void OnWindowCreated(Window window);
 

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             xmlns:converters="clr-namespace:TaskEngine.Desktop.Converters"
+             x:Class="TaskEngine.Desktop.Views.MainShellPage"
+             x:DataType="viewModels:ShellViewModel"
+             Title="TaskEngine">
+
+    <ContentPage.Resources>
+        <converters:EnumEqualsConverter x:Key="EnumEqualsConverter" />
+    </ContentPage.Resources>
+
+    <Grid ColumnDefinitions="56,*">
+
+        <!-- Sidebar de navegação (issue #2): os 3 ícones do protótipo aprovado
+             (Dashboard/Tarefas/Configurações) - ver docs/prototipo/*.dc.html. Ícones reais (SVG do
+             protótipo) ficam para a Fase E; aqui só a mecânica de navegação precisa funcionar. -->
+        <VerticalStackLayout Grid.Column="0"
+                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                             Spacing="8"
+                             Padding="0,10"
+                             VerticalOptions="Start"
+                             HorizontalOptions="Center">
+
+            <Button Text="D"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    CornerRadius="6"
+                    Command="{Binding NavigateToDashboardCommand}"
+                    SemanticProperties.Description="Dashboard">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button"
+                                 Binding="{Binding CurrentSection, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Dashboard}"
+                                 Value="True">
+                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                        <Setter Property="TextColor" Value="{StaticResource White}" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <Button Text="T"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    CornerRadius="6"
+                    Command="{Binding NavigateToTarefasCommand}"
+                    SemanticProperties.Description="Tarefas">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button"
+                                 Binding="{Binding CurrentSection, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Tarefas}"
+                                 Value="True">
+                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                        <Setter Property="TextColor" Value="{StaticResource White}" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <Button Text="C"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    CornerRadius="6"
+                    Command="{Binding NavigateToConfiguracoesCommand}"
+                    SemanticProperties.Description="Configurações">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button"
+                                 Binding="{Binding CurrentSection, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Configuracoes}"
+                                 Value="True">
+                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                        <Setter Property="TextColor" Value="{StaticResource White}" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+        </VerticalStackLayout>
+
+        <!-- Área de conteúdo: MainShellPage.xaml.cs troca o Content deste host a cada navegação. -->
+        <ContentView Grid.Column="1" x:Name="SectionHost" />
+
+    </Grid>
+
+</ContentPage>
