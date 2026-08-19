@@ -67,6 +67,17 @@ public class SqliteDatabaseInitializerTests
     }
 
     [Fact]
+    public async Task EnsureCreatedAsync_RunTwice_KeepsTasksPriorityColumnAndDoesNotThrow()
+    {
+        using var db = new TempSqliteDatabase();
+
+        await db.InitializeAsync();
+        await db.InitializeAsync();
+
+        Assert.Contains("priority", await GetColumnNamesAsync(db.PathProvider, "tasks"));
+    }
+
+    [Fact]
     public async Task EnsureCreatedAsync_RunTwice_KeepsActivityIntervalsNewColumnsAndDoesNotThrow()
     {
         using var db = new TempSqliteDatabase();

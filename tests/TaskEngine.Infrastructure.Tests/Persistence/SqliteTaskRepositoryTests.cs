@@ -108,6 +108,23 @@ public class SqliteTaskRepositoryTests
     }
 
     [Fact]
+    public async Task AddAsync_ThenGetByIdAsync_RoundTripsPriority()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var repository = new SqliteTaskRepository(db.PathProvider);
+
+        var task = TaskItem.Create("Write report");
+        task.SetPriority("High");
+
+        await repository.AddAsync(task, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync(task.Id, CancellationToken.None);
+
+        Assert.NotNull(loaded);
+        Assert.Equal("High", loaded!.Priority);
+    }
+
+    [Fact]
     public async Task AddAsync_ThenGetByIdAsync_RoundTripsPausedStatus()
     {
         using var db = new TempSqliteDatabase();

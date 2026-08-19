@@ -81,4 +81,43 @@ public class CreateTaskUseCaseTests
         Assert.Equal("gh-42", persisted.ProviderTaskId);
         Assert.Equal("gh-42", result.ProviderTaskId);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WithPrioritySingleSelectFieldValue_ResolvesDisplayNameAsPriority()
+    {
+        var repository = new FakeTaskRepository();
+        var providerClientFactory = new FakeProviderClientFactory();
+        providerClientFactory.ClientToReturn.SchemaToReturn = new ProviderTaskSchema(
+            "github",
+            [
+                new ProviderFieldDefinition(
+                    "priority-field-id",
+                    "Priority",
+                    ProviderFieldType.SingleSelect,
+                    Required: false,
+                    Options: [new ProviderFieldOption("opt-high", "High"), new ProviderFieldOption("opt-low", "Low")]),
+            ]);
+        var fieldValues = new Dictionary<string, string> { ["priority-field-id"] = "opt-high" };
+        var useCase = new CreateTaskUseCase(repository, providerClientFactory);
+        var request = new CreateTaskRequest("Write report", ProviderId: "github", ProviderFieldValues: fieldValues);
+
+        TaskDto result = await useCase.ExecuteAsync(request);
+
+        Assert.Equal("High", result.Priority);
+        Assert.Equal("High", Assert.Single(repository.Tasks).Priority);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithoutPriorityFieldInSchema_LeavesPriorityNull()
+    {
+        var repository = new FakeTaskRepository();
+        var providerClientFactory = new FakeProviderClientFactory();
+        var fieldValues = new Dictionary<string, string> { ["status"] = "todo" };
+        var useCase = new CreateTaskUseCase(repository, providerClientFactory);
+        var request = new CreateTaskRequest("Write report", ProviderId: "github", ProviderFieldValues: fieldValues);
+
+        TaskDto result = await useCase.ExecuteAsync(request);
+
+        Assert.Null(result.Priority);
+    }
 }

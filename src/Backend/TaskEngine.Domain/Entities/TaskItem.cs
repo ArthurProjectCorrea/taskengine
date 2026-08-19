@@ -19,6 +19,16 @@ public sealed class TaskItem
     /// </summary>
     public string? ProviderStatusName { get; private set; }
 
+    /// <summary>
+    /// Priority label as reported by the provider's dynamic schema (Schema-001 "Prioridade",
+    /// ERS-Tarefas.md), e.g. "High"/"P1". Optional - not every provider/project configures a
+    /// priority field. Kept as free text rather than a fixed enum since priority *options* are
+    /// provider-defined, same rationale as <see cref="ProviderStatusName"/>/RN-010; per the ERS
+    /// assumptions, no cross-provider normalization is needed yet (only one provider is connected
+    /// at a time in this version).
+    /// </summary>
+    public string? Priority { get; private set; }
+
     public string? ProviderId { get; private set; }
     public string? ProviderTaskId { get; private set; }
     public DateTimeOffset CreatedAt { get; }
@@ -82,12 +92,14 @@ public sealed class TaskItem
         string? providerId,
         string? providerTaskId,
         DateTimeOffset createdAt,
-        string? providerStatusName = null)
+        string? providerStatusName = null,
+        string? priority = null)
     {
         return new TaskItem(id, title, description, providerId, providerTaskId, createdAt)
         {
             Status = status,
             ProviderStatusName = providerStatusName,
+            Priority = priority,
         };
     }
 
@@ -152,6 +164,14 @@ public sealed class TaskItem
     public void SetProviderStatusName(string? providerStatusName)
     {
         ProviderStatusName = providerStatusName;
+    }
+
+    /// <summary>
+    /// Records the priority label reported by the provider's dynamic schema (Schema-001).
+    /// </summary>
+    public void SetPriority(string? priority)
+    {
+        Priority = priority;
     }
 
     /// <summary>

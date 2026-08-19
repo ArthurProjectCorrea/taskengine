@@ -100,6 +100,9 @@ public sealed class SqliteDatabaseInitializer
         await EnsureColumnAsync(connection, "activity_intervals", "type", "TEXT NULL", cancellationToken);
         await EnsureColumnAsync(connection, "activity_intervals", "path", "TEXT NULL", cancellationToken);
         await EnsureColumnAsync(connection, "activity_intervals", "selected_at_conclusion", "INTEGER NULL", cancellationToken);
+
+        // tasks.priority (Schema-001 "Prioridade") - populated from the provider's dynamic schema.
+        await EnsureColumnAsync(connection, "tasks", "priority", "TEXT NULL", cancellationToken);
     }
 
     /// <summary>

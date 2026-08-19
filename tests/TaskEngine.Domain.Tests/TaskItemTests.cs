@@ -123,6 +123,24 @@ public class TaskItemTests
     }
 
     [Fact]
+    public void Create_StartsWithNullPriority()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        Assert.Null(task.Priority);
+    }
+
+    [Fact]
+    public void SetPriority_UpdatesPriority()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        task.SetPriority("High");
+
+        Assert.Equal("High", task.Priority);
+    }
+
+    [Fact]
     public void AttachProviderReference_SetsProviderIdAndProviderTaskId()
     {
         var task = TaskItem.Create("Write tests");

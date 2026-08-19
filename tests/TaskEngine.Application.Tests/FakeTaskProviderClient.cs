@@ -17,13 +17,15 @@ public sealed class FakeTaskProviderClient : ITaskProviderClient
 
     public ProviderTaskReference ReferenceToReturn { get; set; } = new("github", "external-1", Url: null);
 
+    public ProviderTaskSchema? SchemaToReturn { get; set; }
+
     public TaskItem? LastCreatedTask { get; private set; }
 
     public IReadOnlyDictionary<string, string>? LastFieldValues { get; private set; }
 
     public Task<ProviderTaskSchema> GetTaskSchemaAsync(CancellationToken cancellationToken)
     {
-        return Task.FromResult(new ProviderTaskSchema(ProviderId, []));
+        return Task.FromResult(SchemaToReturn ?? new ProviderTaskSchema(ProviderId, []));
     }
 
     public Task<ProviderTaskReference> CreateTaskAsync(

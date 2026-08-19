@@ -10,4 +10,5 @@ public sealed record TaskDto(
     string? Description,
     string Status,
     DateTimeOffset CreatedAt,
-    string? ProviderTaskId = null);
+    string? ProviderTaskId = null,
+    string? Priority = null);
