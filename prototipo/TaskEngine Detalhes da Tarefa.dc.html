@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><style>
+:root{--fam:"Segoe UI Variable Display","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
+html,body{margin:0;height:100%;overflow:hidden;background:#F3F3F3;font-family:var(--fam);-webkit-font-smoothing:antialiased}
+a{color:#005FB8;text-decoration:none}a:hover{color:#0078D4;text-decoration:underline}
+button,input,textarea{font-family:var(--fam)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style></helmet>
+
+<div style="width:100vw;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:#F3F3F3;color:#1A1A1A">
+
+  <div style="flex:none;display:flex;align-items:center;height:40px;padding-left:14px">
+    <div style="display:flex;align-items:center;gap:9px;flex:1">
+      <div style="width:16px;height:16px;border-radius:4px;background:#005FB8;display:flex;align-items:center;justify-content:center">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h9M4 12h6M4 17h11"/></svg>
+      </div>
+      <div style="font:400 12px/1 var(--fam);color:#3B3B3B">TaskEngine - 1.0.0</div>
+    </div>
+    <div style="display:flex;height:40px">
+      <div style="width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)"><svg width="10" height="10" viewBox="0 0 10 10" stroke="#1A1A1A" stroke-width="1"><path d="M0 5h10"/></svg></div>
+      <div style="width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#1A1A1A" stroke-width="1"><path d="M2.2 2.2h5.6v5.6H2.2z"/><path d="M.9 3.4V.9h5.6v1.3" opacity=".85"/></svg></div>
+      <div style="width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#C42B1C"><svg width="10" height="10" viewBox="0 0 10 10" stroke="#1A1A1A" stroke-width="1"><path d="M0 0l10 10M10 0L0 10"/></svg></div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex">
+
+    <div style="flex:none;width:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:6px 0 10px">
+      <div onClick="{{ goDash }}" onMouseEnter="{{ tipDash }}" onMouseLeave="{{ tipOut }}" style="position:relative;width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3B3B3B" stroke-width="1.7" stroke-linejoin="round"><rect x="3.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="3.2" y="13.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="13.2" width="7.6" height="7.6" rx="2"/></svg>
+        <sc-if value="{{ tipIsDash }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:48px;top:50%;transform:translateY(-50%);z-index:40;white-space:nowrap;padding:6px 10px;border-radius:5px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.16);font:400 12px/1 var(--fam)">Dashboard</div>
+        </sc-if>
+      </div>
+      <div onClick="{{ goTasks }}" onMouseEnter="{{ tipTasks }}" onMouseLeave="{{ tipOut }}" style="position:relative;width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,95,184,.12)">
+        <span style="position:absolute;left:-4px;top:50%;transform:translateY(-50%);width:3px;height:18px;border-radius:2px;background:#005FB8"></span>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#005FB8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="4" width="17.2" height="16" rx="2.6"/><path d="M7.4 9.2l1.6 1.6 2.8-2.8M7.4 15.2l1.6 1.6 2.8-2.8M14.6 9h3M14.6 15h3"/></svg>
+        <sc-if value="{{ tipIsTasks }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:48px;top:50%;transform:translateY(-50%);z-index:40;white-space:nowrap;padding:6px 10px;border-radius:5px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.16);font:400 12px/1 var(--fam)">Tarefas</div>
+        </sc-if>
+      </div>
+      <div onClick="{{ goCfg }}" onMouseEnter="{{ tipCfg }}" onMouseLeave="{{ tipOut }}" style="position:relative;width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3B3B3B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.2 14.4a7.6 7.6 0 0 0 0-4.8l1.8-1.3-1.9-3.3-2.1.8a7.6 7.6 0 0 0-4.2-2.4L12.3 1H11l-.5 2.4a7.6 7.6 0 0 0-4.2 2.4l-2.1-.8L2.3 8.3l1.8 1.3a7.6 7.6 0 0 0 0 4.8l-1.8 1.3 1.9 3.3 2.1-.8a7.6 7.6 0 0 0 4.2 2.4L11 23h1.3l.5-2.4a7.6 7.6 0 0 0 4.2-2.4l2.1.8 1.9-3.3z"/></svg>
+        <sc-if value="{{ tipIsCfg }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:48px;top:50%;transform:translateY(-50%);z-index:40;white-space:nowrap;padding:6px 10px;border-radius:5px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.16);font:400 12px/1 var(--fam)">Configurações</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;margin:0 8px 8px 0;border-radius:8px;background:#FBFBFB;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);display:flex;flex-direction:column;overflow:hidden">
+
+      <div style="flex:none;display:flex;align-items:center;gap:12px;padding:14px 18px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.06)">
+        <button onClick="{{ goTasks }}" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:5px;cursor:pointer;flex:none" style-hover="background:rgba(0,0,0,.05)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+          <div style="font:400 11px/1.2 var(--fam);color:#8A8A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ detail.meta }}</div>
+          <div style="font:600 17px/1.3 var(--fam);text-wrap:pretty">{{ detail.title }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:20px;background:{{ detail.pillBg }};flex:none">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ detail.statusColor }};animation:{{ detail.statusAnim }}"></span>
+          <span style="font:600 12.5px/1 var(--fam);color:{{ detail.pillFg }};white-space:nowrap">{{ detail.status }}</span>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow:auto;padding:20px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(240px,1fr);gap:16px;align-content:start">
+
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+          <div style="display:flex;flex-direction:column;gap:6px;padding:20px;border-radius:8px;background:rgba(0,95,184,.05);box-shadow:inset 0 0 0 1px rgba(0,95,184,.14)">
+            <div style="font:500 11px/1 var(--fam);letter-spacing:.06em;text-transform:uppercase;color:#616161">Tempo de execução</div>
+            <div style="font:600 40px/1 ui-monospace,Menlo,monospace;letter-spacing:-.01em;color:#003E7E">{{ detail.timer }}</div>
+            <div style="font:400 12.5px/1.3 var(--fam);color:#5D5D5D">{{ detail.timerHint }}</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font:400 13px/1 var(--fam);color:#3B3B3B"><span title="Atividade humana" style="display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#005FB8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.6-3.4 3.3-5.4 6.5-5.4s5.9 2 6.5 5.4"/></svg>Humano</span><strong style="font-weight:600">{{ detail.human }}</strong></div>
+            <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.07);overflow:hidden"><div style="width:{{ detail.humanPct }};height:100%;background:#005FB8"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font:400 13px/1 var(--fam);color:#3B3B3B;margin-top:6px"><span title="Execução com IA" style="display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8764B8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3.5l1.7 4.3 4.3 1.7-4.3 1.7L12 15.5l-1.7-4.3L6 9.5l4.3-1.7z"/><path d="M17.8 16.2l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>IA</span><strong style="font-weight:600">{{ detail.ai }}</strong></div>
+            <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.07);overflow:hidden"><div style="width:{{ detail.aiPct }};height:100%;background:#8764B8"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font:400 13px/1 var(--fam);color:#3B3B3B;margin-top:6px"><span title="Tempo dentro do expediente" style="display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0F7B0F" stroke-width="1.9" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></svg>Expediente</span><strong style="font-weight:600">{{ office.value }}</strong></div>
+            <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.07);overflow:hidden"><div style="width:{{ office.pct }};height:100%;background:#0F7B0F"></div></div>
+            <sc-if value="{{ unmapped.show }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font:400 13px/1 var(--fam);color:#3B3B3B;margin-top:6px"><span title="Tempo não mapeado registrado" style="display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9D5D00" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Não mapeado</span><strong style="font-weight:600">{{ unmapped.value }}</strong></div>
+            <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.07);overflow:hidden"><div style="width:{{ unmapped.pct }};height:100%;background:#9D5D00"></div></div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:7px;position:relative">
+            <sc-if value="{{ detail.isDone }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ goReport }}" style="display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(0,0,0,.1);background:#fff;font:600 13px/1 var(--fam);color:#1A1A1A;padding:11px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#F0F0F0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.9" stroke-linecap="round"><path d="M4 19.5V11M10 19.5V5M16 19.5v-6M21 19.5H3"/></svg>Relatório
+            </button>
+            </sc-if>
+            <sc-if value="{{ detail.showSplit }}" hint-placeholder-val="{{ true }}">
+            <dc-import name="TaskEngine Status Botao" main-label="{{ detail.mainActionLabel }}" on-main="{{ mainStatusAction }}" options="{{ statusOptions }}" hint-size="100%,44px"></dc-import>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ detail.canEditTime }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button onClick="{{ toggleOffline }}" style="display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(0,0,0,.1);background:#fff;font:600 13px/1 var(--fam);color:#1A1A1A;padding:11px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#F0F0F0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Adicionar tempo não mapeado
+            </button>
+          </div>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+          <a href="{{ detail.url }}" target="_blank" rel="noreferrer" style="display:flex;align-items:center;gap:11px;padding:14px 16px;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);text-decoration:none;color:#1A1A1A" style-hover="background:#F7F7F7">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1A1A" style="flex:none"><path d="M12 1.5A10.5 10.5 0 0 0 1.5 12c0 4.64 3 8.57 7.18 9.96.52.1.71-.23.71-.5v-1.9c-2.92.64-3.54-1.24-3.54-1.24-.48-1.22-1.17-1.55-1.17-1.55-.96-.66.07-.64.07-.64 1.06.07 1.62 1.09 1.62 1.09.94 1.62 2.47 1.15 3.07.88.1-.69.37-1.15.67-1.42-2.33-.27-4.79-1.17-4.79-5.2 0-1.15.41-2.09 1.09-2.83-.11-.27-.47-1.35.1-2.8 0 0 .88-.28 2.9 1.08a10 10 0 0 1 5.28 0c2.01-1.36 2.89-1.08 2.89-1.08.58 1.45.22 2.53.11 2.8.68.74 1.09 1.68 1.09 2.83 0 4.04-2.47 4.93-4.81 5.19.38.33.72.97.72 1.96v2.9c0 .28.19.61.72.5A10.5 10.5 0 0 0 22.5 12A10.5 10.5 0 0 0 12 1.5z"/></svg>
+            <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+              <div style="font:500 13px/1.3 var(--fam)">Abrir na interface do provedor</div>
+              <div style="font:400 11.5px/1.3 var(--fam);color:#5D5D5D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">dainai/taskengine</div>
+            </div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M14 4.5h5.5V10M19 5l-8 8M18.5 14.5v4a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5h4"/></svg>
+          </a>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font:600 10.5px/1 var(--fam);letter-spacing:.06em;text-transform:uppercase;color:#616161">Registros de tempo</div>
+            <sc-for list="{{ detail.sessions }}" as="ss" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5D5D5D" stroke-width="1.9" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+                  <div style="font:400 12.5px/1.2 var(--fam);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ss.label }}</div>
+                  <div style="font:400 10.5px/1.2 var(--fam);color:#8A8A8A;white-space:nowrap">{{ ss.kind }}</div>
+                </div>
+                <div style="font:600 12.5px/1 ui-monospace,Menlo,monospace;white-space:nowrap">{{ ss.dur }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ offlineOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:60">
+    <div style="width:400px;border-radius:9px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 30px 70px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:16px 18px 4px">
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+          <div style="font:600 15px/1.2 var(--fam)">Tempo não mapeado</div>
+          <div style="font:400 11.5px/1.4 var(--fam);color:#5D5D5D">Tempo dedicado à tarefa fora do TaskEngine.</div>
+        </div>
+        <button onClick="{{ toggleOffline }}" style="width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:5px;cursor:pointer" style-hover="background:rgba(0,0,0,.05)">
+          <svg width="11" height="11" viewBox="0 0 10 10" stroke="#1A1A1A" stroke-width="1.3"><path d="M0 0l10 10M10 0L0 10"/></svg>
+        </button>
+      </div>
+
+      <div style="padding:14px 18px 18px;display:flex;flex-direction:column;gap:13px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font:500 12px/1 var(--fam);color:#3B3B3B">Duração</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <input value="{{ offlineHours }}" onChange="{{ onOfflineHours }}" placeholder="0" style="width:52px;border:none;outline:none;padding:8px 9px;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);font:400 13px/1 var(--fam);text-align:center" />
+              <span style="font:400 12px/1 var(--fam);color:#5D5D5D">h</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input value="{{ offlineMinutes }}" onChange="{{ onOfflineMinutes }}" placeholder="00" style="width:52px;border:none;outline:none;padding:8px 9px;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);font:400 13px/1 var(--fam);text-align:center" />
+              <span style="font:400 12px/1 var(--fam);color:#5D5D5D">min</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font:500 12px/1 var(--fam);color:#3B3B3B">Início</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="date" value="{{ offlineDate }}" onChange="{{ onOfflineDate }}" style="flex:1;min-width:0;border:none;outline:none;padding:8px 9px;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);font:400 13px/1 var(--fam)" />
+            <input type="time" value="{{ offlineTime }}" onChange="{{ onOfflineTime }}" style="width:100px;border:none;outline:none;padding:8px 9px;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);font:400 13px/1 var(--fam)" />
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font:500 12px/1 var(--fam);color:#3B3B3B">Justificativa</label>
+          <input value="{{ offlineNote }}" onChange="{{ onOfflineNote }}" placeholder="Ex.: reunião de alinhamento presencial" style="border:none;outline:none;padding:9px 10px;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);font:400 13px/1.4 var(--fam)" />
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding:13px 18px;background:rgba(0,0,0,.025);box-shadow:inset 0 1px 0 rgba(0,0,0,.07)">
+        <button onClick="{{ toggleOffline }}" style="border:1px solid rgba(0,0,0,.1);background:#fff;font:600 12.5px/1 var(--fam);color:#1A1A1A;padding:9px 14px;border-radius:5px;cursor:pointer" style-hover="background:#F0F0F0">Cancelar</button>
+        <button onClick="{{ addOffline }}" style="border:1px solid #0059AC;background:#005FB8;color:#fff;font:600 12.5px/1 var(--fam);padding:9px 16px;border-radius:5px;cursor:pointer" style-hover="background:#1A6DBE">Registrar</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ concludeOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:60">
+    <div style="width:560px;max-height:82vh;border-radius:9px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 30px 70px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:16px 18px 4px">
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+          <div style="font:600 15px/1.2 var(--fam)">Concluir tarefa</div>
+          <div style="font:400 11.5px/1.4 var(--fam);color:#5D5D5D">Marque o que foi de fato trabalhado antes de encerrar a sessão.</div>
+          <div style="font:400 11px/1.4 var(--fam);color:#8A8A8A">{{ concludeActiveNote }}</div>
+        </div>
+        <button onClick="{{ toggleConclude }}" style="width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:5px;cursor:pointer" style-hover="background:rgba(0,0,0,.05)">
+          <svg width="11" height="11" viewBox="0 0 10 10" stroke="#1A1A1A" stroke-width="1.3"><path d="M0 0l10 10M10 0L0 10"/></svg>
+        </button>
+      </div>
+
+      <div style="flex:none;padding:10px 18px">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D5D5D" stroke-width="1.9" stroke-linecap="round" style="flex:none"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+          <input value="{{ concludeQuery }}" onChange="{{ onConcludeQuery }}" placeholder="Buscar arquivo ou link" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font:400 12.5px/1.3 var(--fam);color:#1A1A1A" />
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 18px 12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+          <div style="font:600 10.5px/1 var(--fam);letter-spacing:.06em;text-transform:uppercase;color:#616161;padding:8px 0 4px">Arquivos alterados</div>
+          <sc-for list="{{ folderGroups }}" as="grp" hint-placeholder-count="2">
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <label style="display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:6px;cursor:pointer;min-width:0" style-hover="background:rgba(0,0,0,.03)">
+                <input type="checkbox" checked="{{ grp.allChecked }}" onChange="{{ grp.onToggleFolder }}" style="width:15px;height:15px;flex:none;accent-color:#005FB8" />
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8A8A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M3.5 6.5a1.5 1.5 0 0 1 1.5-1.5h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/></svg>
+                <div style="flex:1;min-width:0;font:600 12px/1.3 ui-monospace,Menlo,monospace;color:#3B3B3B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ grp.dir }}</div>
+              </label>
+              <sc-for list="{{ grp.files }}" as="it" hint-placeholder-count="2">
+                <label style="display:flex;align-items:center;gap:10px;padding:8px 8px 8px 28px;border-radius:6px;cursor:pointer;min-width:0" style-hover="background:rgba(0,0,0,.03)">
+                  <input type="checkbox" checked="{{ it.checked }}" onChange="{{ it.onToggle }}" style="width:15px;height:15px;flex:none;accent-color:#005FB8" />
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D5D5D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/></svg>
+                  <div style="flex:1;min-width:0;font:400 12.5px/1.3 ui-monospace,Menlo,monospace;color:#1A1A1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.path }}</div>
+                  <div style="flex:none;font:600 12px/1 ui-monospace,Menlo,monospace;color:#3B3B3B">{{ it.time }}</div>
+                </label>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+          <div style="font:600 10.5px/1 var(--fam);letter-spacing:.06em;text-transform:uppercase;color:#616161;padding:8px 0 4px">Navegadores e links acessados</div>
+          <sc-for list="{{ browserItems }}" as="it" hint-placeholder-count="3">
+            <label style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:6px;cursor:pointer;min-width:0" style-hover="background:rgba(0,0,0,.03)">
+              <input type="checkbox" checked="{{ it.checked }}" onChange="{{ it.onToggle }}" style="width:15px;height:15px;flex:none;accent-color:#005FB8" />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#005FB8" stroke-width="1.8" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;overflow:hidden">
+                <div style="font:500 12.5px/1.3 var(--fam);color:#1A1A1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.label }}</div>
+                <a href="{{ it.url }}" target="_blank" rel="noreferrer" onClick="{{ it.stop }}" style="font:400 11px/1.2 var(--fam);color:#005FB8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%">{{ it.url }}</a>
+              </div>
+              <div style="flex:none;font:600 12px/1 ui-monospace,Menlo,monospace;color:#3B3B3B">{{ it.time }}</div>
+            </label>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;padding:13px 18px;background:rgba(0,0,0,.025);box-shadow:inset 0 1px 0 rgba(0,0,0,.07)">
+        <div style="font:400 11.5px/1.3 var(--fam);color:#5D5D5D;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ concludeCount }}</div>
+        <button onClick="{{ toggleConclude }}" style="flex:none;white-space:nowrap;border:1px solid rgba(0,0,0,.1);background:#fff;font:600 12.5px/1 var(--fam);color:#1A1A1A;padding:9px 14px;border-radius:5px;cursor:pointer" style-hover="background:#F0F0F0">Cancelar</button>
+        <button onClick="{{ confirmConclude }}" style="flex:none;white-space:nowrap;border:1px solid #0059AC;background:#005FB8;color:#fff;font:600 12.5px/1 var(--fam);padding:9px 16px;border-radius:5px;cursor:pointer" style-hover="background:#1A6DBE">Concluir tarefa</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;taskId&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:142,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Estados&quot;}}">
+function fmt(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+}
+function hmin(m) {
+  const h = Math.floor(m / 60), r = m % 60;
+  return h ? (r ? h + 'h ' + r + 'min' : h + 'h') : r + 'min';
+}
+function parseDur(str) {
+  if (!str) return 0;
+  const hMatch = str.match(/(\d+)\s*h/), mMatch = str.match(/(\d+)\s*min/);
+  return (hMatch ? parseInt(hMatch[1], 10) * 60 : 0) + (mMatch ? parseInt(mMatch[1], 10) : 0);
+}
+const FILES = [
+  { id: 'f1', path: 'src/services/worklogCalculator.ts', time: '48min', start: 0 },
+  { id: 'f2', path: 'src/ui/screens/TaskDetail.tsx', time: '35min', start: 0 },
+  { id: 'f3', path: 'src/providers/github/schema.ts', time: '18min', start: 40 },
+  { id: 'f4', path: 'tests/worklogCalculator.spec.ts', time: '12min', start: 60 },
+];
+function groupByFolder(files, checked) {
+  const folders = {};
+  files.forEach(f => {
+    const dir = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '/';
+    (folders[dir] = folders[dir] || []).push(f);
+  });
+  return Object.keys(folders).sort().map(dir => ({
+    dir,
+    files: folders[dir],
+    allChecked: folders[dir].every(f => checked[f.id]),
+  }));
+}
+function buildLanes(files) {
+  const items = files.slice().sort((a, b) => a.start - b.start).map(f => ({ f, dur: parseDur(f.time) || 5 }));
+  const laneEnds = [];
+  const lanes = [];
+  items.forEach(({ f, dur }) => {
+    let lane = laneEnds.findIndex(end => end <= f.start);
+    if (lane === -1) { lane = laneEnds.length; lanes.push([]); }
+    laneEnds[lane] = f.start + dur;
+    lanes[lane] = lanes[lane] || [];
+    lanes[lane].push({ f, dur });
+  });
+  const totalMin = Math.max(1, ...items.map(({ f, dur }) => f.start + dur)) + 10;
+  return { lanes, totalMin };
+}
+const BROWSERS = [
+  { id: 'b1', label: 'GitHub · Issue #142', url: 'https://github.com/dainai/taskengine/issues/142', time: '22min' },
+  { id: 'b2', label: 'Stack Overflow · date math edge cases', url: 'https://stackoverflow.com/questions/tagged/date-time', time: '9min' },
+  { id: 'b3', label: 'MDN · Intl.DateTimeFormat', url: 'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat', time: '6min' },
+];
+const TASKS = [
+  { id: 142, title: 'Corrigir cálculo de tempo não mapeado', status: 'Em andamento', human: 161, ai: 56, since: 'iniciada hoje às 09:12', running: true, elapsed: 2 * 3600 + 41 * 60 + 8, paused: false, startHM: '09:12' },
+  { id: 143, title: 'Revisar schema dinâmico do provedor', status: 'Em andamento', human: 47, ai: 12, since: 'iniciada hoje às 10:35', running: true, elapsed: 47 * 60 + 22, paused: false, startHM: '10:35' },
+  { id: 145, title: 'Tela de tarefas com lista e detalhe', status: 'A fazer', human: 0, ai: 0, since: 'criada hoje às 08:40' },
+  { id: 144, title: 'Tooltip do indicador de atividade', status: 'A fazer', human: 0, ai: 0, since: 'criada ontem' },
+  { id: 139, title: 'Revisão de worklog antes de sincronizar', status: 'Concluída', human: 380, ai: 125, since: 'concluída 16/08', startAt: '2026-08-17T09:30:00', endAt: '2026-08-18T15:30:00' },
+  { id: 137, title: 'Barra de comandos global', status: 'Concluída', human: 468, ai: 72, since: 'concluída 14/08', startAt: '2026-08-13T08:10:00', endAt: '2026-08-14T17:40:00' },
+  { id: 131, title: 'Criptografia do token do provedor', status: 'Concluída', human: 185, ai: 18, since: 'concluída 11/08', startAt: '2026-08-11T09:00:00', endAt: '2026-08-11T14:30:00' },
+  { id: 128, title: 'Exportação de relatório CSV', status: 'Concluída', human: 272, ai: 100, since: 'concluída 08/08', startAt: '2026-08-07T10:00:00', endAt: '2026-08-08T16:00:00' },
+];
+
+const STATUS_META = {
+  'Backlog': { dot: '#8A8A8A', bg: 'rgba(0,0,0,.04)', fg: '#3B3B3B' },
+  'A fazer': { dot: '#8A8A8A', bg: 'rgba(0,0,0,.04)', fg: '#3B3B3B' },
+  'Em andamento': { dot: '#005FB8', bg: 'rgba(0,95,184,.08)', fg: '#003E7E' },
+  'Pausada': { dot: '#C29200', bg: 'rgba(194,146,0,.1)', fg: '#8A6800' },
+  'Concluída': { dot: '#0F7B0F', bg: 'rgba(15,123,15,.08)', fg: '#0B5E0B' },
+  'Cancelada': { dot: '#C42B1C', bg: 'rgba(196,43,28,.08)', fg: '#A8281A' },
+};
+const STATUS_LIST = Object.keys(STATUS_META);
+function buildSegments(records) {
+  const segs = []; let open = null;
+  (records || []).forEach(r => {
+    if (r.type === 'start' || r.type === 'resume') open = r.min;
+    else if ((r.type === 'pause' || r.type === 'end') && open !== null) { segs.push([open, r.min]); open = null; }
+  });
+  if (open !== null) segs.push([open, Infinity]);
+  return segs;
+}
+
+const WORK_START = '08:00', WORK_END = '18:00', LUNCH_START = '12:00', LUNCH_END = '13:00';
+function officeMinutes(startAt, endAt) {
+  const start = new Date(startAt), end = new Date(endAt);
+  const [wsH, wsM] = WORK_START.split(':').map(Number), [weH, weM] = WORK_END.split(':').map(Number);
+  const [lsH, lsM] = LUNCH_START.split(':').map(Number), [leH, leM] = LUNCH_END.split(':').map(Number);
+  let total = 0;
+  const cur = new Date(start); cur.setHours(0, 0, 0, 0);
+  const lastDay = new Date(end); lastDay.setHours(0, 0, 0, 0);
+  while (cur <= lastDay) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) {
+      const dayWorkStart = new Date(cur); dayWorkStart.setHours(wsH, wsM, 0, 0);
+      const dayWorkEnd = new Date(cur); dayWorkEnd.setHours(weH, weM, 0, 0);
+      const dayLunchStart = new Date(cur); dayLunchStart.setHours(lsH, lsM, 0, 0);
+      const dayLunchEnd = new Date(cur); dayLunchEnd.setHours(leH, leM, 0, 0);
+      const winStart = new Date(Math.max(dayWorkStart.getTime(), start.getTime()));
+      const winEnd = new Date(Math.min(dayWorkEnd.getTime(), end.getTime()));
+      if (winEnd > winStart) {
+        let minutes = (winEnd - winStart) / 60000;
+        const lunchOverlapStart = new Date(Math.max(winStart.getTime(), dayLunchStart.getTime()));
+        const lunchOverlapEnd = new Date(Math.min(winEnd.getTime(), dayLunchEnd.getTime()));
+        if (lunchOverlapEnd > lunchOverlapStart) minutes -= (lunchOverlapEnd - lunchOverlapStart) / 60000;
+        total += Math.max(0, minutes);
+      }
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return Math.round(total);
+}
+function fmtDT(iso) {
+  const d = new Date(iso);
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+class Component extends DCLogic {
+  state = {
+    tip: null, tasks: TASKS.map(t => Object.assign({}, t)),
+    offlineOpen: false, offlineHours: '', offlineMinutes: '', offlineDate: '', offlineTime: '', offlineNote: '',
+    offlineEntries: [],
+    concludeOpen: false, concludeQuery: '',
+    reportOpen: false,
+    fileChecked: Object.fromEntries(FILES.map(f => [f.id, true])),
+    browserChecked: Object.fromEntries(BROWSERS.map(b => [b.id, true])),
+  };
+
+  componentDidMount() {
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get('id')) || this.props.taskId || 142;
+    this.setState({ selected: id });
+    this.t = setInterval(() => {
+      if (!this.state.tasks.some(t => t.running && !t.paused)) return;
+      this.setState(s => ({
+        tasks: s.tasks.map(t => t.running && !t.paused ? Object.assign({}, t, { elapsed: t.elapsed + 1 }) : t),
+      }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+
+  colorFor(s) { return (STATUS_META[s] || {}).dot || '#8A8A8A'; }
+
+  setStatus = (newStatus) => {
+    this.setState(s => ({
+      tasks: s.tasks.map(x => {
+        if (x.id !== s.selected) return x;
+        const t = Object.assign({}, x);
+        const activeMin = Math.floor((t.elapsed || 0) / 60);
+        t.records = (t.records || []).slice();
+        if (newStatus === 'Em andamento') {
+          if (!t.running) {
+            t.records.push({ type: t.records.length ? 'resume' : 'start', min: activeMin });
+            t.running = true; t.paused = false;
+            t.elapsed = t.elapsed || 0;
+            if (!t.since || t.status === 'A fazer' || t.status === 'Backlog') t.since = 'iniciada agora';
+          }
+        } else if (newStatus === 'Concluída') {
+          if (t.running && !t.paused) t.records.push({ type: 'end', min: activeMin });
+          t.running = false; t.paused = false;
+        } else {
+          if (t.running && !t.paused) t.records.push({ type: 'pause', min: activeMin });
+          t.running = false; t.paused = true;
+        }
+        t.status = newStatus;
+        return t;
+      }),
+    }));
+  };
+
+  renderVals() {
+    const st = this.state;
+    const d = st.tasks.find(t => t.id === st.selected) || st.tasks[0];
+    const running = !!(d && d.running);
+    const timerActive = running || !!(d && d.paused);
+    const liveHuman = timerActive ? Math.floor(d.elapsed / 60) : (d ? d.human : 0);
+    const isDone = d.status === 'Concluída';
+
+    let officeStart = null, officeEnd = null, officeLive = false;
+    if (isDone && d.startAt && d.endAt) {
+      officeStart = d.startAt; officeEnd = d.endAt;
+    } else if (timerActive && d.startHM) {
+      const start = new Date(2026, 7, 18);
+      const [h, m] = d.startHM.split(':').map(Number);
+      start.setHours(h, m, 0, 0);
+      const mockNow = new Date(start.getTime() + d.elapsed * 1000);
+      officeStart = start; officeEnd = mockNow; officeLive = running;
+    }
+    const officeMins = officeStart ? officeMinutes(officeStart, officeEnd) : 0;
+
+    const hasRecords = !!(d.records && d.records.length);
+    const recordSessions = hasRecords ? d.records.slice().reverse().map(r => ({
+      label: r.type === 'start' ? 'Tarefa iniciada' : r.type === 'resume' ? 'Tarefa retomada' : r.type === 'pause' ? 'Tarefa pausada' : 'Tarefa concluída',
+      kind: r.type === 'pause' ? 'Pausa' : 'Marco',
+      dur: hmin(r.min),
+    })) : [];
+
+    const sessionsList = (hasRecords
+      ? recordSessions
+      : running
+        ? [{ label: 'Contando agora', kind: 'Atividade humana', dur: fmt(d.elapsed).slice(0, 5) },
+           { label: 'Reunião com o time de dados', kind: 'Ajuste manual offline', dur: '30min' }]
+        : isDone
+          ? [{ label: '15/08, 09:05 - 12:40', kind: 'Atividade humana', dur: '3h 35min' },
+             { label: '16/08, 13:20 - 15:25', kind: 'Atividade humana', dur: '2h 05min' },
+             { label: 'Execução de agente durante a tarefa', kind: 'IA', dur: hmin(d.ai) }]
+          : [{ label: 'Nenhum registro ainda', kind: 'Inicie para começar a contar', dur: '-' }]
+    ).concat(st.offlineEntries);
+
+    const unmappedMin = sessionsList.filter(s => s.kind === 'Ajuste manual offline').reduce((a, s) => a + parseDur(s.dur), 0);
+    const maxMin = Math.max(1, liveHuman, d.ai, officeMins, unmappedMin);
+    const meta = STATUS_META[d.status] || STATUS_META['Backlog'];
+
+    const nextIsConclude = d.status === 'Em andamento';
+    const mainActionLabel = d.status === 'Pausada' ? 'Retomar tarefa' : nextIsConclude ? 'Concluir' : 'Iniciar tarefa';
+
+    const detail = {
+      title: d.title,
+      meta: '#' + d.id + ' · GitHub · dainai/taskengine',
+      url: 'https://github.com/dainai/taskengine/issues/' + d.id,
+      status: d.status,
+      statusColor: meta.dot,
+      statusAnim: running ? 'pulse 1.8s ease-in-out infinite' : 'none',
+      pillBg: meta.bg,
+      pillFg: meta.fg,
+      since: d.since,
+      timer: timerActive ? fmt(d.elapsed) : fmt((d.human + d.ai) * 60),
+      timerHint: running ? 'Sessão aberta - contando agora' : d.paused ? 'Sessão pausada - o cronômetro está parado' : isDone ? 'Tempo total registrado e sincronizado' : 'Nenhuma sessão iniciada ainda',
+      isDone: isDone,
+      showSplit: !isDone,
+      mainActionLabel,
+      canEditTime: !isDone,
+      human: hmin(liveHuman) || '0min',
+      ai: hmin(d.ai) || '0min',
+      humanPct: Math.round((liveHuman / maxMin) * 100) + '%',
+      aiPct: Math.round((d.ai / maxMin) * 100) + '%',
+      sessions: sessionsList,
+    };
+
+    const office = {
+      show: true,
+      value: hmin(officeMins),
+      pct: Math.round((officeMins / maxMin) * 100) + '%',
+      range: officeStart ? (officeLive ? ('desde ' + fmtDT(officeStart) + ' (agora: ' + fmtDT(officeEnd) + ')') : (fmtDT(officeStart) + ' — ' + fmtDT(officeEnd))) : '',
+    };
+
+    const unmapped = {
+      show: true,
+      value: hmin(unmappedMin),
+      pct: Math.round((unmappedMin / maxMin) * 100) + '%',
+    };
+
+    return {
+      tipIsDash: st.tip === 'dash', tipIsTasks: st.tip === 'tasks', tipIsCfg: st.tip === 'cfg',
+      tipDash: () => this.setState({ tip: 'dash' }),
+      tipTasks: () => this.setState({ tip: 'tasks' }),
+      tipCfg: () => this.setState({ tip: 'cfg' }),
+      tipOut: () => this.setState({ tip: null }),
+      goDash: () => { window.location.href = 'TaskEngine Dashboard.dc.html'; },
+      goTasks: () => { window.location.href = 'TaskEngine Tarefas.dc.html'; },
+      goCfg: () => { window.location.href = 'TaskEngine Configurações.dc.html'; },
+
+      detail,
+      office,
+      unmapped,
+      mainStatusAction: () => { if (nextIsConclude) this.setState({ concludeOpen: true }); else this.setStatus('Em andamento'); },
+      statusOptions: STATUS_LIST.filter(s => s !== d.status).map(s => ({
+        label: s, color: STATUS_META[s].dot,
+        select: s === 'Concluída'
+          ? () => this.setState({ concludeOpen: true })
+          : () => this.setStatus(s),
+      })),
+
+      offlineOpen: st.offlineOpen,
+      toggleOffline: () => this.setState(s => ({ offlineOpen: !s.offlineOpen })),
+      offlineHours: st.offlineHours,
+      onOfflineHours: e => this.setState({ offlineHours: e.target.value }),
+      offlineMinutes: st.offlineMinutes,
+      onOfflineMinutes: e => this.setState({ offlineMinutes: e.target.value }),
+      offlineDate: st.offlineDate,
+      onOfflineDate: e => this.setState({ offlineDate: e.target.value }),
+      offlineTime: st.offlineTime,
+      onOfflineTime: e => this.setState({ offlineTime: e.target.value }),
+      offlineNote: st.offlineNote,
+      onOfflineNote: e => this.setState({ offlineNote: e.target.value }),
+      goReport: () => { window.location.href = 'TaskEngine Relatório.dc.html?id=' + d.id; },
+      concludeOpen: st.concludeOpen,
+      toggleConclude: () => this.setState(s => ({ concludeOpen: !s.concludeOpen })),
+      concludeQuery: st.concludeQuery,
+      onConcludeQuery: e => this.setState({ concludeQuery: e.target.value }),
+      concludeActiveNote: hasRecords ? 'Somente arquivos alterados durante os períodos ativos (descontando pausas) aparecem abaixo.' : 'Arquivos alterados durante a execução da tarefa.',
+      confirmConclude: () => { this.setStatus('Concluída'); this.setState({ concludeOpen: false }); },
+      folderGroups: groupByFolder(
+        (hasRecords ? FILES.filter(f => buildSegments(d.records).some(([s0, e0]) => f.start >= s0 && f.start < e0)) : FILES)
+          .filter(f => !st.concludeQuery || f.path.toLowerCase().includes(st.concludeQuery.toLowerCase())),
+        st.fileChecked
+      ).map(g => ({
+        dir: g.dir,
+        allChecked: g.allChecked,
+        onToggleFolder: () => this.setState(s => {
+          const next = !g.allChecked;
+          const upd = Object.assign({}, s.fileChecked);
+          g.files.forEach(f => { upd[f.id] = next; });
+          return { fileChecked: upd };
+        }),
+        files: g.files.map(f => ({
+          path: f.path.split('/').pop(), time: f.time, checked: !!st.fileChecked[f.id],
+          onToggle: () => this.setState(s => ({ fileChecked: Object.assign({}, s.fileChecked, { [f.id]: !s.fileChecked[f.id] }) })),
+        })),
+      })),
+      browserItems: BROWSERS.filter(b => !st.concludeQuery || b.label.toLowerCase().includes(st.concludeQuery.toLowerCase()) || b.url.toLowerCase().includes(st.concludeQuery.toLowerCase())).map(b => ({
+        label: b.label, url: b.url, time: b.time, checked: !!st.browserChecked[b.id],
+        stop: e => e.stopPropagation(),
+        onToggle: () => this.setState(s => ({ browserChecked: Object.assign({}, s.browserChecked, { [b.id]: !s.browserChecked[b.id] }) })),
+      })),
+      concludeCount: (Object.values(st.fileChecked).filter(Boolean).length + Object.values(st.browserChecked).filter(Boolean).length) + ' de ' + ((hasRecords ? FILES.filter(f => buildSegments(d.records).some(([s0, e0]) => f.start >= s0 && f.start < e0)).length : FILES.length) + BROWSERS.length) + ' itens marcados',
+      addOffline: () => {
+        const h = parseInt(st.offlineHours, 10) || 0;
+        const m = parseInt(st.offlineMinutes, 10) || 0;
+        if (!h && !m) return;
+        const dur = (h ? h + 'h ' : '') + (m ? m + 'min' : (h ? '' : '0min'));
+        const when = st.offlineDate ? st.offlineDate.split('-').reverse().join('/') + (st.offlineTime ? ' ' + st.offlineTime : '') : 'sem data';
+        this.setState(s => ({
+          offlineOpen: false, offlineHours: '', offlineMinutes: '', offlineDate: '', offlineTime: '', offlineNote: '',
+          offlineEntries: s.offlineEntries.concat([{ label: (s.offlineNote || 'Tempo não mapeado') + ' · ' + when, kind: 'Ajuste manual offline', dur: dur.trim() }]),
+        }));
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

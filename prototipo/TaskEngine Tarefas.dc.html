@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><style>
+:root{--fam:"Segoe UI Variable Display","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
+html,body{margin:0;height:100%;overflow:hidden;background:#F3F3F3;font-family:var(--fam);-webkit-font-smoothing:antialiased}
+a{color:#005FB8;text-decoration:none}a:hover{color:#0078D4;text-decoration:underline}
+button,input,textarea{font-family:var(--fam)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes slideIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+</style></helmet>
+
+<div style="width:100vw;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:#F3F3F3;color:#1A1A1A">
+
+  <div style="flex:none;display:flex;align-items:center;height:40px;padding-left:14px">
+    <div style="display:flex;align-items:center;gap:9px;flex:1">
+      <div style="width:16px;height:16px;border-radius:4px;background:#005FB8;display:flex;align-items:center;justify-content:center">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h9M4 12h6M4 17h11"/></svg>
+      </div>
+      <div style="font:400 12px/1 var(--fam);color:#3B3B3B">TaskEngine - 1.0.0</div>
+    </div>
+    <div style="display:flex;height:40px">
+      <div style="width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)"><svg width="10" height="10" viewBox="0 0 10 10" stroke="#1A1A1A" stroke-width="1"><path d="M0 5h10"/></svg></div>
+      <div style="width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#1A1A1A" stroke-width="1"><path d="M2.2 2.2h5.6v5.6H2.2z"/><path d="M.9 3.4V.9h5.6v1.3" opacity=".85"/></svg></div>
+      <div style="width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#C42B1C"><svg width="10" height="10" viewBox="0 0 10 10" stroke="#1A1A1A" stroke-width="1"><path d="M0 0l10 10M10 0L0 10"/></svg></div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex">
+
+    <div style="flex:none;width:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:6px 0 10px">
+      <div onMouseEnter="{{ tipDash }}" onMouseLeave="{{ tipOut }}" style="position:relative;width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3B3B3B" stroke-width="1.7" stroke-linejoin="round"><rect x="3.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="3.2" width="7.6" height="7.6" rx="2"/><rect x="3.2" y="13.2" width="7.6" height="7.6" rx="2"/><rect x="13.2" y="13.2" width="7.6" height="7.6" rx="2"/></svg>
+        <sc-if value="{{ tipIsDash }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:48px;top:50%;transform:translateY(-50%);z-index:40;white-space:nowrap;padding:6px 10px;border-radius:5px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.16);font:400 12px/1 var(--fam)">Dashboard</div>
+        </sc-if>
+      </div>
+      <div onMouseEnter="{{ tipTasks }}" onMouseLeave="{{ tipOut }}" style="position:relative;width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(0,95,184,.12)">
+        <span style="position:absolute;left:-4px;top:50%;transform:translateY(-50%);width:3px;height:18px;border-radius:2px;background:#005FB8"></span>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#005FB8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="4" width="17.2" height="16" rx="2.6"/><path d="M7.4 9.2l1.6 1.6 2.8-2.8M7.4 15.2l1.6 1.6 2.8-2.8M14.6 9h3M14.6 15h3"/></svg>
+        <sc-if value="{{ tipIsTasks }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:48px;top:50%;transform:translateY(-50%);z-index:40;white-space:nowrap;padding:6px 10px;border-radius:5px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.16);font:400 12px/1 var(--fam)">Tarefas</div>
+        </sc-if>
+      </div>
+      <div onClick="{{ goCfg }}" onMouseEnter="{{ tipCfg }}" onMouseLeave="{{ tipOut }}" style="position:relative;width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:rgba(0,0,0,.05)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3B3B3B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.2 14.4a7.6 7.6 0 0 0 0-4.8l1.8-1.3-1.9-3.3-2.1.8a7.6 7.6 0 0 0-4.2-2.4L12.3 1H11l-.5 2.4a7.6 7.6 0 0 0-4.2 2.4l-2.1-.8L2.3 8.3l1.8 1.3a7.6 7.6 0 0 0 0 4.8l-1.8 1.3 1.9 3.3 2.1-.8a7.6 7.6 0 0 0 4.2 2.4L11 23h1.3l.5-2.4a7.6 7.6 0 0 0 4.2-2.4l2.1.8 1.9-3.3z"/></svg>
+        <sc-if value="{{ tipIsCfg }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:48px;top:50%;transform:translateY(-50%);z-index:40;white-space:nowrap;padding:6px 10px;border-radius:5px;background:#FBFBFB;box-shadow:0 0 0 1px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.16);font:400 12px/1 var(--fam)">Configurações</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;margin:0 8px 8px 0;border-radius:8px;background:#FBFBFB;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);display:flex;flex-direction:column;overflow:hidden">
+
+      <div style="flex:none;display:flex;align-items:center;gap:12px;padding:14px 16px 10px;justify-content:space-between">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:5px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08),inset 0 -1.5px 0 rgba(0,0,0,.2);max-width:420px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D5D5D" stroke-width="1.9" stroke-linecap="round" style="flex:none"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+          <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Buscar tarefa" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font:400 12.5px/1.3 var(--fam);color:#1A1A1A" />
+        </div>
+        <button onClick="{{ sync }}" style="display:flex;align-items:center;gap:8px;border:1px solid #0059AC;background:#005FB8;color:#fff;font:600 12.5px/1 var(--fam);padding:9px 15px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#1A6DBE">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{ syncSpin }}"><path d="M20 11a8 8 0 0 0-14.9-3.5M4 13a8 8 0 0 0 14.9 3.5"/><path d="M5.1 3.5v4h4M18.9 20.5v-4h-4"/></svg>{{ syncLabel }}
+        </button>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;gap:10px;padding:0 12px 12px">
+
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);overflow:hidden">
+          <div style="flex:none;overflow-x:hidden;display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(44px,0.3fr) minmax(128px,0.7fr) minmax(140px,0.8fr) minmax(54px,0.35fr) minmax(118px,0.8fr);gap:6px;padding:10px 12px;background:rgba(0,0,0,.025);box-shadow:inset 0 -1px 0 rgba(0,0,0,.05);font:600 10.5px/1 var(--fam);letter-spacing:.05em;text-transform:uppercase;color:#616161">
+            <div>Tarefa</div><div>Provedor</div><div>Prioridade</div><div>Status</div><div>Tempo</div><div>Ação</div>
+          </div>
+          <div style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden">
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="7">
+              <div onClick="{{ row.onOpen }}" style="display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(44px,0.3fr) minmax(128px,0.7fr) minmax(140px,0.8fr) minmax(54px,0.35fr) minmax(118px,0.8fr);gap:6px;align-items:center;padding:11px 12px;cursor:pointer;background:{{ row.bg }};box-shadow:inset 0 -1px 0 rgba(0,0,0,.05)" style-hover="background:rgba(0,0,0,.02)">
+                <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                  <div style="font:500 13px/1.3 var(--fam);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.title }}</div>
+                  <div style="font:400 11px/1.2 var(--fam);color:#8A8A8A;white-space:nowrap">{{ row.meta }}</div>
+                </div>
+                <div style="font:400 12px/1.3 var(--fam);color:#3B3B3B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.provider }}</div>
+                <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                  <span style="width:3px;height:13px;border-radius:2px;flex:none;background:{{ row.priorityColor }}"></span>
+                  <span style="font:400 11.5px/1.3 var(--fam);color:#3B3B3B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.priority }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:7px;min-width:0">
+                  <span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ row.statusColor }};box-shadow:0 0 0 3px {{ row.statusRing }};animation:{{ row.statusAnim }}"></span>
+                  <span style="font:400 11.5px/1.3 var(--fam);color:#3B3B3B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ row.status }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                  <div title="Atividade humana" style="display:flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#005FB8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.6-3.4 3.3-5.4 6.5-5.4s5.9 2 6.5 5.4"/></svg><span style="font:500 12px/1 ui-monospace,Menlo,monospace;white-space:nowrap">{{ row.human }}</span></div>
+                  <div title="Execução com IA" style="display:flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8764B8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3.5l1.7 4.3 4.3 1.7-4.3 1.7L12 15.5l-1.7-4.3L6 9.5l4.3-1.7z"/><path d="M17.8 16.2l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg><span style="font:400 10.5px/1 ui-monospace,Menlo,monospace;color:#5B3E96;white-space:nowrap">{{ row.ai }}</span></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;min-width:0">
+                  <button onClick="{{ row.onAction }}" style="flex:1;min-width:0;border:1px solid {{ row.btnBorder }};background:{{ row.btnBg }};color:{{ row.btnFg }};font:600 11px/1 var(--fam);padding:7px 6px;border-radius:5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;justify-content:center">{{ row.btnLabel }}</button>
+                  <a href="{{ row.url }}" target="_blank" rel="noreferrer" onClick="{{ row.onLink }}" title="Abrir na interface do provedor" style="flex:none;width:27px;height:27px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.1);background:#FBFBFB;border-radius:5px;color:#1A1A1A;text-decoration:none" style-hover="background:#F0F0F0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h5.5V10M19 5l-8 8M18.5 14.5v4a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5h4"/></svg>
+                  </a>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(0,0,0,.02);box-shadow:inset 0 1px 0 rgba(0,0,0,.05);font:400 11px/1.3 var(--fam);color:#5D5D5D;white-space:nowrap;overflow:hidden">
+            <span style="overflow:hidden;text-overflow:ellipsis;flex:1">{{ countLabel }}</span>
+            <sc-if value="{{ showPagination }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ prevPage }}" disabled="{{ prevDisabled }}" style="border:1px solid rgba(0,0,0,.1);background:#fff;color:#1A1A1A;font:600 11px/1 var(--fam);padding:6px 10px;border-radius:5px;cursor:pointer" style-hover="background:#F0F0F0">Anterior</button>
+            <span style="font:400 11px/1 var(--fam);white-space:nowrap">{{ pageLabel }}</span>
+            <button onClick="{{ nextPage }}" disabled="{{ nextDisabled }}" style="border:1px solid rgba(0,0,0,.1);background:#fff;color:#1A1A1A;font:600 11px/1 var(--fam);padding:6px 10px;border-radius:5px;cursor:pointer" style-hover="background:#F0F0F0">Próxima</button>
+            </sc-if>
+          </div>
+        </div>
+
+        <sc-if value="{{ false }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1 1 280px;min-width:240px;max-width:310px;display:flex;flex-direction:column;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);overflow:hidden;animation:slideIn 180ms ease-out">
+          <div style="flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0">
+              <div style="font:400 11px/1.2 var(--fam);color:#8A8A8A;white-space:nowrap">{{ detail.meta }}</div>
+              <div style="font:600 14.5px/1.3 var(--fam);text-wrap:pretty">{{ detail.title }}</div>
+            </div>
+            <button onClick="{{ closeDetail }}" style="flex:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:5px;cursor:pointer" style-hover="background:rgba(0,0,0,.05)">
+              <svg width="11" height="11" viewBox="0 0 10 10" stroke="#1A1A1A" stroke-width="1.3"><path d="M0 0l10 10M10 0L0 10"/></svg>
+            </button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:6px;background:{{ detail.pillBg }}">
+            <span style="width:7px;height:7px;border-radius:50%;background:{{ detail.statusColor }};animation:{{ detail.statusAnim }}"></span>
+            <span style="font:600 12px/1 var(--fam);color:{{ detail.pillFg }};white-space:nowrap">{{ detail.status }}</span>
+            <span style="flex:1"></span>
+            <span style="font:400 11px/1 var(--fam);color:#5D5D5D;white-space:nowrap">{{ detail.since }}</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:7px;background:rgba(0,95,184,.05);box-shadow:inset 0 0 0 1px rgba(0,95,184,.14)">
+            <div style="font:500 10.5px/1 var(--fam);letter-spacing:.06em;text-transform:uppercase;color:#616161">Tempo de execução</div>
+            <div style="font:600 28px/1 ui-monospace,Menlo,monospace;letter-spacing:-.01em;color:#003E7E">{{ detail.timer }}</div>
+            <div style="font:400 11px/1.3 var(--fam);color:#5D5D5D">{{ detail.timerHint }}</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font:400 12px/1 var(--fam);color:#3B3B3B"><span title="Atividade humana" style="display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#005FB8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.6-3.4 3.3-5.4 6.5-5.4s5.9 2 6.5 5.4"/></svg>Humano</span><strong style="font-weight:600">{{ detail.human }}</strong></div>
+            <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.07);overflow:hidden"><div style="width:{{ detail.humanPct }};height:100%;background:#005FB8"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font:400 12px/1 var(--fam);color:#3B3B3B"><span title="Execução com IA" style="display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8764B8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3.5l1.7 4.3 4.3 1.7-4.3 1.7L12 15.5l-1.7-4.3L6 9.5l4.3-1.7z"/><path d="M17.8 16.2l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>IA</span><strong style="font-weight:600">{{ detail.ai }}</strong></div>
+            <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.07);overflow:hidden"><div style="width:{{ detail.aiPct }};height:100%;background:#8764B8"></div></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font:600 10.5px/1 var(--fam);letter-spacing:.06em;text-transform:uppercase;color:#616161">Registros de tempo</div>
+            <sc-for list="{{ detail.sessions }}" as="ss" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:6px;background:rgba(0,0,0,.025)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D5D5D" stroke-width="1.9" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+                  <div style="font:400 12px/1.2 var(--fam);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ss.label }}</div>
+                  <div style="font:400 10.5px/1.2 var(--fam);color:#8A8A8A;white-space:nowrap">{{ ss.kind }}</div>
+                </div>
+                <div style="font:600 12px/1 ui-monospace,Menlo,monospace;white-space:nowrap">{{ ss.dur }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          </div>
+
+          <div style="flex:none;display:flex;flex-direction:column;gap:7px;padding:12px 14px;background:rgba(0,0,0,.02);box-shadow:inset 0 1px 0 rgba(0,0,0,.06)">
+            <sc-if value="{{ detail.isRunning }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:7px">
+              <button onClick="{{ togglePause }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid rgba(0,0,0,.1);background:#FBFBFB;font:600 12.5px/1 var(--fam);color:#1A1A1A;padding:10px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#F0F0F0">{{ pauseLabel }}</button>
+              <button style="flex:1;border:1px solid #0059AC;background:#005FB8;color:#fff;font:600 12.5px/1 var(--fam);padding:10px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#1A6DBE">Concluir</button>
+            </div>
+            </sc-if>
+            <sc-if value="{{ detail.isTodo }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ startDetail }}" style="display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #0059AC;background:#005FB8;color:#fff;font:600 12.5px/1 var(--fam);padding:11px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#1A6DBE">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="#fff"><path d="M2.5 1.4 10 6l-7.5 4.6z"/></svg>Iniciar tarefa
+            </button>
+            </sc-if>
+            <sc-if value="{{ detail.isDone }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:7px">
+              <button style="flex:1;border:1px solid rgba(0,0,0,.1);background:#FBFBFB;font:600 12.5px/1 var(--fam);color:#1A1A1A;padding:10px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#F0F0F0">Relatório de tempo</button>
+              <a href="{{ detail.url }}" target="_blank" rel="noreferrer" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid rgba(0,0,0,.1);background:#FBFBFB;color:#1A1A1A;font:600 12.5px/1 var(--fam);padding:10px;border-radius:5px;cursor:pointer;white-space:nowrap;text-decoration:none" style-hover="background:#F0F0F0;color:#1A1A1A">
+                Detalhes
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h5.5V10M19 5l-8 8M18.5 14.5v4a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5h4"/></svg>
+              </a>
+            </div>
+            </sc-if>
+            <sc-if value="{{ detail.isRunning }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:7px">
+              <button style="flex:1;border:1px solid rgba(0,0,0,.1);background:#FBFBFB;font:600 12.5px/1 var(--fam);color:#1A1A1A;padding:10px;border-radius:5px;cursor:pointer;white-space:nowrap" style-hover="background:#F0F0F0">Tempo offline</button>
+              <a href="{{ detail.url }}" target="_blank" rel="noreferrer" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid rgba(0,0,0,.1);background:#FBFBFB;color:#1A1A1A;font:600 12.5px/1 var(--fam);padding:10px;border-radius:5px;cursor:pointer;white-space:nowrap;text-decoration:none" style-hover="background:#F0F0F0;color:#1A1A1A">
+                Detalhes
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h5.5V10M19 5l-8 8M18.5 14.5v4a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5h4"/></svg>
+              </a>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+function fmt(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+}
+function hmin(m) {
+  const h = Math.floor(m / 60), r = m % 60;
+  return h ? (r ? h + 'h ' + r + 'min' : h + 'h') : r + 'min';
+}
+
+class Component extends DCLogic {
+  state = {
+    tip: null, filter: 'Todas', query: '', page: 0,
+    syncing: false,
+    selected: 142,
+    tasks: [
+      { id: 142, title: 'Corrigir cálculo de tempo não mapeado', status: 'Em andamento', priority: 'P0 - Crítica', human: 161, ai: 56, since: 'iniciada hoje às 09:12', running: true, elapsed: 2 * 3600 + 41 * 60 + 8, paused: false },
+      { id: 143, title: 'Revisar schema dinâmico do provedor', status: 'Em andamento', priority: 'P1 - Alta', human: 47, ai: 12, since: 'iniciada hoje às 10:35', running: true, elapsed: 47 * 60 + 22, paused: false },
+      { id: 145, title: 'Tela de tarefas com lista e detalhe', status: 'A fazer', priority: 'P1 - Alta', human: 0, ai: 0, since: 'criada hoje às 08:40' },
+      { id: 144, title: 'Tooltip do indicador de atividade', status: 'A fazer', priority: 'P2 - Normal', human: 0, ai: 0, since: 'criada ontem' },
+      { id: 139, title: 'Revisão de worklog antes de sincronizar', status: 'Concluída', priority: 'P1 - Alta', human: 380, ai: 125, since: 'concluída 16/08' },
+      { id: 137, title: 'Barra de comandos global', status: 'Concluída', priority: 'P0 - Crítica', human: 468, ai: 72, since: 'concluída 14/08' },
+      { id: 131, title: 'Criptografia do token do provedor', status: 'Concluída', priority: 'P1 - Alta', human: 185, ai: 18, since: 'concluída 11/08' },
+      { id: 128, title: 'Exportação de relatório CSV', status: 'Concluída', priority: 'P2 - Normal', human: 272, ai: 100, since: 'concluída 08/08' },
+      { id: 151, title: 'Modo escuro no painel de relatórios', status: 'Backlog', priority: 'P2 - Normal', human: 0, ai: 0, since: 'criada 12/08' },
+      { id: 148, title: 'Migrar autenticação para OAuth device flow', status: 'Pausada', priority: 'P1 - Alta', human: 92, ai: 30, since: 'pausada ontem às 16:20' },
+      { id: 133, title: 'Suporte a múltiplos workspaces', status: 'Cancelada', priority: 'P2 - Normal', human: 15, ai: 0, since: 'cancelada 09/08' },
+    ],
+  };
+
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (!this.state.tasks.some(t => t.running && !t.paused)) return;
+      this.setState(s => ({
+        tasks: s.tasks.map(t => t.running && !t.paused ? Object.assign({}, t, { elapsed: t.elapsed + 1 }) : t),
+      }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.t); clearTimeout(this.c); clearTimeout(this.s); }
+
+  colorFor(s) { return s === 'Em andamento' ? '#005FB8' : s === 'Concluída' ? '#0F7B0F' : s === 'Pausada' ? '#C29200' : s === 'Cancelada' ? '#C42B1C' : '#8A8A8A'; }
+  priorityColor(p) { return p === 'P0 - Crítica' ? '#C42B1C' : p === 'P1 - Alta' ? '#9D5D00' : '#0F7B0F'; }
+
+  renderVals() {
+    const st = this.state;
+    const statusOrder = { 'Em andamento': 0, 'A fazer': 1, 'Backlog': 2, 'Pausada': 3, 'Concluída': 4, 'Cancelada': 5 };
+    const priorityOrder = { 'P0 - Crítica': 0, 'P1 - Alta': 1, 'P2 - Normal': 2 };
+    const q = st.query.trim().toLowerCase();
+    const list = st.tasks.filter(t =>
+      (st.filter === 'Todas' || t.status === st.filter) &&
+      (!q || t.title.toLowerCase().includes(q) || String(t.id).includes(q)))
+      .slice()
+      .sort((a, b) => (statusOrder[a.status] - statusOrder[b.status]) || (priorityOrder[a.priority] - priorityOrder[b.priority]));
+
+    const PAGE_SIZE = 8;
+    const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    const page = Math.min(st.page, totalPages - 1);
+    const pageList = list.length > 10 ? list.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE) : list;
+
+    const rows = pageList.map(t => ({
+      title: t.title,
+      meta: '#' + t.id + ' · ' + t.since,
+      status: t.status,
+      provider: 'GitHub',
+      priority: t.priority,
+      priorityColor: this.priorityColor(t.priority),
+      url: 'https://github.com/dainai/taskengine/issues/' + t.id,
+      onLink: e => e.stopPropagation(),
+      statusColor: this.colorFor(t.status),
+      statusRing: t.status === 'Em andamento' ? 'rgba(0,95,184,.16)' : t.status === 'Concluída' ? 'rgba(15,123,15,.14)' : t.status === 'Pausada' ? 'rgba(194,146,0,.16)' : t.status === 'Cancelada' ? 'rgba(196,43,28,.14)' : 'rgba(0,0,0,.07)',
+      statusAnim: t.running ? 'pulse 1.8s ease-in-out infinite' : 'none',
+      human: t.running ? fmt(t.elapsed).slice(0, 5) : t.human ? hmin(t.human) : '-',
+      ai: t.ai ? hmin(t.ai) : '-',
+      bg: t.id === st.selected ? 'rgba(0,95,184,.07)' : 'transparent',
+      btnLabel: t.running ? 'Ver tempo' : t.status === 'A fazer' ? 'Iniciar' : 'Abrir',
+      btnBg: t.running || t.status === 'A fazer' ? '#005FB8' : '#FBFBFB',
+      btnFg: t.running || t.status === 'A fazer' ? '#fff' : '#1A1A1A',
+      btnBorder: t.running || t.status === 'A fazer' ? '#0059AC' : 'rgba(0,0,0,.1)',
+      onOpen: () => { window.location.href = 'TaskEngine Detalhes da Tarefa.dc.html?id=' + t.id; },
+      onAction: e => {
+        e.stopPropagation();
+        window.location.href = 'TaskEngine Detalhes da Tarefa.dc.html?id=' + t.id;
+      },
+    }));
+
+    const d = st.tasks.find(t => t.id === st.selected);
+    const running = !!(d && d.running);
+    const liveHuman = running ? Math.floor(d.elapsed / 60) : (d ? d.human : 0);
+    const totalMin = Math.max(1, liveHuman + (d ? d.ai : 0));
+
+    const detail = d ? {
+      title: d.title,
+      meta: '#' + d.id + ' · GitHub · dainai/taskengine',
+      url: 'https://github.com/dainai/taskengine/issues/' + d.id,
+      status: d.status,
+      statusColor: this.colorFor(d.status),
+      statusAnim: running ? 'pulse 1.8s ease-in-out infinite' : 'none',
+      pillBg: running ? 'rgba(0,95,184,.08)' : d.status === 'Concluída' ? 'rgba(15,123,15,.08)' : 'rgba(0,0,0,.04)',
+      pillFg: running ? '#003E7E' : d.status === 'Concluída' ? '#0B5E0B' : '#3B3B3B',
+      since: d.since,
+      timer: running ? fmt(d.elapsed) : fmt((d.human + d.ai) * 60),
+      timerHint: running ? (d.paused ? 'Sessão pausada - o cronômetro está parado' : 'Sessão aberta - contando agora') : d.status === 'Concluída' ? 'Tempo total registrado e sincronizado' : 'Nenhuma sessão iniciada ainda',
+      isRunning: running,
+      isTodo: d.status === 'A fazer',
+      isDone: d.status === 'Concluída',
+      human: hmin(liveHuman) || '0min',
+      ai: hmin(d.ai) || '0min',
+      humanPct: Math.round((liveHuman / totalMin) * 100) + '%',
+      aiPct: Math.round((d.ai / totalMin) * 100) + '%',
+      sessions: running
+        ? [{ label: d.paused ? 'Cronômetro pausado' : 'Contando agora', kind: 'Atividade humana', dur: fmt(d.elapsed).slice(0, 5) },
+           { label: 'Reunião com o time de dados', kind: 'Ajuste manual offline', dur: '30min' }]
+        : d.status === 'Concluída'
+          ? [{ label: '15/08, 09:05 - 12:40', kind: 'Atividade humana', dur: '3h 35min' },
+             { label: '16/08, 13:20 - 15:25', kind: 'Atividade humana', dur: '2h 05min' },
+             { label: 'Execução de agente durante a tarefa', kind: 'IA', dur: hmin(d.ai) }]
+          : [{ label: 'Nenhum registro ainda', kind: 'Inicie para começar a contar', dur: '-' }],
+    } : null;
+
+    return {
+      tipIsDash: st.tip === 'dash', tipIsTasks: st.tip === 'tasks', tipIsCfg: st.tip === 'cfg',
+      tipDash: () => this.setState({ tip: 'dash' }),
+      tipTasks: () => this.setState({ tip: 'tasks' }),
+      tipCfg: () => this.setState({ tip: 'cfg' }),
+      tipOut: () => this.setState({ tip: null }),
+      goCfg: () => { window.location.href = 'TaskEngine Configurações.dc.html'; },
+
+      query: st.query,
+      onQuery: e => this.setState({ query: e.target.value }),
+      rows,
+      countLabel: list.length + (list.length === 1 ? ' tarefa' : ' tarefas') + (st.tasks.filter(t => t.running).length ? ' · ' + st.tasks.filter(t => t.running).length + ' em andamento' : ''),
+      showPagination: list.length > 10,
+      pageLabel: 'Página ' + (page + 1) + ' de ' + totalPages,
+      prevDisabled: page <= 0,
+      nextDisabled: page >= totalPages - 1,
+      prevPage: () => this.setState(s => ({ page: Math.max(0, s.page - 1) })),
+      nextPage: () => this.setState(s => ({ page: Math.min(totalPages - 1, s.page + 1) })),
+
+      hasDetail: !!detail,
+      detail: detail || {},
+      closeDetail: () => this.setState({ selected: null }),
+      togglePause: () => this.setState(s => ({
+        tasks: s.tasks.map(x => x.id === s.selected ? Object.assign({}, x, { paused: !x.paused }) : x),
+      })),
+      pauseLabel: d && d.paused ? 'Retomar' : 'Pausar',
+      startDetail: () => this.setState(s => ({
+        tasks: s.tasks.map(x => x.id === s.selected ? Object.assign({}, x, { status: 'Em andamento', running: true, paused: false, elapsed: 0, since: 'iniciada agora' }) : x),
+      })),
+
+      syncing: st.syncing,
+      syncLabel: st.syncing ? 'Sincronizando…' : 'Sincronizar',
+      syncSpin: st.syncing ? 'animation:spin 900ms linear infinite' : '',
+      sync: () => {
+        this.setState({ syncing: true });
+        clearTimeout(this.s);
+        this.s = setTimeout(() => this.setState({ syncing: false }), 1200);
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
