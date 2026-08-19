@@ -11,7 +11,7 @@
 | ------ | ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------|
 | 1.0    | 19/08/2026 | Arthur | Criação do documento inicial, consolidando o escopo da V1 discutido antes da versão final do protótipo visual.                        |
 | 1.1    | 19/08/2026 | Arthur | Revisão a partir da primeira versão navegável do protótipo: adiciona RF-016 (relatório geral consolidado, distinto do relatório por tarefa do RF-010/011) e esclarece que qualquer status fora de "em andamento"/"concluído" pausa o registro, sem exceções por nome de status. |
-| 1.2    | 19/08/2026 | Arthur | Revisão a partir da versão final do protótipo (`prototipo/`): RF-016 passa a permitir filtro opcional por período (CA-016.3). Demais telas confirmadas sem novos requisitos funcionais. |
+| 1.2    | 19/08/2026 | Arthur | Revisão a partir da versão final do protótipo (`docs/prototipo/`): RF-016 passa a permitir filtro opcional por período (CA-016.3). Demais telas confirmadas sem novos requisitos funcionais. |
 
 ---
 
@@ -524,4 +524,4 @@ _Descrição funcional dos dados manipulados pelo módulo — sem notação de c
 
 - **Anexo A:** Diagrama de Casos de Uso — pendente.
 - **Anexo B:** Fluxograma de Processos de Negócio — pendente.
-- **Anexo C:** Protótipo de referência da V1 — versão final consolidada, disponível em `prototipo/` na raiz do repositório.
+- **Anexo C:** Protótipo de referência da V1 — versão final consolidada, disponível em `docs/prototipo/`.

@@ -10,7 +10,7 @@
 | Versão | Data       | Autor  | Descrição das Alterações                                                                                                       |
 | ------ | ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | 1.0    | 19/08/2026 | Arthur | Criação do documento inicial, consolidando o escopo da V1 discutido antes da versão final do protótipo visual.                |
-| 1.1    | 19/08/2026 | Arthur | Revisão a partir da versão final do protótipo (`prototipo/`): esclarece que o relatório geral consolidado (módulo de Tarefas, RF-016) é acessado a partir desta tela. Nenhum requisito novo próprio deste módulo. |
+| 1.1    | 19/08/2026 | Arthur | Revisão a partir da versão final do protótipo (`docs/prototipo/`): esclarece que o relatório geral consolidado (módulo de Tarefas, RF-016) é acessado a partir desta tela. Nenhum requisito novo próprio deste módulo. |
 
 ---
 
@@ -289,4 +289,4 @@ _Descrição funcional dos dados manipulados pelo módulo — sem notação de c
 
 - **Anexo A:** Diagrama de Casos de Uso — pendente.
 - **Anexo B:** Fluxograma de Processos de Negócio — pendente.
-- **Anexo C:** Protótipo de referência da V1 — versão final consolidada, disponível em `prototipo/` na raiz do repositório.
+- **Anexo C:** Protótipo de referência da V1 — versão final consolidada, disponível em `docs/prototipo/`.
