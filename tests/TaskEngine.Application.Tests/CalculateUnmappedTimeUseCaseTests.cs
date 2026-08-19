@@ -113,6 +113,35 @@ public class CalculateUnmappedTimeUseCaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithOverlappingHumanAndAiActivity_DoesNotDoubleCountTheOverlap()
+    {
+        // Monday 2026-01-05, 9-18 with 12-13 lunch = 8h scheduled.
+        // Human 9-12 (3h) overlapping AI 11-13 (2h) -> merged mapped time is 9-13 = 4h, not 5h.
+        var taskId = Guid.NewGuid();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var startedAt = new DateTimeOffset(2026, 1, 5, 9, 0, 0, TimeSpan.Zero);
+        var session = WorkSession.Start(taskId, startedAt);
+        session.RecordActivity(ActivitySource.Human, startedAt, startedAt.AddHours(3));
+        session.RecordActivity(ActivitySource.Ai, startedAt.AddHours(2), startedAt.AddHours(4));
+        session.End(startedAt.AddHours(4));
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var workScheduleStore = new FakeWorkScheduleStore();
+        await workScheduleStore.SaveAsync(
+            WorkSchedule.Create(new TimeOnly(9, 0), new TimeOnly(18, 0), new TimeOnly(12, 0), new TimeOnly(13, 0),
+                [DayOfWeek.Monday]),
+            CancellationToken.None);
+
+        var unmappedTimeEntryRepository = new FakeUnmappedTimeEntryRepository();
+        var useCase = new CalculateUnmappedTimeUseCase(workSessionRepository, workScheduleStore, unmappedTimeEntryRepository);
+
+        TimeSpan? result = await useCase.ExecuteAsync(taskId);
+
+        // 8h scheduled - 4h mapped (union, not 5h naive sum) = 4h unmapped.
+        Assert.Equal(TimeSpan.FromHours(4), result);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_DiscountsAlreadyRecordedUnmappedTimeEntries()
     {
         // 8h scheduled - 3h mapped - 2h already recorded = 3h remaining.

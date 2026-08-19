@@ -1,5 +1,6 @@
 using TaskEngine.Application.Abstractions;
 using TaskEngine.Domain.Entities;
+using TaskEngine.Domain.TimeTracking;
 
 namespace TaskEngine.Application.UnmappedTime;
 
@@ -47,7 +48,7 @@ public sealed class CalculateUnmappedTimeUseCase
 
         DateTimeOffset? startedAt = null;
         DateTimeOffset? endedAt = null;
-        var mappedSeconds = 0d;
+        var activityIntervals = new List<TimeInterval>();
 
         foreach (WorkSession session in sessions)
         {
@@ -61,13 +62,21 @@ public sealed class CalculateUnmappedTimeUseCase
                 endedAt = sessionEndedAt;
             }
 
-            mappedSeconds += session.AiDuration.TotalSeconds + session.HumanDuration.TotalSeconds;
+            foreach (ActivityInterval activity in session.Activities)
+            {
+                activityIntervals.Add(new TimeInterval(activity.StartedAt, activity.EndedAt));
+            }
         }
 
         if (endedAt is null)
         {
             return TimeSpan.Zero;
         }
+
+        // RN-007: human and AI activity that overlap in time count once toward the mapped total,
+        // even though they still count separately toward each origin's own total (WorkSession's
+        // HumanDuration/AiDuration are unaffected by this).
+        var mappedSeconds = TimeIntervalMerger.TotalDuration(activityIntervals).TotalSeconds;
 
         TimeSpan scheduledHours = schedule.CalculateHoursInPeriod(
             DateOnly.FromDateTime(startedAt!.Value.UtcDateTime),
