@@ -5,16 +5,22 @@ using Windows.Graphics;
 namespace TaskEngine.Desktop.Platforms.Windows;
 
 /// <summary>
-/// Controla a janela flutuante estilo Raycast/Spotlight no Windows: remove moldura, fixa o
-/// tamanho, mantém sempre no topo e fora da barra de tarefas, e a centraliza no monitor onde
-/// está o cursor sempre que ela é exibida. Usa interop WinRT/AppWindow por trás da
-/// <see cref="Microsoft.Maui.Controls.Window"/> do MAUI — nenhum tipo específico de plataforma
-/// vaza para código compartilhado.
+/// Controla a janela principal do app no Windows (issue #2): moldura e barra de título nativas,
+/// redimensionável, tamanho inicial generoso com mínimo definido, visível na barra de
+/// tarefas/Alt+Tab. Substitui a antiga barra de comando flutuante frameless estilo
+/// Raycast/Spotlight (700x80, sempre no topo, fora da barra de tarefas) - o protótipo aprovado
+/// (docs/prototipo/*.dc.html) é uma janela normal com uma sidebar de navegação, não uma barra de
+/// comando. O hide-to-tray (esconder em vez de encerrar o processo ao fechar/perder foco) e a
+/// centralização no monitor do cursor ao mostrar são mantidos idênticos ao comportamento anterior.
+/// Usa interop WinRT/AppWindow por trás da <see cref="Microsoft.Maui.Controls.Window"/> do MAUI —
+/// nenhum tipo específico de plataforma vaza para código compartilhado.
 /// </summary>
-internal static class FloatingWindowManager
+internal static class MainWindowManager
 {
-    private const int WindowWidth = 700;
-    private const int WindowHeight = 80;
+    private const int InitialWindowWidth = 1100;
+    private const int InitialWindowHeight = 720;
+    private const int MinWindowWidth = 900;
+    private const int MinWindowHeight = 600;
 
     private static Microsoft.UI.Xaml.Window? _platformWindow;
     private static AppWindow? _appWindow;
@@ -44,18 +50,23 @@ internal static class FloatingWindowManager
 
         if (appWindow.Presenter is OverlappedPresenter presenter)
         {
-            presenter.SetBorderAndTitleBar(hasBorder: false, hasTitleBar: false);
-            presenter.IsResizable = false;
-            presenter.IsMaximizable = false;
-            presenter.IsMinimizable = false;
-            presenter.IsAlwaysOnTop = true;
+            presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: true);
+            presenter.IsResizable = true;
+            presenter.IsMaximizable = true;
+            presenter.IsMinimizable = true;
+            presenter.IsAlwaysOnTop = false;
+            presenter.PreferredMinimumWidth = MinWindowWidth;
+            presenter.PreferredMinimumHeight = MinWindowHeight;
         }
 
-        // Fora da barra de tarefas e do Alt+Tab: é uma barra de comando, não uma janela comum.
-        appWindow.IsShownInSwitchers = false;
-        appWindow.Resize(new SizeInt32(WindowWidth, WindowHeight));
+        // Agora é uma janela normal: aparece na barra de tarefas e no Alt+Tab (issue #2 - antes
+        // era uma barra de comando escondida dos dois de propósito). Mudança de comportamento
+        // intencional.
+        appWindow.IsShownInSwitchers = true;
+        appWindow.Resize(new SizeInt32(InitialWindowWidth, InitialWindowHeight));
 
         appWindow.Changed += OnAppWindowChanged;
+        appWindow.Closing += OnAppWindowClosing;
 
         _shouldBeVisible = false;
         appWindow.Hide();
@@ -73,6 +84,17 @@ internal static class FloatingWindowManager
         {
             sender.Hide();
         }
+    }
+
+    /// <summary>
+    /// Qualquer pedido nativo de fechamento da janela (ex.: Alt+F4, botão "X" da barra de título)
+    /// é genérico: nunca encerra o processo por conta própria, só esconde — o único jeito de
+    /// encerrar de verdade é pelo menu "Fechar" do ícone de bandeja (<see cref="TrayIconService"/>).
+    /// </summary>
+    private static void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        args.Cancel = true;
+        Hide();
     }
 
     /// <summary>Centraliza no monitor atual (onde está o cursor) e exibe a janela com foco.</summary>

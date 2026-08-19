@@ -6,8 +6,9 @@ namespace TaskEngine.Desktop.Platforms.Windows;
 /// <summary>
 /// Ícone de bandeja do sistema (<see cref="NotifyIcon"/>, framework Windows Forms nativo,
 /// habilitado via <c>UseWindowsForms</c> — não é biblioteca de UI de terceiros). Expõe os dois
-/// únicos itens de menu definidos na issue: "Abrir" (mostra/esconde a janela) e "Sair" (encerra
-/// o processo de verdade).
+/// únicos itens de menu: "Abrir painel" (mostra a janela) e "Fechar" (encerra o processo de
+/// verdade) — é o único lugar do app que realmente termina o processo; qualquer outra forma de
+/// "fechar" a janela (clique fora, Alt+F4) apenas a esconde.
 /// </summary>
 internal sealed class TrayIconService : IDisposable
 {
@@ -20,9 +21,9 @@ internal sealed class TrayIconService : IDisposable
     public TrayIconService()
     {
         var contextMenu = new ContextMenuStrip();
-        contextMenu.Items.Add("Abrir", null, (_, _) => OpenRequested?.Invoke());
+        contextMenu.Items.Add("Abrir painel", null, (_, _) => OpenRequested?.Invoke());
         contextMenu.Items.Add(new ToolStripSeparator());
-        contextMenu.Items.Add("Sair", null, (_, _) => ExitRequested?.Invoke());
+        contextMenu.Items.Add("Fechar", null, (_, _) => ExitRequested?.Invoke());
 
         _notifyIcon = new NotifyIcon
         {

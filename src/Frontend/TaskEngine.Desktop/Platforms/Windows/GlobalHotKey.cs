@@ -20,7 +20,12 @@ internal sealed class GlobalHotKey : NativeWindow, IDisposable
 
     private bool _registered;
 
-    /// <summary>Disparado na thread de UI sempre que Alt+Espaço é pressionado.</summary>
+    /// <summary>
+    /// Disparado na thread de UI sempre que Alt+Espaço é pressionado. Não sabe nada sobre janela
+    /// ou geometria - quem decide o que "toggle" significa é o assinante (hoje,
+    /// <c>MainWindowManager.Toggle</c>, ligado em <c>App.Windows.cs</c>): mostrar/esconder a
+    /// janela principal, mantendo hide-to-tray.
+    /// </summary>
     public event Action? Pressed;
 
     public GlobalHotKey()
