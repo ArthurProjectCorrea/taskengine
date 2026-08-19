@@ -75,6 +75,90 @@ public sealed class GitHubProjectsClient : ITaskProviderClient
         }
         """;
 
+    private const string ViewerLoginQuery = "query { viewer { login } }";
+
+    /// <summary>
+    /// Projects v2 has no server-side "assigned to viewer" filter on <c>items</c>, so every item
+    /// in the project is fetched and filtered by <see cref="AssigneeDto.Login"/> client-side (see
+    /// <see cref="ListAssignedTasksAsync"/>). <c>fieldValues</c> only asks for the
+    /// <c>ProjectV2ItemFieldSingleSelectValue</c> shape (Status/Priority in this codebase's usage
+    /// are both single-select) - other field value kinds are simply omitted from the response,
+    /// same GraphQL behavior already relied on by <see cref="FieldNodeDto"/>.
+    /// </summary>
+    private const string UserAssignedItemsQuery = """
+        query($login: String!, $number: Int!) {
+          user(login: $login) {
+            projectV2(number: $number) {
+              items(first: 100) {
+                nodes {
+                  id
+                  fieldValues(first: 20) {
+                    nodes {
+                      ... on ProjectV2ItemFieldSingleSelectValue {
+                        name
+                        field { ... on ProjectV2FieldCommon { name } }
+                      }
+                    }
+                  }
+                  content {
+                    ... on Issue {
+                      title
+                      body
+                      createdAt
+                      url
+                      assignees(first: 10) { nodes { login } }
+                    }
+                    ... on DraftIssue {
+                      title
+                      body
+                      createdAt
+                      assignees(first: 10) { nodes { login } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    private const string OrganizationAssignedItemsQuery = """
+        query($login: String!, $number: Int!) {
+          organization(login: $login) {
+            projectV2(number: $number) {
+              items(first: 100) {
+                nodes {
+                  id
+                  fieldValues(first: 20) {
+                    nodes {
+                      ... on ProjectV2ItemFieldSingleSelectValue {
+                        name
+                        field { ... on ProjectV2FieldCommon { name } }
+                      }
+                    }
+                  }
+                  content {
+                    ... on Issue {
+                      title
+                      body
+                      createdAt
+                      url
+                      assignees(first: 10) { nodes { login } }
+                    }
+                    ... on DraftIssue {
+                      title
+                      body
+                      createdAt
+                      assignees(first: 10) { nodes { login } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """;
+
     /// <summary>
     /// GitHub's default Status field has configurable option *names* per project — this is a
     /// best-effort match against common names, not a guaranteed mapping. If the user renamed
@@ -172,6 +256,105 @@ public sealed class GitHubProjectsClient : ITaskProviderClient
             UpdateFieldValueMutation,
             new { projectId = project.Id, itemId = reference.ExternalId, fieldId = statusField.Id, value },
             cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ProviderTaskSummary>> ListAssignedTasksAsync(CancellationToken cancellationToken)
+    {
+        var viewerLogin = await GetViewerLoginAsync(cancellationToken);
+        List<ProjectItemNodeDto> items = await FetchProjectItemsAsync(cancellationToken);
+
+        var summaries = new List<ProviderTaskSummary>();
+        foreach (var item in items)
+        {
+            if (item.Content is not { Title: not null } content)
+            {
+                // No linked content (e.g. a redacted item this token can't see) - skip.
+                continue;
+            }
+
+            var isAssignedToViewer = content.Assignees?.Nodes.Any(
+                a => string.Equals(a.Login, viewerLogin, StringComparison.OrdinalIgnoreCase)) ?? false;
+            if (!isAssignedToViewer)
+            {
+                continue;
+            }
+
+            var (statusName, priority) = ReadStatusAndPriority(item.FieldValues.Nodes);
+            var isInProgress = MatchesStatusOption(TaskStatus.InProgress, statusName);
+            var isDone = MatchesStatusOption(TaskStatus.Done, statusName);
+
+            summaries.Add(new ProviderTaskSummary(
+                ExternalId: item.Id,
+                Title: content.Title,
+                Description: content.Body,
+                StatusName: statusName,
+                IsInProgress: isInProgress,
+                IsDone: isDone,
+                CreatedAt: content.CreatedAt ?? DateTimeOffset.UtcNow,
+                Priority: priority,
+                Url: content.Url));
+        }
+
+        return summaries;
+    }
+
+    private static (string? StatusName, string? Priority) ReadStatusAndPriority(List<FieldValueNodeDto> fieldValues)
+    {
+        string? statusName = null;
+        string? priority = null;
+
+        foreach (var fieldValue in fieldValues)
+        {
+            var fieldName = fieldValue.Field?.Name;
+            if (fieldName is null || fieldValue.Name is null)
+            {
+                continue;
+            }
+
+            if (string.Equals(fieldName, "Status", StringComparison.OrdinalIgnoreCase))
+            {
+                statusName = fieldValue.Name;
+            }
+            else if (string.Equals(fieldName, "Priority", StringComparison.OrdinalIgnoreCase))
+            {
+                priority = fieldValue.Name;
+            }
+        }
+
+        return (statusName, priority);
+    }
+
+    private static bool MatchesStatusOption(TaskStatus status, string? statusName)
+    {
+        return statusName is not null
+            && StatusOptionNames[status].Any(name => string.Equals(name, statusName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<string> GetViewerLoginAsync(CancellationToken cancellationToken)
+    {
+        var data = await ExecuteAsync<ViewerResponseDto>(ViewerLoginQuery, variables: null, cancellationToken);
+        return data.Viewer?.Login
+            ?? throw new InvalidOperationException("GitHub GraphQL response did not include the authenticated viewer's login.");
+    }
+
+    private async Task<List<ProjectItemNodeDto>> FetchProjectItemsAsync(CancellationToken cancellationToken)
+    {
+        var variables = new { login = _options.OwnerLogin, number = _options.ProjectNumber };
+
+        var userData = await TryExecuteAsync<ProjectItemsResponseDto>(UserAssignedItemsQuery, variables, cancellationToken);
+        if (userData?.User?.ProjectV2 is { } userProject)
+        {
+            return userProject.Items.Nodes;
+        }
+
+        var orgData = await TryExecuteAsync<ProjectItemsResponseDto>(OrganizationAssignedItemsQuery, variables, cancellationToken);
+        if (orgData?.Organization?.ProjectV2 is { } orgProject)
+        {
+            return orgProject.Items.Nodes;
+        }
+
+        throw new InvalidOperationException(
+            $"GitHub project #{_options.ProjectNumber} not found for owner '{_options.OwnerLogin}' (checked both user and organization).");
     }
 
     private async Task<ProjectV2Dto> FetchProjectWithFieldsAsync(CancellationToken cancellationToken)

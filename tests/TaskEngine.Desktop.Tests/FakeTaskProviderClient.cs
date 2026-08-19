@@ -74,4 +74,7 @@ public sealed class FakeTaskProviderClient : ITaskProviderClient
 
     public Task UpdateStatusAsync(ProviderTaskReference reference, TaskStatus status, CancellationToken cancellationToken) =>
         throw new NotSupportedException("Not used by the onboarding or task-creation flows.");
+
+    public Task<IReadOnlyList<ProviderTaskSummary>> ListAssignedTasksAsync(CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Not used by the onboarding or task-creation flows.");
 }

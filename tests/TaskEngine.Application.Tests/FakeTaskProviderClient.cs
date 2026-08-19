@@ -42,4 +42,11 @@ public sealed class FakeTaskProviderClient : ITaskProviderClient
     {
         return Task.CompletedTask;
     }
+
+    public IReadOnlyList<ProviderTaskSummary> AssignedTasksToReturn { get; set; } = [];
+
+    public Task<IReadOnlyList<ProviderTaskSummary>> ListAssignedTasksAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult(AssignedTasksToReturn);
+    }
 }

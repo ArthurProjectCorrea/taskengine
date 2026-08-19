@@ -194,4 +194,121 @@ public class GitHubProjectsClientTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetTaskSchemaAsync(CancellationToken.None));
         Assert.Equal(2, handler.CapturedRequestBodies.Count);
     }
+
+    private const string ViewerResponse = """{ "data": { "viewer": { "login": "octocat" } } }""";
+
+    private static string AssignedItemsResponse(string ownerKey) => $$"""
+        {
+          "data": {
+            "{{ownerKey}}": {
+              "projectV2": {
+                "items": {
+                  "nodes": [
+                    {
+                      "id": "PVTI_mine_todo",
+                      "fieldValues": {
+                        "nodes": [
+                          { "name": "Todo", "field": { "name": "Status" } },
+                          { "name": "High", "field": { "name": "Priority" } }
+                        ]
+                      },
+                      "content": {
+                        "title": "Fix the bug",
+                        "body": "Details",
+                        "createdAt": "2026-01-01T00:00:00Z",
+                        "url": "https://github.com/octocat/repo/issues/1",
+                        "assignees": { "nodes": [ { "login": "octocat" } ] }
+                      }
+                    },
+                    {
+                      "id": "PVTI_mine_inprogress",
+                      "fieldValues": {
+                        "nodes": [ { "name": "In Progress", "field": { "name": "Status" } } ]
+                      },
+                      "content": {
+                        "title": "Write docs",
+                        "body": null,
+                        "createdAt": "2026-01-02T00:00:00Z",
+                        "url": null,
+                        "assignees": { "nodes": [ { "login": "octocat" } ] }
+                      }
+                    },
+                    {
+                      "id": "PVTI_not_mine",
+                      "fieldValues": { "nodes": [] },
+                      "content": {
+                        "title": "Someone else's task",
+                        "body": null,
+                        "createdAt": "2026-01-03T00:00:00Z",
+                        "url": null,
+                        "assignees": { "nodes": [ { "login": "someone-else" } ] }
+                      }
+                    },
+                    {
+                      "id": "PVTI_unassigned",
+                      "fieldValues": { "nodes": [] },
+                      "content": {
+                        "title": "Unassigned task",
+                        "body": null,
+                        "createdAt": "2026-01-04T00:00:00Z",
+                        "url": null,
+                        "assignees": { "nodes": [] }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    [Fact]
+    public async Task ListAssignedTasksAsync_ReturnsOnlyItemsAssignedToTheViewer()
+    {
+        var handler = new FakeHttpMessageHandler(ViewerResponse, AssignedItemsResponse("user"));
+        var client = CreateClient(handler);
+
+        IReadOnlyList<ProviderTaskSummary> tasks = await client.ListAssignedTasksAsync(CancellationToken.None);
+
+        Assert.Equal(2, tasks.Count);
+        Assert.DoesNotContain(tasks, t => t.Title is "Someone else's task" or "Unassigned task");
+    }
+
+    [Fact]
+    public async Task ListAssignedTasksAsync_ClassifiesStatusAndReadsPriority()
+    {
+        var handler = new FakeHttpMessageHandler(ViewerResponse, AssignedItemsResponse("user"));
+        var client = CreateClient(handler);
+
+        IReadOnlyList<ProviderTaskSummary> tasks = await client.ListAssignedTasksAsync(CancellationToken.None);
+
+        var todo = Assert.Single(tasks, t => t.ExternalId == "PVTI_mine_todo");
+        Assert.False(todo.IsInProgress);
+        Assert.False(todo.IsDone);
+        Assert.Equal("Todo", todo.StatusName);
+        Assert.Equal("High", todo.Priority);
+        Assert.Equal("Fix the bug", todo.Title);
+        Assert.Equal("Details", todo.Description);
+        Assert.Equal(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), todo.CreatedAt);
+        Assert.Equal("https://github.com/octocat/repo/issues/1", todo.Url);
+
+        var inProgress = Assert.Single(tasks, t => t.ExternalId == "PVTI_mine_inprogress");
+        Assert.True(inProgress.IsInProgress);
+        Assert.False(inProgress.IsDone);
+        Assert.Null(inProgress.Priority);
+    }
+
+    [Fact]
+    public async Task ListAssignedTasksAsync_TriesOrganizationWhenUserLookupFindsNoProject()
+    {
+        const string userNullResponse = """{ "data": { "user": { "projectV2": null } } }""";
+        var handler = new FakeHttpMessageHandler(ViewerResponse, userNullResponse, AssignedItemsResponse("organization"));
+        var client = CreateClient(handler);
+
+        IReadOnlyList<ProviderTaskSummary> tasks = await client.ListAssignedTasksAsync(CancellationToken.None);
+
+        Assert.Equal(2, tasks.Count);
+        Assert.Equal(3, handler.CapturedRequestBodies.Count);
+    }
 }

@@ -80,3 +80,94 @@ internal sealed class ProjectItemDto
 {
     public string Id { get; set; } = "";
 }
+
+internal sealed class ViewerResponseDto
+{
+    public ViewerDto? Viewer { get; set; }
+}
+
+internal sealed class ViewerDto
+{
+    public string Login { get; set; } = "";
+}
+
+internal sealed class ProjectItemsResponseDto
+{
+    public OwnerProjectItemsDto? User { get; set; }
+
+    public OwnerProjectItemsDto? Organization { get; set; }
+}
+
+internal sealed class OwnerProjectItemsDto
+{
+    public ProjectV2ItemsDto? ProjectV2 { get; set; }
+}
+
+internal sealed class ProjectV2ItemsDto
+{
+    public ItemsConnectionDto Items { get; set; } = new();
+}
+
+internal sealed class ItemsConnectionDto
+{
+    public List<ProjectItemNodeDto> Nodes { get; set; } = [];
+}
+
+internal sealed class ProjectItemNodeDto
+{
+    public string Id { get; set; } = "";
+
+    public FieldValuesConnectionDto FieldValues { get; set; } = new();
+
+    public ProjectItemContentDto? Content { get; set; }
+}
+
+internal sealed class FieldValuesConnectionDto
+{
+    public List<FieldValueNodeDto> Nodes { get; set; } = [];
+}
+
+/// <summary>
+/// Only covers <c>ProjectV2ItemFieldSingleSelectValue</c> (Status/Priority are both single-select
+/// in this codebase's usage) - GraphQL omits fields that don't match the requested inline
+/// fragment, same reasoning as <see cref="FieldNodeDto"/>.
+/// </summary>
+internal sealed class FieldValueNodeDto
+{
+    public string? Name { get; set; }
+
+    public FieldRefDto? Field { get; set; }
+}
+
+internal sealed class FieldRefDto
+{
+    public string? Name { get; set; }
+}
+
+/// <summary>
+/// Covers both <c>Issue</c> and <c>DraftIssue</c> project item content kinds - the fields queried
+/// (title/body/createdAt/assignees) are shared between them, only <c>url</c> is Issue-only (draft
+/// issues have no page of their own), so it's left null for draft issues rather than omitted.
+/// </summary>
+internal sealed class ProjectItemContentDto
+{
+    public string? Title { get; set; }
+
+    public string? Body { get; set; }
+
+    public DateTimeOffset? CreatedAt { get; set; }
+
+    public string? Url { get; set; }
+
+    public AssigneesConnectionDto? Assignees { get; set; }
+}
+
+internal sealed class AssigneesConnectionDto
+{
+    public List<AssigneeDto> Nodes { get; set; } = [];
+}
+
+internal sealed class AssigneeDto
+{
+    public string Login { get; set; } = "";
+}

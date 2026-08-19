@@ -30,4 +30,13 @@ public interface ITaskProviderClient
         CancellationToken cancellationToken);
 
     Task UpdateStatusAsync(ProviderTaskReference reference, TaskStatus status, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists the provider's tasks currently assigned to the authenticated user (RF-001), for
+    /// <c>SyncTasksUseCase</c> to pull in and upsert locally. Unlike <see cref="CreateTaskAsync"/>
+    /// (which still targets the older draft-issue creation flow), this is the primary path for
+    /// getting tasks into the system in this version of the ERS - the user works from tasks that
+    /// already exist on the provider, rather than creating them from TaskEngine.
+    /// </summary>
+    Task<IReadOnlyList<ProviderTaskSummary>> ListAssignedTasksAsync(CancellationToken cancellationToken);
 }
