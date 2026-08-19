@@ -67,7 +67,12 @@ public sealed class WorkSession
         return session;
     }
 
-    public void RecordActivity(ActivitySource source, DateTimeOffset startedAt, DateTimeOffset endedAt)
+    public void RecordActivity(
+        ActivitySource source,
+        DateTimeOffset startedAt,
+        DateTimeOffset endedAt,
+        ActivityItemType? type = null,
+        string? path = null)
     {
         if (EndedAt is not null)
         {
@@ -79,7 +84,27 @@ public sealed class WorkSession
             throw new InvalidOperationException("Cannot record activity on a paused work session.");
         }
 
-        _activities.Add(new ActivityInterval(source, startedAt, endedAt));
+        _activities.Add(new ActivityInterval(source, startedAt, endedAt, type, path));
+    }
+
+    /// <summary>
+    /// Rewrites which activities count as selected at task conclusion time (RF-007/RN-012), by
+    /// replacing each activity whose <see cref="ActivityInterval.Id"/> is in
+    /// <paramref name="selectedActivityIds"/> with a copy marked
+    /// <see cref="ActivityInterval.SelectedAtConclusion"/> = true, and every other activity with
+    /// a copy marked false.
+    /// </summary>
+    public void ApplyActivitySelection(IReadOnlySet<Guid> selectedActivityIds)
+    {
+        for (var i = 0; i < _activities.Count; i++)
+        {
+            ActivityInterval activity = _activities[i];
+            var selected = selectedActivityIds.Contains(activity.Id);
+            if (activity.SelectedAtConclusion != selected)
+            {
+                _activities[i] = activity with { SelectedAtConclusion = selected };
+            }
+        }
     }
 
     public void End(DateTimeOffset endedAt)

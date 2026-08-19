@@ -93,6 +93,45 @@ public class WorkSessionTests
     }
 
     [Fact]
+    public void RecordActivity_WithTypeAndPath_SetsThemOnTheStoredActivity()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+
+        session.RecordActivity(
+            ActivitySource.Human, Start, Start.AddMinutes(10), ActivityItemType.Browser, "https://example.com");
+
+        ActivityInterval activity = Assert.Single(session.Activities);
+        Assert.Equal(ActivityItemType.Browser, activity.Type);
+        Assert.Equal("https://example.com", activity.Path);
+    }
+
+    [Fact]
+    public void ApplyActivitySelection_MarksOnlySelectedActivitiesAsSelected()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.RecordActivity(ActivitySource.Human, Start, Start.AddMinutes(10));
+        session.RecordActivity(ActivitySource.Ai, Start.AddMinutes(10), Start.AddMinutes(20));
+        var keptId = session.Activities[0].Id;
+
+        session.ApplyActivitySelection(new HashSet<Guid> { keptId });
+
+        Assert.True(session.Activities[0].SelectedAtConclusion);
+        Assert.False(session.Activities[1].SelectedAtConclusion);
+    }
+
+    [Fact]
+    public void ApplyActivitySelection_WithEmptySet_ClearsAnyPreviousSelection()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.RecordActivity(ActivitySource.Human, Start, Start.AddMinutes(10));
+        session.ApplyActivitySelection(new HashSet<Guid> { session.Activities[0].Id });
+
+        session.ApplyActivitySelection(new HashSet<Guid>());
+
+        Assert.False(session.Activities[0].SelectedAtConclusion);
+    }
+
+    [Fact]
     public void HumanAndAiDuration_SumOnlyTheirOwnSourceIntervals()
     {
         var session = WorkSession.Start(Guid.NewGuid(), Start);

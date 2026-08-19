@@ -7,8 +7,10 @@ namespace TaskEngine.Infrastructure.Persistence;
 /// <summary>
 /// <see cref="IWorkSessionRepository"/> implementation backed by SQLite (<c>work_sessions</c> +
 /// <c>activity_intervals</c> tables). On every write, activity intervals are replaced wholesale
-/// (delete-then-reinsert) rather than diffed - simpler and correct given <see cref="WorkSession"/>
-/// only ever appends activities, never mutates or removes them.
+/// (delete-then-reinsert) rather than diffed - simpler and correct even though
+/// <see cref="WorkSession.ApplyActivitySelection"/> can now update an existing activity's
+/// <see cref="ActivityInterval.SelectedAtConclusion"/> in place, since <see cref="ActivityInterval.Id"/>
+/// is preserved on reinsert either way.
 /// </summary>
 public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
 {
@@ -140,13 +142,19 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO activity_intervals (work_session_id, source, started_at, ended_at)
-                VALUES ($workSessionId, $source, $startedAt, $endedAt);
+                INSERT INTO activity_intervals
+                    (work_session_id, source, started_at, ended_at, activity_id, type, path, selected_at_conclusion)
+                VALUES
+                    ($workSessionId, $source, $startedAt, $endedAt, $activityId, $type, $path, $selectedAtConclusion);
                 """;
             command.Parameters.AddWithValue("$workSessionId", workSession.Id.ToString());
             command.Parameters.AddWithValue("$source", activity.Source.ToString());
             command.Parameters.AddWithValue("$startedAt", SqliteDateTimeOffsetFormat.ToText(activity.StartedAt));
             command.Parameters.AddWithValue("$endedAt", SqliteDateTimeOffsetFormat.ToText(activity.EndedAt));
+            command.Parameters.AddWithValue("$activityId", activity.Id.ToString());
+            command.Parameters.AddWithValue("$type", (object?)activity.Type?.ToString() ?? DBNull.Value);
+            command.Parameters.AddWithValue("$path", (object?)activity.Path ?? DBNull.Value);
+            command.Parameters.AddWithValue("$selectedAtConclusion", activity.SelectedAtConclusion ? 1 : 0);
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
     }
@@ -158,7 +166,7 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
     {
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT source, started_at, ended_at
+            SELECT source, started_at, ended_at, activity_id, type, path, selected_at_conclusion
             FROM activity_intervals
             WHERE work_session_id = $workSessionId
             ORDER BY started_at;
@@ -172,7 +180,11 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
             var source = Enum.Parse<ActivitySource>(reader.GetString(0));
             var startedAt = SqliteDateTimeOffsetFormat.Parse(reader.GetString(1));
             var endedAt = SqliteDateTimeOffsetFormat.Parse(reader.GetString(2));
-            activities.Add(new ActivityInterval(source, startedAt, endedAt));
+            var id = reader.IsDBNull(3) ? (Guid?)null : Guid.Parse(reader.GetString(3));
+            var type = reader.IsDBNull(4) ? (ActivityItemType?)null : Enum.Parse<ActivityItemType>(reader.GetString(4));
+            var path = reader.IsDBNull(5) ? null : reader.GetString(5);
+            var selectedAtConclusion = !reader.IsDBNull(6) && reader.GetInt64(6) != 0;
+            activities.Add(new ActivityInterval(source, startedAt, endedAt, type, path, selectedAtConclusion, id));
         }
 
         return activities;

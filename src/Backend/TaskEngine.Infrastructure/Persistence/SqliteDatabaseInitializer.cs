@@ -50,6 +50,10 @@ public sealed class SqliteDatabaseInitializer
                 source TEXT NOT NULL,
                 started_at TEXT NOT NULL,
                 ended_at TEXT NOT NULL,
+                activity_id TEXT NULL,
+                type TEXT NULL,
+                path TEXT NULL,
+                selected_at_conclusion INTEGER NULL,
                 FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
             );
 
@@ -88,6 +92,14 @@ public sealed class SqliteDatabaseInitializer
         await EnsureColumnAsync(connection, "tasks", "provider_status_name", "TEXT NULL", cancellationToken);
         await EnsureColumnAsync(connection, "work_sessions", "type", "TEXT NULL", cancellationToken);
         await EnsureColumnAsync(connection, "work_sessions", "origin", "TEXT NULL", cancellationToken);
+
+        // activity_intervals.activity_id/type/path/selected_at_conclusion: file/URL identity for
+        // Schema-003 ("Item de Atividade") - supports the activity selection UI (RF-007) built in
+        // a later change.
+        await EnsureColumnAsync(connection, "activity_intervals", "activity_id", "TEXT NULL", cancellationToken);
+        await EnsureColumnAsync(connection, "activity_intervals", "type", "TEXT NULL", cancellationToken);
+        await EnsureColumnAsync(connection, "activity_intervals", "path", "TEXT NULL", cancellationToken);
+        await EnsureColumnAsync(connection, "activity_intervals", "selected_at_conclusion", "INTEGER NULL", cancellationToken);
     }
 
     /// <summary>

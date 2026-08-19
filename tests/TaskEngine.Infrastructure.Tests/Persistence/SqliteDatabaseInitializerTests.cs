@@ -66,6 +66,21 @@ public class SqliteDatabaseInitializerTests
         Assert.Contains("origin", columns);
     }
 
+    [Fact]
+    public async Task EnsureCreatedAsync_RunTwice_KeepsActivityIntervalsNewColumnsAndDoesNotThrow()
+    {
+        using var db = new TempSqliteDatabase();
+
+        await db.InitializeAsync();
+        await db.InitializeAsync();
+
+        var columns = await GetColumnNamesAsync(db.PathProvider, "activity_intervals");
+        Assert.Contains("activity_id", columns);
+        Assert.Contains("type", columns);
+        Assert.Contains("path", columns);
+        Assert.Contains("selected_at_conclusion", columns);
+    }
+
     private static async Task<List<string>> GetColumnNamesAsync(SqlitePathProvider pathProvider, string table)
     {
         await using var connection = new SqliteConnection(pathProvider.ConnectionString);
