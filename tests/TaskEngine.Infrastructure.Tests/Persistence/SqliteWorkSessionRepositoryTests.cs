@@ -55,6 +55,24 @@ public class SqliteWorkSessionRepositoryTests
     }
 
     [Fact]
+    public async Task AddAsync_ThenGetByIdAsync_RoundTripsTypeAndOrigin()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var repository = new SqliteWorkSessionRepository(db.PathProvider);
+
+        var taskId = Guid.NewGuid();
+        var session = WorkSession.Start(taskId, Start, WorkSessionType.Pause, WorkSessionOrigin.Provider);
+
+        await repository.AddAsync(session, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync(session.Id, CancellationToken.None);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(WorkSessionType.Pause, loaded!.Type);
+        Assert.Equal(WorkSessionOrigin.Provider, loaded.Origin);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_WhenSessionDoesNotExist_ReturnsNull()
     {
         using var db = new TempSqliteDatabase();

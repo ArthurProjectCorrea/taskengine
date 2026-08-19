@@ -10,6 +10,15 @@ public sealed class TaskItem
     public string Title { get; private set; }
     public string? Description { get; private set; }
     public TaskStatus Status { get; private set; }
+
+    /// <summary>
+    /// Raw status label as reported by the provider (e.g. "Blocked", "In Review"), kept
+    /// alongside the derived <see cref="Status"/> classification — see RN-010 (ERS-Tarefas.md).
+    /// Null for tasks with no provider-reported status yet (e.g. created locally without a
+    /// provider link).
+    /// </summary>
+    public string? ProviderStatusName { get; private set; }
+
     public string? ProviderId { get; private set; }
     public string? ProviderTaskId { get; private set; }
     public DateTimeOffset CreatedAt { get; }
@@ -72,11 +81,13 @@ public sealed class TaskItem
         TaskStatus status,
         string? providerId,
         string? providerTaskId,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        string? providerStatusName = null)
     {
         return new TaskItem(id, title, description, providerId, providerTaskId, createdAt)
         {
             Status = status,
+            ProviderStatusName = providerStatusName,
         };
     }
 
@@ -90,14 +101,57 @@ public sealed class TaskItem
         Status = TaskStatus.InProgress;
     }
 
-    public void Complete()
+    /// <summary>
+    /// Pauses time tracking for a task that is currently in progress — see RF-015/RN-011
+    /// (ERS-Tarefas.md). Any provider status other than "in progress"/"done" triggers this, with
+    /// no special-casing by status name.
+    /// </summary>
+    public void Pause()
     {
         if (Status != TaskStatus.InProgress)
+        {
+            throw new InvalidOperationException($"Cannot pause a task in status '{Status}'.");
+        }
+
+        Status = TaskStatus.Paused;
+    }
+
+    /// <summary>
+    /// Resumes a paused task, reopening time tracking — see RF-015/CA-015.3 (ERS-Tarefas.md).
+    /// </summary>
+    public void Resume()
+    {
+        if (Status != TaskStatus.Paused)
+        {
+            throw new InvalidOperationException($"Cannot resume a task in status '{Status}'.");
+        }
+
+        Status = TaskStatus.InProgress;
+    }
+
+    /// <summary>
+    /// Completes a task that has been started — either actively in progress or currently paused
+    /// (e.g. the user pauses, then concludes without resuming first).
+    /// </summary>
+    public void Complete()
+    {
+        if (Status != TaskStatus.InProgress && Status != TaskStatus.Paused)
         {
             throw new InvalidOperationException($"Cannot complete a task in status '{Status}'.");
         }
 
         Status = TaskStatus.Done;
+    }
+
+    /// <summary>
+    /// Records the raw status label last reported by the provider, independent of the derived
+    /// <see cref="Status"/> classification. Callers (e.g. the sync use case) are responsible for
+    /// separately calling <see cref="Pause"/>/<see cref="Resume"/>/<see cref="Complete"/> based on
+    /// how that raw label classifies (RN-010/RN-011).
+    /// </summary>
+    public void SetProviderStatusName(string? providerStatusName)
+    {
+        ProviderStatusName = providerStatusName;
     }
 
     /// <summary>

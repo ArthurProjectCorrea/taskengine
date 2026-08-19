@@ -2,7 +2,11 @@ namespace TaskEngine.Domain.Entities;
 
 /// <summary>
 /// A single start→stop cycle of work on a <see cref="TaskItem"/>, identified by
-/// <see cref="TaskId"/> only (no navigation property, to keep entities decoupled).
+/// <see cref="TaskId"/> only (no navigation property, to keep entities decoupled). Doubles as the
+/// domain representation of the "Período de Acompanhamento" from Schema-004 (ERS-Tarefas.md):
+/// <see cref="Type"/> distinguishes actively-tracked time from a pause, and <see cref="Origin"/>
+/// records whether the status change that opened it came from the system or was detected while
+/// syncing with the provider.
 /// </summary>
 public sealed class WorkSession
 {
@@ -10,6 +14,8 @@ public sealed class WorkSession
 
     public Guid Id { get; }
     public Guid TaskId { get; }
+    public WorkSessionType Type { get; }
+    public WorkSessionOrigin Origin { get; }
     public DateTimeOffset StartedAt { get; }
     public DateTimeOffset? EndedAt { get; private set; }
     public IReadOnlyList<ActivityInterval> Activities => _activities;
@@ -19,16 +25,22 @@ public sealed class WorkSession
     public TimeSpan HumanDuration => SumDuration(ActivitySource.Human);
     public TimeSpan AiDuration => SumDuration(ActivitySource.Ai);
 
-    private WorkSession(Guid id, Guid taskId, DateTimeOffset startedAt)
+    private WorkSession(Guid id, Guid taskId, DateTimeOffset startedAt, WorkSessionType type, WorkSessionOrigin origin)
     {
         Id = id;
         TaskId = taskId;
         StartedAt = startedAt;
+        Type = type;
+        Origin = origin;
     }
 
-    public static WorkSession Start(Guid taskId, DateTimeOffset startedAt)
+    public static WorkSession Start(
+        Guid taskId,
+        DateTimeOffset startedAt,
+        WorkSessionType type = WorkSessionType.Active,
+        WorkSessionOrigin origin = WorkSessionOrigin.System)
     {
-        return new WorkSession(Guid.NewGuid(), taskId, startedAt);
+        return new WorkSession(Guid.NewGuid(), taskId, startedAt, type, origin);
     }
 
     /// <summary>
@@ -42,9 +54,11 @@ public sealed class WorkSession
         Guid taskId,
         DateTimeOffset startedAt,
         DateTimeOffset? endedAt,
-        IEnumerable<ActivityInterval> activities)
+        IEnumerable<ActivityInterval> activities,
+        WorkSessionType type = WorkSessionType.Active,
+        WorkSessionOrigin origin = WorkSessionOrigin.System)
     {
-        var session = new WorkSession(id, taskId, startedAt)
+        var session = new WorkSession(id, taskId, startedAt, type, origin)
         {
             EndedAt = endedAt,
         };
@@ -58,6 +72,11 @@ public sealed class WorkSession
         if (EndedAt is not null)
         {
             throw new InvalidOperationException("Cannot record activity on a closed work session.");
+        }
+
+        if (Type != WorkSessionType.Active)
+        {
+            throw new InvalidOperationException("Cannot record activity on a paused work session.");
         }
 
         _activities.Add(new ActivityInterval(source, startedAt, endedAt));

@@ -85,6 +85,10 @@ public sealed class GitHubProjectsClient : ITaskProviderClient
         [TaskStatus.ToDo] = ["Todo", "To Do", "Backlog"],
         [TaskStatus.InProgress] = ["In Progress", "Doing"],
         [TaskStatus.Done] = ["Done", "Closed", "Complete"],
+        // "Paused" has no provider-side option name - it is a local classification derived from
+        // any status other than in-progress/done (RN-011), not something the system pushes back
+        // to the provider.
+        [TaskStatus.Paused] = [],
     };
 
     private static readonly JsonSerializerOptions SerializerOptions = new()

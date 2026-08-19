@@ -54,6 +54,45 @@ public class WorkSessionTests
     }
 
     [Fact]
+    public void RecordActivity_ThrowsWhenSessionIsAPause()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start, WorkSessionType.Pause, WorkSessionOrigin.System);
+
+        Assert.Throws<InvalidOperationException>(
+            () => session.RecordActivity(ActivitySource.Human, Start, Start.AddMinutes(10)));
+    }
+
+    [Fact]
+    public void Start_DefaultsToActiveTypeAndSystemOrigin()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+
+        Assert.Equal(WorkSessionType.Active, session.Type);
+        Assert.Equal(WorkSessionOrigin.System, session.Origin);
+    }
+
+    [Fact]
+    public void Start_WithExplicitTypeAndOrigin_SetsThem()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start, WorkSessionType.Pause, WorkSessionOrigin.Provider);
+
+        Assert.Equal(WorkSessionType.Pause, session.Type);
+        Assert.Equal(WorkSessionOrigin.Provider, session.Origin);
+    }
+
+    [Fact]
+    public void Restore_RoundTripsTypeAndOrigin()
+    {
+        var id = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        var session = WorkSession.Restore(id, taskId, Start, null, [], WorkSessionType.Pause, WorkSessionOrigin.Provider);
+
+        Assert.Equal(WorkSessionType.Pause, session.Type);
+        Assert.Equal(WorkSessionOrigin.Provider, session.Origin);
+    }
+
+    [Fact]
     public void HumanAndAiDuration_SumOnlyTheirOwnSourceIntervals()
     {
         var session = WorkSession.Start(Guid.NewGuid(), Start);

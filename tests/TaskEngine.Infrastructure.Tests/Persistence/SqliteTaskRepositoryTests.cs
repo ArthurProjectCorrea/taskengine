@@ -91,6 +91,41 @@ public class SqliteTaskRepositoryTests
     }
 
     [Fact]
+    public async Task AddAsync_ThenGetByIdAsync_RoundTripsProviderStatusName()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var repository = new SqliteTaskRepository(db.PathProvider);
+
+        var task = TaskItem.Create("Write report");
+        task.SetProviderStatusName("Blocked");
+
+        await repository.AddAsync(task, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync(task.Id, CancellationToken.None);
+
+        Assert.NotNull(loaded);
+        Assert.Equal("Blocked", loaded!.ProviderStatusName);
+    }
+
+    [Fact]
+    public async Task AddAsync_ThenGetByIdAsync_RoundTripsPausedStatus()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var repository = new SqliteTaskRepository(db.PathProvider);
+
+        var task = TaskItem.Create("Write report");
+        task.Start();
+        task.Pause();
+
+        await repository.AddAsync(task, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync(task.Id, CancellationToken.None);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(TaskStatus.Paused, loaded!.Status);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_WhenTaskDoesNotExist_ReturnsNull()
     {
         using var db = new TempSqliteDatabase();

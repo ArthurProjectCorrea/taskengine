@@ -39,16 +39,40 @@ public class SqliteDatabaseInitializerTests
         await db.InitializeAsync();
         await db.InitializeAsync();
 
-        Assert.Contains("provider_id", await GetTasksColumnNamesAsync(db.PathProvider));
+        Assert.Contains("provider_id", await GetColumnNamesAsync(db.PathProvider, "tasks"));
     }
 
-    private static async Task<List<string>> GetTasksColumnNamesAsync(SqlitePathProvider pathProvider)
+    [Fact]
+    public async Task EnsureCreatedAsync_RunTwice_KeepsTasksProviderStatusNameColumnAndDoesNotThrow()
+    {
+        using var db = new TempSqliteDatabase();
+
+        await db.InitializeAsync();
+        await db.InitializeAsync();
+
+        Assert.Contains("provider_status_name", await GetColumnNamesAsync(db.PathProvider, "tasks"));
+    }
+
+    [Fact]
+    public async Task EnsureCreatedAsync_RunTwice_KeepsWorkSessionsTypeAndOriginColumnsAndDoesNotThrow()
+    {
+        using var db = new TempSqliteDatabase();
+
+        await db.InitializeAsync();
+        await db.InitializeAsync();
+
+        var columns = await GetColumnNamesAsync(db.PathProvider, "work_sessions");
+        Assert.Contains("type", columns);
+        Assert.Contains("origin", columns);
+    }
+
+    private static async Task<List<string>> GetColumnNamesAsync(SqlitePathProvider pathProvider, string table)
     {
         await using var connection = new SqliteConnection(pathProvider.ConnectionString);
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA table_info('tasks');";
+        command.CommandText = $"PRAGMA table_info('{table}');";
 
         var names = new List<string>();
         await using var reader = await command.ExecuteReaderAsync();

@@ -24,8 +24,8 @@ public sealed class SqliteTaskRepository : ITaskRepository
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO tasks (id, title, description, status, provider_id, provider_task_id, created_at)
-            VALUES ($id, $title, $description, $status, $providerId, $providerTaskId, $createdAt);
+            INSERT INTO tasks (id, title, description, status, provider_id, provider_task_id, created_at, provider_status_name)
+            VALUES ($id, $title, $description, $status, $providerId, $providerTaskId, $createdAt, $providerStatusName);
             """;
 
         command.Parameters.AddWithValue("$id", task.Id.ToString());
@@ -35,6 +35,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         command.Parameters.AddWithValue("$providerId", (object?)task.ProviderId ?? DBNull.Value);
         command.Parameters.AddWithValue("$providerTaskId", (object?)task.ProviderTaskId ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAt", SqliteDateTimeOffsetFormat.ToText(task.CreatedAt));
+        command.Parameters.AddWithValue("$providerStatusName", (object?)task.ProviderStatusName ?? DBNull.Value);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -46,7 +47,8 @@ public sealed class SqliteTaskRepository : ITaskRepository
         command.CommandText = """
             UPDATE tasks
             SET title = $title, description = $description, status = $status,
-                provider_id = $providerId, provider_task_id = $providerTaskId, created_at = $createdAt
+                provider_id = $providerId, provider_task_id = $providerTaskId, created_at = $createdAt,
+                provider_status_name = $providerStatusName
             WHERE id = $id;
             """;
 
@@ -57,6 +59,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         command.Parameters.AddWithValue("$providerId", (object?)task.ProviderId ?? DBNull.Value);
         command.Parameters.AddWithValue("$providerTaskId", (object?)task.ProviderTaskId ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAt", SqliteDateTimeOffsetFormat.ToText(task.CreatedAt));
+        command.Parameters.AddWithValue("$providerStatusName", (object?)task.ProviderStatusName ?? DBNull.Value);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -66,7 +69,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, title, description, status, provider_id, provider_task_id, created_at
+            SELECT id, title, description, status, provider_id, provider_task_id, created_at, provider_status_name
             FROM tasks
             WHERE id = $id;
             """;
@@ -86,7 +89,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, title, description, status, provider_id, provider_task_id, created_at
+            SELECT id, title, description, status, provider_id, provider_task_id, created_at, provider_status_name
             FROM tasks
             ORDER BY created_at;
             """;
@@ -117,6 +120,7 @@ public sealed class SqliteTaskRepository : ITaskRepository
             status: Enum.Parse<TaskStatus>(reader.GetString(3)),
             providerId: reader.IsDBNull(4) ? null : reader.GetString(4),
             providerTaskId: reader.IsDBNull(5) ? null : reader.GetString(5),
-            createdAt: SqliteDateTimeOffsetFormat.Parse(reader.GetString(6)));
+            createdAt: SqliteDateTimeOffsetFormat.Parse(reader.GetString(6)),
+            providerStatusName: reader.IsDBNull(7) ? null : reader.GetString(7));
     }
 }

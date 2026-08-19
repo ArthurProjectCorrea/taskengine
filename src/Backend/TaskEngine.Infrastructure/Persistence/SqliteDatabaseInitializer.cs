@@ -39,7 +39,9 @@ public sealed class SqliteDatabaseInitializer
                 id TEXT PRIMARY KEY,
                 task_id TEXT NOT NULL,
                 started_at TEXT NOT NULL,
-                ended_at TEXT NULL
+                ended_at TEXT NULL,
+                type TEXT NULL,
+                origin TEXT NULL
             );
 
             CREATE TABLE IF NOT EXISTS activity_intervals (
@@ -77,44 +79,57 @@ public sealed class SqliteDatabaseInitializer
 
         await command.ExecuteNonQueryAsync(cancellationToken);
 
-        await EnsureTasksProviderIdColumnAsync(connection, cancellationToken);
+        await EnsureColumnAsync(connection, "tasks", "provider_id", "TEXT NULL", cancellationToken);
+
+        // provider_status_name (raw provider status label, RN-010) and work_sessions.type/origin
+        // (Schema-004 "Período de Acompanhamento" - pause/resume, #48) are new columns on tables
+        // that already existed before this change, so they also need the ALTER TABLE path even
+        // though the CREATE TABLE above already declares them for fresh databases.
+        await EnsureColumnAsync(connection, "tasks", "provider_status_name", "TEXT NULL", cancellationToken);
+        await EnsureColumnAsync(connection, "work_sessions", "type", "TEXT NULL", cancellationToken);
+        await EnsureColumnAsync(connection, "work_sessions", "origin", "TEXT NULL", cancellationToken);
     }
 
     /// <summary>
-    /// Adds the <c>tasks.provider_id</c> column (introduced by #38, after #16 already shipped the
-    /// table without it) on databases created by older app versions. <c>CREATE TABLE IF NOT
-    /// EXISTS</c> alone can't evolve an existing table, so this checks <c>PRAGMA table_info</c>
-    /// and runs <c>ALTER TABLE ... ADD COLUMN</c> only when the column is missing - idempotent,
-    /// and a no-op on databases that already have it (freshly created ones included, since the
+    /// Adds <paramref name="column"/> to <paramref name="table"/> on databases created by an
+    /// older app version, where the column didn't exist yet. <c>CREATE TABLE IF NOT EXISTS</c>
+    /// alone can't evolve an existing table, so this checks <c>PRAGMA table_info</c> and runs
+    /// <c>ALTER TABLE ... ADD COLUMN</c> only when the column is missing - idempotent, and a
+    /// no-op on databases that already have it (freshly created ones included, since the
     /// <c>CREATE TABLE</c> above already declares it).
     /// </summary>
-    private static async Task EnsureTasksProviderIdColumnAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    private static async Task EnsureColumnAsync(
+        SqliteConnection connection,
+        string table,
+        string column,
+        string columnDefinition,
+        CancellationToken cancellationToken)
     {
-        var hasProviderIdColumn = false;
+        var hasColumn = false;
 
         await using (var pragmaCommand = connection.CreateCommand())
         {
-            pragmaCommand.CommandText = "PRAGMA table_info('tasks');";
+            pragmaCommand.CommandText = $"PRAGMA table_info('{table}');";
 
             await using var reader = await pragmaCommand.ExecuteReaderAsync(cancellationToken);
             var nameOrdinal = reader.GetOrdinal("name");
             while (await reader.ReadAsync(cancellationToken))
             {
-                if (string.Equals(reader.GetString(nameOrdinal), "provider_id", StringComparison.Ordinal))
+                if (string.Equals(reader.GetString(nameOrdinal), column, StringComparison.Ordinal))
                 {
-                    hasProviderIdColumn = true;
+                    hasColumn = true;
                     break;
                 }
             }
         }
 
-        if (hasProviderIdColumn)
+        if (hasColumn)
         {
             return;
         }
 
         await using var alterCommand = connection.CreateCommand();
-        alterCommand.CommandText = "ALTER TABLE tasks ADD COLUMN provider_id TEXT NULL;";
+        alterCommand.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {columnDefinition};";
         await alterCommand.ExecuteNonQueryAsync(cancellationToken);
     }
 }

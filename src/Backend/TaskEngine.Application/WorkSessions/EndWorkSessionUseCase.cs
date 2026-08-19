@@ -39,6 +39,12 @@ public sealed class EndWorkSessionUseCase
         await _taskRepository.UpdateAsync(task, cancellationToken);
         await _workSessionRepository.UpdateAsync(session, cancellationToken);
 
-        return new WorkSessionDto(session.Id, session.TaskId, session.StartedAt, session.EndedAt);
+        return new WorkSessionDto(
+            session.Id,
+            session.TaskId,
+            session.StartedAt,
+            session.EndedAt,
+            session.Type.ToString(),
+            session.Origin.ToString());
     }
 }

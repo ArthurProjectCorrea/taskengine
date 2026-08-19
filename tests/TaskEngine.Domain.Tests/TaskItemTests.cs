@@ -61,6 +61,68 @@ public class TaskItemTests
     }
 
     [Fact]
+    public void Complete_TransitionsFromPausedToDone()
+    {
+        var task = TaskItem.Create("Write tests");
+        task.Start();
+        task.Pause();
+
+        task.Complete();
+
+        Assert.Equal(TaskStatus.Done, task.Status);
+    }
+
+    [Fact]
+    public void Pause_TransitionsFromInProgressToPaused()
+    {
+        var task = TaskItem.Create("Write tests");
+        task.Start();
+
+        task.Pause();
+
+        Assert.Equal(TaskStatus.Paused, task.Status);
+    }
+
+    [Fact]
+    public void Pause_ThrowsWhenNotInProgress()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        Assert.Throws<InvalidOperationException>(() => task.Pause());
+    }
+
+    [Fact]
+    public void Resume_TransitionsFromPausedToInProgress()
+    {
+        var task = TaskItem.Create("Write tests");
+        task.Start();
+        task.Pause();
+
+        task.Resume();
+
+        Assert.Equal(TaskStatus.InProgress, task.Status);
+    }
+
+    [Fact]
+    public void Resume_ThrowsWhenNotPaused()
+    {
+        var task = TaskItem.Create("Write tests");
+        task.Start();
+
+        Assert.Throws<InvalidOperationException>(() => task.Resume());
+    }
+
+    [Fact]
+    public void SetProviderStatusName_UpdatesRawProviderStatus()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        task.SetProviderStatusName("Blocked");
+
+        Assert.Equal("Blocked", task.ProviderStatusName);
+    }
+
+    [Fact]
     public void AttachProviderReference_SetsProviderIdAndProviderTaskId()
     {
         var task = TaskItem.Create("Write tests");

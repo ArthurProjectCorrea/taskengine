@@ -54,4 +54,32 @@ public class StartWorkSessionUseCaseTests
 
         Assert.Empty(workSessionRepository.Sessions);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WithPausedTask_ResumesAndClosesThePauseSession()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        TaskItem task = TaskItem.Create("Write report");
+        task.Start();
+        task.Pause();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+        WorkSession activeSession = WorkSession.Start(task.Id, DateTimeOffset.UtcNow.AddMinutes(-30));
+        activeSession.End(DateTimeOffset.UtcNow.AddMinutes(-10));
+        await workSessionRepository.AddAsync(activeSession, CancellationToken.None);
+        WorkSession pauseSession = WorkSession.Start(
+            task.Id, DateTimeOffset.UtcNow.AddMinutes(-10), WorkSessionType.Pause, WorkSessionOrigin.System);
+        await workSessionRepository.AddAsync(pauseSession, CancellationToken.None);
+        var useCase = new StartWorkSessionUseCase(taskRepository, workSessionRepository);
+
+        WorkSessionDto result = await useCase.ExecuteAsync(task.Id);
+
+        Assert.Equal(TaskStatus.InProgress, task.Status);
+        Assert.Equal(3, workSessionRepository.Sessions.Count);
+        WorkSession closedPause = workSessionRepository.Sessions.Single(s => s.Id == pauseSession.Id);
+        Assert.False(closedPause.IsOpen);
+        WorkSession newActiveSession = workSessionRepository.Sessions.Single(s => s.Id == result.Id);
+        Assert.Equal(WorkSessionType.Active, newActiveSession.Type);
+        Assert.True(newActiveSession.IsOpen);
+    }
 }

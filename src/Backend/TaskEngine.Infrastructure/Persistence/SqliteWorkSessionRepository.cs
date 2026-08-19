@@ -28,8 +28,8 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
         {
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO work_sessions (id, task_id, started_at, ended_at)
-                VALUES ($id, $taskId, $startedAt, $endedAt);
+                INSERT INTO work_sessions (id, task_id, started_at, ended_at, type, origin)
+                VALUES ($id, $taskId, $startedAt, $endedAt, $type, $origin);
                 """;
             AddWorkSessionParameters(command, workSession);
             await command.ExecuteNonQueryAsync(cancellationToken);
@@ -50,7 +50,7 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
             command.Transaction = transaction;
             command.CommandText = """
                 UPDATE work_sessions
-                SET task_id = $taskId, started_at = $startedAt, ended_at = $endedAt
+                SET task_id = $taskId, started_at = $startedAt, ended_at = $endedAt, type = $type, origin = $origin
                 WHERE id = $id;
                 """;
             AddWorkSessionParameters(command, workSession);
@@ -78,7 +78,7 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
         await using (var command = connection.CreateCommand())
         {
             command.CommandText = """
-                SELECT id, task_id, started_at, ended_at
+                SELECT id, task_id, started_at, ended_at, type, origin
                 FROM work_sessions
                 WHERE id = $id;
                 """;
@@ -105,7 +105,7 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
         await using (var command = connection.CreateCommand())
         {
             command.CommandText = """
-                SELECT id, task_id, started_at, ended_at
+                SELECT id, task_id, started_at, ended_at, type, origin
                 FROM work_sessions
                 WHERE task_id = $taskId
                 ORDER BY started_at;
@@ -193,6 +193,8 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
         command.Parameters.AddWithValue(
             "$endedAt",
             workSession.EndedAt is { } endedAt ? SqliteDateTimeOffsetFormat.ToText(endedAt) : DBNull.Value);
+        command.Parameters.AddWithValue("$type", workSession.Type.ToString());
+        command.Parameters.AddWithValue("$origin", workSession.Origin.ToString());
     }
 
     private static WorkSessionRow ReadWorkSessionRow(SqliteDataReader reader)
@@ -201,13 +203,21 @@ public sealed class SqliteWorkSessionRepository : IWorkSessionRepository
             Id: Guid.Parse(reader.GetString(0)),
             TaskId: Guid.Parse(reader.GetString(1)),
             StartedAt: SqliteDateTimeOffsetFormat.Parse(reader.GetString(2)),
-            EndedAt: reader.IsDBNull(3) ? null : SqliteDateTimeOffsetFormat.Parse(reader.GetString(3)));
+            EndedAt: reader.IsDBNull(3) ? null : SqliteDateTimeOffsetFormat.Parse(reader.GetString(3)),
+            Type: reader.IsDBNull(4) ? WorkSessionType.Active : Enum.Parse<WorkSessionType>(reader.GetString(4)),
+            Origin: reader.IsDBNull(5) ? WorkSessionOrigin.System : Enum.Parse<WorkSessionOrigin>(reader.GetString(5)));
     }
 
     private static WorkSession ToWorkSession(WorkSessionRow row, IEnumerable<ActivityInterval> activities)
     {
-        return WorkSession.Restore(row.Id, row.TaskId, row.StartedAt, row.EndedAt, activities);
+        return WorkSession.Restore(row.Id, row.TaskId, row.StartedAt, row.EndedAt, activities, row.Type, row.Origin);
     }
 
-    private sealed record WorkSessionRow(Guid Id, Guid TaskId, DateTimeOffset StartedAt, DateTimeOffset? EndedAt);
+    private sealed record WorkSessionRow(
+        Guid Id,
+        Guid TaskId,
+        DateTimeOffset StartedAt,
+        DateTimeOffset? EndedAt,
+        WorkSessionType Type,
+        WorkSessionOrigin Origin);
 }
