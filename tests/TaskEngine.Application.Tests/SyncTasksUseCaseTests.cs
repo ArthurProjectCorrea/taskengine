@@ -27,6 +27,21 @@ public class SyncTasksUseCaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenProviderIsFrozen_ThrowsAndDoesNotCallProvider()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var providerClientFactory = new FakeProviderClientFactory();
+        var appSettingsStore = new FakeAppSettingsStore();
+        await appSettingsStore.SetAsync(ProviderSettingsKeys.Frozen("github"), "true", CancellationToken.None);
+        var useCase = CreateUseCase(taskRepository, providerClientFactory, appSettingsStore);
+
+        var exception = await Assert.ThrowsAsync<ProviderFrozenException>(() => useCase.ExecuteAsync("github"));
+
+        Assert.Equal("github", exception.ProviderId);
+        Assert.Null(providerClientFactory.LastRequestedProviderId);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithNewToDoTask_CreatesItLocally()
     {
         var taskRepository = new FakeTaskRepository();

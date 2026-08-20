@@ -21,15 +21,6 @@ namespace TaskEngine.Application.Tasks;
 /// </summary>
 public sealed class SyncTasksUseCase
 {
-    /// <summary>
-    /// <c>provider:{providerId}:connectedAt</c> - not currently written anywhere else (the
-    /// Desktop onboarding flow doesn't persist a connection timestamp yet, only the token/schema/
-    /// "which provider is connected" - see <c>OnboardingViewModel</c>), so this use case
-    /// establishes and owns it itself, on the first sync for a given provider, rather than taking
-    /// a dependency on a Frontend change out of this task's scope.
-    /// </summary>
-    private const string ConnectedAtSettingKeyFormat = "provider:{0}:connectedAt";
-
     private readonly ITaskRepository _taskRepository;
     private readonly IProviderClientFactory _providerClientFactory;
     private readonly IAppSettingsStore _appSettingsStore;
@@ -55,6 +46,14 @@ public sealed class SyncTasksUseCase
 
     public async Task<IReadOnlyList<TaskDto>> ExecuteAsync(string providerId, CancellationToken cancellationToken = default)
     {
+        // RF-013/CA-013.1: sync is blocked while the provider is frozen (access revoked, or
+        // explicitly disconnected), until it is reconnected.
+        var frozen = await _appSettingsStore.GetAsync(ProviderSettingsKeys.Frozen(providerId), cancellationToken);
+        if (frozen is not null)
+        {
+            throw new ProviderFrozenException(providerId);
+        }
+
         ITaskProviderClient providerClient = await _providerClientFactory.CreateAsync(providerId, cancellationToken);
         IReadOnlyList<ProviderTaskSummary> remoteTasks = await providerClient.ListAssignedTasksAsync(cancellationToken);
 
@@ -180,7 +179,7 @@ public sealed class SyncTasksUseCase
 
     private async Task<DateTimeOffset> GetOrEstablishConnectedAtAsync(string providerId, CancellationToken cancellationToken)
     {
-        var key = ConnectedAtSettingKey(providerId);
+        var key = ProviderSettingsKeys.ConnectedAt(providerId);
         var stored = await _appSettingsStore.GetAsync(key, cancellationToken);
         if (stored is not null
             && DateTimeOffset.TryParse(stored, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
@@ -192,9 +191,6 @@ public sealed class SyncTasksUseCase
         await _appSettingsStore.SetAsync(key, connectedAt.ToString("O", CultureInfo.InvariantCulture), cancellationToken);
         return connectedAt;
     }
-
-    private static string ConnectedAtSettingKey(string providerId) =>
-        string.Format(CultureInfo.InvariantCulture, ConnectedAtSettingKeyFormat, providerId);
 
     private static TaskDto ToDto(TaskItem task)
     {

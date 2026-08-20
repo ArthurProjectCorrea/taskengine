@@ -15,4 +15,11 @@ public enum TaskStatus
     InProgress,
     Paused,
     Done,
+
+    /// <summary>
+    /// Completed locally while offline or while the provider was frozen (RF-013/RF-014,
+    /// RN-008/RN-009) - immutable like <see cref="Done"/> (RN-006), but still owes the provider a
+    /// status/time push. Transitions to <see cref="Done"/> once that push succeeds.
+    /// </summary>
+    DonePendingSync,
 }

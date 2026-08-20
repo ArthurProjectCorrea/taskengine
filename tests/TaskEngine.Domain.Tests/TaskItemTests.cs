@@ -141,6 +141,57 @@ public class TaskItemTests
     }
 
     [Fact]
+    public void CompleteOffline_TransitionsFromInProgressToDonePendingSync()
+    {
+        var task = TaskItem.Create("Write tests");
+        task.Start();
+
+        task.CompleteOffline();
+
+        Assert.Equal(TaskStatus.DonePendingSync, task.Status);
+    }
+
+    [Fact]
+    public void CompleteOffline_TransitionsFromPausedToDonePendingSync()
+    {
+        var task = TaskItem.Create("Write tests");
+        task.Start();
+        task.Pause();
+
+        task.CompleteOffline();
+
+        Assert.Equal(TaskStatus.DonePendingSync, task.Status);
+    }
+
+    [Fact]
+    public void CompleteOffline_ThrowsWhenNotInProgressOrPaused()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        Assert.Throws<InvalidOperationException>(() => task.CompleteOffline());
+    }
+
+    [Fact]
+    public void MarkSynced_TransitionsFromDonePendingSyncToDone()
+    {
+        var task = TaskItem.Create("Write tests");
+        task.Start();
+        task.CompleteOffline();
+
+        task.MarkSynced();
+
+        Assert.Equal(TaskStatus.Done, task.Status);
+    }
+
+    [Fact]
+    public void MarkSynced_ThrowsWhenNotDonePendingSync()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        Assert.Throws<InvalidOperationException>(() => task.MarkSynced());
+    }
+
+    [Fact]
     public void AttachProviderReference_SetsProviderIdAndProviderTaskId()
     {
         var task = TaskItem.Create("Write tests");

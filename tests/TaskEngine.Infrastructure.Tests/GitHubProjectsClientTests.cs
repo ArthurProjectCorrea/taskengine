@@ -46,7 +46,10 @@ public class GitHubProjectsClientTests
         """;
 
     private static GitHubProjectsClient CreateClient(FakeHttpMessageHandler handler) =>
-        new(new HttpClient(handler), new GitHubProjectsOptions("test-token", "octocat", 1));
+        CreateClient(handler, new FakeAppSettingsStore());
+
+    private static GitHubProjectsClient CreateClient(FakeHttpMessageHandler handler, FakeAppSettingsStore appSettingsStore) =>
+        new(new HttpClient(handler), new GitHubProjectsOptions("test-token", "octocat", 1), appSettingsStore);
 
     [Fact]
     public async Task GetTaskSchemaAsync_MapsSupportedFieldsAndFiltersUnsupportedOnes()
@@ -193,6 +196,20 @@ public class GitHubProjectsClientTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetTaskSchemaAsync(CancellationToken.None));
         Assert.Equal(2, handler.CapturedRequestBodies.Count);
+    }
+
+    [Fact]
+    public async Task GetTaskSchemaAsync_On401_FreezesTheProviderAndThrowsProviderFrozenException()
+    {
+        var handler = new FakeHttpMessageHandler(SchemaResponse) { StatusCode = System.Net.HttpStatusCode.Unauthorized };
+        var appSettingsStore = new FakeAppSettingsStore();
+        var client = CreateClient(handler, appSettingsStore);
+
+        var exception = await Assert.ThrowsAsync<ProviderFrozenException>(
+            () => client.GetTaskSchemaAsync(CancellationToken.None));
+
+        Assert.Equal("github", exception.ProviderId);
+        Assert.Equal("true", appSettingsStore.Values[ProviderSettingsKeys.Frozen("github")]);
     }
 
     private const string ViewerResponse = """{ "data": { "viewer": { "login": "octocat" } } }""";

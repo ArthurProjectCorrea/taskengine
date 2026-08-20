@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -182,11 +183,19 @@ public sealed class GitHubProjectsClient : ITaskProviderClient
 
     private readonly HttpClient _httpClient;
     private readonly GitHubProjectsOptions _options;
+    private readonly IAppSettingsStore _appSettingsStore;
 
-    public GitHubProjectsClient(HttpClient httpClient, GitHubProjectsOptions options)
+    /// <summary>
+    /// <paramref name="appSettingsStore"/> lets this client mark the provider frozen (RF-013,
+    /// <see cref="ProviderSettingsKeys.Frozen"/>) the moment a 401 is observed - detecting a
+    /// revoked token as close to the source as possible, rather than requiring every caller to
+    /// catch-and-freeze individually.
+    /// </summary>
+    public GitHubProjectsClient(HttpClient httpClient, GitHubProjectsOptions options, IAppSettingsStore appSettingsStore)
     {
         _httpClient = httpClient;
         _options = options;
+        _appSettingsStore = appSettingsStore;
     }
 
     public string ProviderId => "github";
@@ -456,6 +465,16 @@ public sealed class GitHubProjectsClient : ITaskProviderClient
         request.Headers.UserAgent.ParseAdd("TaskEngine");
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            // RF-013/RN-008: a 401 here means the token was revoked directly on the provider
+            // (the user never disconnected through TaskEngine) - freeze it the same way an
+            // explicit disconnect would, so sync/conclusion are blocked until reconnected.
+            await _appSettingsStore.SetAsync(ProviderSettingsKeys.Frozen(ProviderId), "true", cancellationToken);
+            throw new ProviderFrozenException(ProviderId);
+        }
+
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<GraphQlEnvelope<TData>>(SerializerOptions, cancellationToken);

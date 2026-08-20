@@ -1,4 +1,5 @@
 using TaskEngine.Application.Abstractions;
+using TaskEngine.Application.Providers;
 using TaskEngine.Infrastructure.Providers.GitHub;
 
 namespace TaskEngine.Infrastructure.Providers;
@@ -13,16 +14,18 @@ public sealed class ProviderClientFactory : IProviderClientFactory
 {
     private readonly HttpClient _httpClient;
     private readonly ICredentialStore _credentialStore;
+    private readonly IAppSettingsStore _appSettingsStore;
 
-    public ProviderClientFactory(HttpClient httpClient, ICredentialStore credentialStore)
+    public ProviderClientFactory(HttpClient httpClient, ICredentialStore credentialStore, IAppSettingsStore appSettingsStore)
     {
         _httpClient = httpClient;
         _credentialStore = credentialStore;
+        _appSettingsStore = appSettingsStore;
     }
 
     public async Task<ITaskProviderClient> CreateAsync(string providerId, CancellationToken cancellationToken)
     {
-        var token = await _credentialStore.GetAsync($"provider:{providerId}:token", cancellationToken);
+        var token = await _credentialStore.GetAsync(ProviderSettingsKeys.CredentialKey(providerId), cancellationToken);
         if (token is null)
         {
             throw new InvalidOperationException($"Provider '{providerId}' is not connected.");
@@ -36,7 +39,8 @@ public sealed class ProviderClientFactory : IProviderClientFactory
             // provider" flow itself).
             return new GitHubProjectsClient(
                 _httpClient,
-                new GitHubProjectsOptions(token, OwnerLogin: "TODO_GITHUB_PROJECTS_OWNER_LOGIN", ProjectNumber: 0));
+                new GitHubProjectsOptions(token, OwnerLogin: "TODO_GITHUB_PROJECTS_OWNER_LOGIN", ProjectNumber: 0),
+                _appSettingsStore);
         }
 
         throw new InvalidOperationException($"Unknown provider '{providerId}'.");

@@ -167,6 +167,37 @@ public sealed class TaskItem
     }
 
     /// <summary>
+    /// Completes a task without syncing it to the provider immediately - because the system is
+    /// offline, or because the provider is currently frozen (RF-013/RF-014, RN-008/RN-009,
+    /// ERS-Tarefas.md). Like <see cref="Complete"/>, immutable once done (RN-006); the difference
+    /// is only whether the provider push already happened - see <see cref="MarkSynced"/>.
+    /// </summary>
+    public void CompleteOffline()
+    {
+        if (Status != TaskStatus.InProgress && Status != TaskStatus.Paused)
+        {
+            throw new InvalidOperationException($"Cannot complete a task in status '{Status}'.");
+        }
+
+        Status = TaskStatus.DonePendingSync;
+    }
+
+    /// <summary>
+    /// Marks a <see cref="TaskStatus.DonePendingSync"/> task as fully synced with the provider
+    /// (RF-014/CA-014.2) - the status/time push that was deferred by <see cref="CompleteOffline"/>
+    /// has now succeeded.
+    /// </summary>
+    public void MarkSynced()
+    {
+        if (Status != TaskStatus.DonePendingSync)
+        {
+            throw new InvalidOperationException($"Cannot mark task as synced from status '{Status}'.");
+        }
+
+        Status = TaskStatus.Done;
+    }
+
+    /// <summary>
     /// Records the priority label reported by the provider's dynamic schema (Schema-001).
     /// </summary>
     public void SetPriority(string? priority)

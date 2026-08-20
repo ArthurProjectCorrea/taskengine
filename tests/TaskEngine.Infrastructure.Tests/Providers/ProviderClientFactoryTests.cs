@@ -10,7 +10,7 @@ public class ProviderClientFactoryTests
     public async Task CreateAsync_WhenNoTokenIsStored_ThrowsWithClearMessage()
     {
         var credentialStore = new FakeCredentialStore();
-        var factory = new ProviderClientFactory(new HttpClient(), credentialStore);
+        var factory = new ProviderClientFactory(new HttpClient(), credentialStore, new FakeAppSettingsStore());
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => factory.CreateAsync("github", CancellationToken.None));
@@ -23,7 +23,7 @@ public class ProviderClientFactoryTests
     {
         var credentialStore = new FakeCredentialStore();
         await credentialStore.SaveAsync("provider:github:token", "gh-token", CancellationToken.None);
-        var factory = new ProviderClientFactory(new HttpClient(), credentialStore);
+        var factory = new ProviderClientFactory(new HttpClient(), credentialStore, new FakeAppSettingsStore());
 
         var client = await factory.CreateAsync("github", CancellationToken.None);
 
@@ -36,7 +36,7 @@ public class ProviderClientFactoryTests
     {
         var credentialStore = new FakeCredentialStore();
         await credentialStore.SaveAsync("provider:unknown:token", "some-token", CancellationToken.None);
-        var factory = new ProviderClientFactory(new HttpClient(), credentialStore);
+        var factory = new ProviderClientFactory(new HttpClient(), credentialStore, new FakeAppSettingsStore());
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => factory.CreateAsync("unknown", CancellationToken.None));
