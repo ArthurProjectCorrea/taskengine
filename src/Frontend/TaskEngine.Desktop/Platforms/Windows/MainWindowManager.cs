@@ -130,6 +130,15 @@ internal static class MainWindowManager
         }
     }
 
+    /// <summary>
+    /// The main window's native HWND, or <see cref="IntPtr.Zero"/> before <see cref="Initialize"/>
+    /// runs. Used by <see cref="WindowsReportFileSaveDialog"/> (plan item 9) to parent the native
+    /// "Salvar como" dialog to this window, so it opens modal/centered on it instead of as an
+    /// unowned top-level window.
+    /// </summary>
+    public static IntPtr GetWindowHandle() =>
+        _platformWindow is null ? IntPtr.Zero : WinRT.Interop.WindowNative.GetWindowHandle(_platformWindow);
+
     private static void CenterOnCursorMonitor(AppWindow appWindow)
     {
         var displayArea = TryGetDisplayAreaFromCursor()

@@ -39,9 +39,9 @@ public sealed class TimeRecordListItem
 /// <see cref="GenerateTaskReportUseCase"/> the same way, not recomputed), but for a single fixed
 /// task received via <see cref="ApplyParameter"/> (issue #53's <see cref="INavigationAware"/> hook)
 /// instead of a selectable list. Also exposes the task's full "Registros de tempo"
-/// (<see cref="WorkSession"/> history, Schema-004) and a "Relatório" action (RF-010/RF-011) that is
-/// a documented no-op until the per-task activity-timeline report screen exists (plan item 9) -
-/// see <see cref="RequestReport"/>.
+/// (<see cref="WorkSession"/> history, Schema-004) and a "Relatório" action (RF-010/RF-011) that
+/// navigates to the per-task activity-timeline report screen (plan item 9,
+/// <see cref="AppSection.Relatorio"/>) - see <see cref="RequestReport"/>.
 ///
 /// Reached via <see cref="AppSection.DetalhesTarefa"/> - not a sidebar-level section (see that
 /// enum member's own doc comment). "Voltar" (<see cref="BackCommand"/>) always returns to
@@ -82,7 +82,6 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     private double _officeFraction;
     private double _unmappedFraction;
     private bool _isDone;
-    private bool _showReportUnavailableNotice;
 
     public DetalhesTarefaViewModel(
         ITaskRepository taskRepository,
@@ -244,13 +243,6 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     /// <summary>The "Adicionar tempo não mapeado" modal (RF-006) for this task - see <see cref="AddUnmappedTimeModalViewModel"/>'s own doc comment.</summary>
     public AddUnmappedTimeModalViewModel AddUnmappedTimeModal { get; }
 
-    /// <summary>True right after "Relatório" was clicked - see <see cref="RequestReport"/> for why the action itself is a documented no-op today.</summary>
-    public bool ShowReportUnavailableNotice
-    {
-        get => _showReportUnavailableNotice;
-        private set => SetProperty(ref _showReportUnavailableNotice, value);
-    }
-
     /// <summary>Explains why "Abrir no provedor" has no clickable link today - see class-level GAP doc comment.</summary>
     public string ProviderLinkUnavailableNote =>
         "TaskItem ainda não expõe um link para o provedor (Schema-001, ERS-Tarefas.md) - lacuna do backend, sinalizada e não implementada aqui.";
@@ -374,14 +366,16 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     private void OnUnmappedTimeSaved(Guid taskId) => _ = LoadAsync(CancellationToken.None);
 
     /// <summary>
-    /// TODO(plano geral, item 9 - relatório por tarefa): chamar
-    /// <see cref="GenerateTaskActivityTimelineUseCase"/> (RF-010/RF-011) e navegar para a tela de
-    /// relatório, quando ela existir. Deixado como no-op documentado por ora (mesma convenção do
-    /// "Concluir" indisponível no Dashboard/Tarefas) em vez de navegar para um lugar inexistente.
+    /// Navigates to the per-task activity timeline report screen (plan item 9, RF-010/RF-011),
+    /// passing this task's id the same way <see cref="BackCommand"/>/<c>TarefasViewModel.OpenTaskDetails</c>
+    /// pass one to <see cref="AppSection.DetalhesTarefa"/>. Only reachable while
+    /// <see cref="ShowReportButton"/> is true (task concluded), so
+    /// <see cref="GenerateTaskActivityTimelineUseCase"/>'s own "completed tasks only" guard should
+    /// never trip from here - <c>RelatorioViewModel</c> still handles that defensively on its end.
     /// </summary>
     private void RequestReport()
     {
-        ShowReportUnavailableNotice = true;
+        _navigationService.NavigateTo(AppSection.Relatorio, _taskId);
     }
 
     private void RebuildSessionList(IReadOnlyList<WorkSession> sessions)

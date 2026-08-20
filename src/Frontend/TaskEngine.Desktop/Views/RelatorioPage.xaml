@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- ContentView (not ContentPage) - same reason as DetalhesTarefaPage.xaml/TarefasPage.xaml:
+     SectionViewFactory/MainShellPage's SectionHost require a View. Data load starts from
+     RelatorioViewModel.ApplyParameter, called by SectionViewFactory right after this page is
+     resolved (same INavigationAware hook as DetalhesTarefa, issue #53/plan item 9). Nothing here
+     ticks live (RN-006: a concluded task's data is immutable), so unlike DetalhesTarefaPage there
+     is no IDispatcherTimer in the code-behind. -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             xmlns:converters="clr-namespace:TaskEngine.Desktop.Converters"
+             x:Class="TaskEngine.Desktop.Views.RelatorioPage"
+             x:DataType="viewModels:RelatorioViewModel">
+
+    <ContentView.Resources>
+        <converters:TimelineBarBoundsConverter x:Key="TimelineBarBoundsConverter" />
+    </ContentView.Resources>
+
+    <Grid RowDefinitions="Auto,*" Padding="12" RowSpacing="10">
+
+        <!-- Cabeçalho: Voltar (para Detalhes da mesma tarefa) + título + Exportar CSV (RF-011). -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Text="← Voltar"
+                    Command="{Binding BackCommand}"
+                    FontSize="12"
+                    Padding="10,6"
+                    MinimumHeightRequest="0" />
+            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                <Label Text="{Binding MetaLabel}" FontSize="11" TextColor="{StaticResource Gray500}" />
+                <Label Text="{Binding Title}" FontSize="17" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+            <Button Grid.Column="2"
+                    Text="Exportar CSV"
+                    Command="{Binding ExportCsvCommand}"
+                    IsEnabled="{Binding HasData}"
+                    FontSize="12"
+                    Padding="10,7"
+                    MinimumHeightRequest="0" />
+        </Grid>
+
+        <!-- RF-010: só existe para tarefas concluídas - GenerateTaskActivityTimelineUseCase lança
+             se a tarefa não estiver Done/DonePendingSync (defensivo: o botão "Relatório" que traz
+             o usuário aqui já é gated nisso em DetalhesTarefaViewModel.ShowReportButton). -->
+        <Label Grid.Row="1"
+               IsVisible="{Binding IsUnavailable}"
+               Text="{Binding UnavailableMessage}"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               TextColor="{StaticResource Gray500}" />
+
+        <ScrollView Grid.Row="1" IsVisible="{Binding HasData}">
+            <VerticalStackLayout Spacing="16" Padding="0,4">
+
+                <!-- Nenhum item de atividade selecionado na conclusão (RF-007) para esta tarefa. -->
+                <Label IsVisible="{Binding NoActivities}"
+                       Text="Nenhuma atividade selecionada nesta tarefa."
+                       HorizontalOptions="Center"
+                       Margin="0,40,0,0"
+                       TextColor="{StaticResource Gray500}" />
+
+                <!-- Linha do tempo simplificada tipo Gantt (CA-010.1): cada "lane" é um AbsoluteLayout
+                     sem sobreposição visual de blocos - a alocação de item->lane é feita por
+                     TimelineLaneAllocator (TaskEngine.Desktop.ViewModels), não aqui. Cada bloco é
+                     posicionado por fração de início/duração via AbsoluteLayout.LayoutBounds
+                     (XProportional,WidthProportional) - ver TimelineBarBoundsConverter. -->
+                <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Lanes}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:TimelineLaneItem">
+                            <AbsoluteLayout HeightRequest="42" BindableLayout.ItemsSource="{Binding Bars}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="viewModels:TimelineBarItem">
+                                        <Border Padding="8,0"
+                                                StrokeThickness="1"
+                                                Stroke="{StaticResource Gray300}"
+                                                BackgroundColor="{StaticResource Secondary}"
+                                                AbsoluteLayout.LayoutBounds="{Binding ., Converter={StaticResource TimelineBarBoundsConverter}}"
+                                                AbsoluteLayout.LayoutFlags="XProportional,WidthProportional">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                                <Label Grid.Column="0"
+                                                       Text="{Binding Label}"
+                                                       FontSize="11"
+                                                       VerticalOptions="Center"
+                                                       LineBreakMode="TailTruncation" />
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding DurationLabel}"
+                                                       FontSize="10.5"
+                                                       FontAttributes="Bold"
+                                                       VerticalOptions="Center"
+                                                       TextColor="{StaticResource Gray600}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </AbsoluteLayout>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+
+</ContentView>

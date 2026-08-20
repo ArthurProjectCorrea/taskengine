@@ -5,8 +5,10 @@ using TaskEngine.Application.Reports;
 using TaskEngine.Application.Tasks;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Navigation;
+using TaskEngine.Desktop.Platforms.Windows;
 using TaskEngine.Desktop.ViewModels;
 using TaskEngine.Desktop.ViewModels.Navigation;
+using TaskEngine.Desktop.ViewModels.Reports;
 using TaskEngine.Desktop.Views;
 using TaskEngine.Infrastructure.Monitoring;
 using TaskEngine.Infrastructure.Persistence;
@@ -98,6 +100,14 @@ public static class MauiProgram
         services.AddTransient<EndWorkSessionUseCase>();
         services.AddTransient<GenerateTaskReportUseCase>();
 
+        // Relatório por tarefa (plan item 9, RF-010/RF-011, ERS-Tarefas.md): the per-task
+        // activity-timeline use case, plus the Windows-native "Salvar como" dialog port
+        // (IReportFileSaveDialog) that RelatorioViewModel's CSV export uses - see
+        // WindowsReportFileSaveDialog's own doc comment for why it's a native Win32 dialog and not
+        // a third-party file-picker package.
+        services.AddTransient<GenerateTaskActivityTimelineUseCase>();
+        services.AddTransient<IReportFileSaveDialog, WindowsReportFileSaveDialog>();
+
         // Tarefas (RF-001, ERS-Tarefas.md): SyncTasksUseCase depends on EndWorkSessionUseCase too
         // (registered above) - not previously needed by the Dashboard.
         services.AddTransient<SyncTasksUseCase>();
@@ -153,5 +163,11 @@ public static class MauiProgram
         // INavigationAware.ApplyParameter right after resolution).
         services.AddTransient<DetalhesTarefaViewModel>();
         services.AddTransient<DetalhesTarefaPage>();
+
+        // Relatório (plan item 9, RF-010/RF-011, ERS-Tarefas.md): same transient lifetime as
+        // Dashboard/Tarefas/DetalhesTarefa above - a fresh instance per navigation into
+        // AppSection.Relatorio (also fed the task id via INavigationAware.ApplyParameter).
+        services.AddTransient<RelatorioViewModel>();
+        services.AddTransient<RelatorioPage>();
     }
 }

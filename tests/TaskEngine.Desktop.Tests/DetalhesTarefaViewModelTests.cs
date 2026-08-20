@@ -121,10 +121,10 @@ public class DetalhesTarefaViewModelTests
     }
 
     [Fact]
-    public async Task ReportCommand_SetsUnavailableNotice_WithoutNavigatingOrThrowing()
+    public async Task ReportCommand_NavigatesToRelatorio_WithTaskId()
     {
-        // RF-010/RF-011's per-task report screen does not exist yet (plan item 9) - the button
-        // must not navigate anywhere broken (documented no-op, same convention as "Concluir").
+        // RF-010/RF-011's per-task report screen (plan item 9) - "Relatório" navigates there with
+        // this task's id, the same convention as BackCommand/OpenTaskDetails.
         var taskRepository = new FakeTaskRepository();
         var task = TaskItem.Create("Tarefa concluída");
         task.Start();
@@ -136,12 +136,11 @@ public class DetalhesTarefaViewModelTests
         viewModel.ApplyParameter(task.Id);
         await viewModel.LoadAsync();
 
-        Assert.False(viewModel.ShowReportUnavailableNotice);
-
         viewModel.ReportCommand.Execute(null);
 
-        Assert.True(viewModel.ShowReportUnavailableNotice);
-        Assert.Empty(navigationService.Calls);
+        (AppSection Section, object? Parameter) call = Assert.Single(navigationService.Calls);
+        Assert.Equal(AppSection.Relatorio, call.Section);
+        Assert.Equal(task.Id, call.Parameter);
     }
 
     [Fact]

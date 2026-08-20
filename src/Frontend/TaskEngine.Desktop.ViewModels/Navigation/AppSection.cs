@@ -22,4 +22,14 @@ public enum AppSection
     /// directly by the user from the shell, so <see cref="ShellViewModel"/> has no command for it.
     /// </summary>
     DetalhesTarefa,
+
+    /// <summary>
+    /// Per-task activity timeline report (plan item 9, RF-010/RF-011, ERS-Tarefas.md) - reached
+    /// via <see cref="INavigationService.NavigateTo(AppSection, object?)"/> with the task's
+    /// <see cref="Guid"/> id as the parameter, same convention as <see cref="DetalhesTarefa"/>.
+    /// Only ever opened from <see cref="DetalhesTarefa"/>'s "Relatório" action (gated there on the
+    /// task being concluded) - not a sidebar-level section either, so <see cref="ShellViewModel"/>
+    /// has no command for it.
+    /// </summary>
+    Relatorio,
 }

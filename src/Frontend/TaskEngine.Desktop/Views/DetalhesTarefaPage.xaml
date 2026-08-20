@@ -96,17 +96,11 @@
                             MinimumHeightRequest="0" />
 
                     <!-- "Relatório" (RF-010/RF-011): só visível quando a tarefa está concluída.
-                         O comando em si é um no-op documentado até a tela de relatório por tarefa
-                         existir (plano geral, item 9) - ver DetalhesTarefaViewModel.RequestReport. -->
+                         Navega para a tela de linha do tempo por tarefa (plano geral, item 9) -
+                         ver DetalhesTarefaViewModel.RequestReport. -->
                     <Button Text="Relatório"
                             IsVisible="{Binding ShowReportButton}"
                             Command="{Binding ReportCommand}" />
-                    <Label IsVisible="{Binding ShowReportUnavailableNotice}"
-                           Text="O relatório por tarefa (linha do tempo, RF-010/RF-011) ainda não tem tela própria."
-                           FontSize="12"
-                           Padding="10"
-                           BackgroundColor="{StaticResource Secondary}"
-                           TextColor="{StaticResource PrimaryDarkText}" />
 
                 </VerticalStackLayout>
 
