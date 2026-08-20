@@ -6,10 +6,10 @@ namespace TaskEngine.Desktop.Navigation;
 
 /// <summary>
 /// Resolves the View that represents each <see cref="AppSection"/> in the shell's content area.
-/// Dashboard (issue #19) is the first section wired to its real screen; Tarefas/Configurações
-/// still resolve to a titled <see cref="PlaceholderView"/> until their own Fase E work lands -
-/// wiring them in later only means replacing the corresponding branch here, without touching
-/// <see cref="ViewModels.ShellViewModel"/> or <see cref="NavigationService"/>.
+/// Dashboard (issue #19) and Tarefas (ERS-Tarefas.md RF-001/RF-003) are wired to their real
+/// screens; Configurações still resolves to a titled <see cref="PlaceholderView"/> until its own
+/// Fase E work lands - wiring it in later only means replacing the corresponding branch here,
+/// without touching <see cref="ViewModels.ShellViewModel"/> or <see cref="NavigationService"/>.
 /// </summary>
 public sealed class SectionViewFactory
 {
@@ -29,7 +29,7 @@ public sealed class SectionViewFactory
     public View CreateView(AppSection section) => section switch
     {
         AppSection.Dashboard => _serviceProvider.GetRequiredService<DashboardPage>(),
-        AppSection.Tarefas => new PlaceholderView("Tarefas (placeholder)"),
+        AppSection.Tarefas => _serviceProvider.GetRequiredService<TarefasPage>(),
         AppSection.Configuracoes => new PlaceholderView("Configurações (placeholder)"),
         _ => throw new ArgumentOutOfRangeException(nameof(section), section, "Unknown app section."),
     };

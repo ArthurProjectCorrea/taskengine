@@ -95,7 +95,12 @@ public static class MauiProgram
         // selected task's human/AI/expediente/não-mapeado split - see its own doc comment.
         services.AddTransient<StartWorkSessionUseCase>();
         services.AddTransient<PauseWorkSessionUseCase>();
+        services.AddTransient<EndWorkSessionUseCase>();
         services.AddTransient<GenerateTaskReportUseCase>();
+
+        // Tarefas (RF-001, ERS-Tarefas.md): SyncTasksUseCase depends on EndWorkSessionUseCase too
+        // (registered above) - not previously needed by the Dashboard.
+        services.AddTransient<SyncTasksUseCase>();
 
         // Monitoring module (RF-001/RF-002, ERS-Monitoramento.md, issues #12/#11). Registered as
         // singletons so the same watcher instance (and its in-memory debounce/aggregation state)
@@ -129,5 +134,10 @@ public static class MauiProgram
         // lifetime like the single-window shell.
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<DashboardPage>();
+
+        // Tarefas (RF-001/RF-003, ERS-Tarefas.md): same transient lifetime as Dashboard above - a
+        // fresh instance per navigation into AppSection.Tarefas.
+        services.AddTransient<TarefasViewModel>();
+        services.AddTransient<TarefasPage>();
     }
 }

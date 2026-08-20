@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- ContentView (not ContentPage) for the same reason as DashboardPage.xaml - SectionViewFactory/
+     MainShellPage's SectionHost require a View. -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             xmlns:components="clr-namespace:TaskEngine.Desktop.Views.Components"
+             x:Class="TaskEngine.Desktop.Views.TarefasPage"
+             x:DataType="viewModels:TarefasViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="12" RowSpacing="8">
+
+        <!-- Busca (RF-003/CA-003.1, client-side) + Sincronizar (RF-001/RF-002, ERS-Tarefas.md). -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <Border Grid.Column="0" Padding="10,0">
+                <Entry Placeholder="Buscar tarefa"
+                       Text="{Binding SearchText, Mode=TwoWay}"
+                       ReturnType="Search" />
+            </Border>
+            <Button Grid.Column="1"
+                    Text="{Binding SyncButtonLabel}"
+                    Command="{Binding SyncCommand}" />
+        </Grid>
+
+        <!-- CA-001.2: erro de sincronização visível, sem travar a tela nem apagar dados locais. -->
+        <Label Grid.Row="1"
+               IsVisible="{Binding HasSyncError}"
+               Text="{Binding SyncErrorMessage}"
+               FontSize="12"
+               Padding="10,8"
+               TextColor="{StaticResource White}"
+               BackgroundColor="#C42B1C" />
+
+        <!-- Mesma convenção do Dashboard: "Concluir" (via StatusButtonView, coluna Status) fica
+             indisponível até a tela de conclusão (seleção de atividades, RF-007) existir. -->
+        <Label Grid.Row="2"
+               IsVisible="{Binding ShowConcludeUnavailableNotice}"
+               Text="Concluir tarefas pela lista estará disponível quando a tela de conclusão (seleção de atividades, RF-007) existir."
+               FontSize="12"
+               Padding="10,8"
+               BackgroundColor="{StaticResource Secondary}"
+               TextColor="{StaticResource PrimaryDarkText}" />
+
+        <Border Grid.Row="3" Padding="0">
+            <Grid RowDefinitions="Auto,*">
+
+                <Grid Grid.Row="0"
+                      ColumnDefinitions="2*,1*,1*,1.4*,0.9*,1.1*"
+                      ColumnSpacing="8"
+                      Padding="12,8"
+                      BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+                    <Label Grid.Column="0" Text="TAREFA" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Grid.Column="1" Text="PROVEDOR" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Grid.Column="2" Text="PRIORIDADE" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Grid.Column="3" Text="STATUS" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Grid.Column="4" Text="TEMPO" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Grid.Column="5" Text="AÇÃO" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                </Grid>
+
+                <CollectionView Grid.Row="1" ItemsSource="{Binding Tasks}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:TarefaListItem">
+                            <Grid ColumnDefinitions="2*,1*,1*,1.4*,0.9*,1.1*"
+                                  ColumnSpacing="8"
+                                  Padding="12,8">
+
+                                <!-- Navega para Detalhes da Tarefa (item 6 do plano) - ver
+                                     TarefasViewModel.OpenTaskDetails para o TODO/motivo do no-op. -->
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding OpenDetailsCommand}" />
+                                </Grid.GestureRecognizers>
+
+                                <Label Grid.Column="0"
+                                       Text="{Binding Title}"
+                                       FontSize="13"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding ProviderLabel}"
+                                       FontSize="12"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding PriorityLabel}"
+                                       FontSize="12"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                                <components:StatusButtonView Grid.Column="3"
+                                                              VerticalOptions="Center"
+                                                              Status="{Binding Status}"
+                                                              StatusChangeCommand="{Binding StatusChangeCommand}" />
+                                <Label Grid.Column="4"
+                                       Text="{Binding InvestedTimeLabel}"
+                                       FontSize="12"
+                                       VerticalOptions="Center" />
+                                <Button Grid.Column="5"
+                                        Text="{Binding ActionLabel}"
+                                        IsEnabled="{Binding ActionEnabled}"
+                                        Command="{Binding ActionCommand}"
+                                        FontSize="11"
+                                        Padding="8,6"
+                                        MinimumHeightRequest="0" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Border>
+
+        <!-- Paginação client-side (10 por página) quando houver mais de 10 itens filtrados. -->
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
+            <Label Grid.Column="0" Text="{Binding CountLabel}" FontSize="11" TextColor="{StaticResource Gray500}" VerticalOptions="Center" />
+            <Button Grid.Column="1"
+                    Text="Anterior"
+                    IsVisible="{Binding ShowPagination}"
+                    Command="{Binding PreviousPageCommand}"
+                    FontSize="11"
+                    Padding="10,6"
+                    MinimumHeightRequest="0" />
+            <Label Grid.Column="2"
+                   Text="{Binding PageLabel}"
+                   IsVisible="{Binding ShowPagination}"
+                   FontSize="11"
+                   VerticalOptions="Center" />
+            <Button Grid.Column="3"
+                    Text="Próxima"
+                    IsVisible="{Binding ShowPagination}"
+                    Command="{Binding NextPageCommand}"
+                    FontSize="11"
+                    Padding="10,6"
+                    MinimumHeightRequest="0" />
+        </Grid>
+
+    </Grid>
+
+</ContentView>

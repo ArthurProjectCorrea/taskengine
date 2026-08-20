@@ -44,7 +44,14 @@ public sealed class OnboardingViewModel : ObservableObject
         ["github"] = "GitHub",
     };
 
-    private const string ConnectedProviderSettingKey = "provider:connected";
+    /// <summary>
+    /// Internal (not private) so <c>TarefasViewModel</c> can read the same key when deciding which
+    /// provider to pass to <c>SyncTasksUseCase</c>, instead of duplicating this literal - there is
+    /// no <c>ProviderSettingsKeys</c> helper for "which provider is connected" today (only
+    /// per-provider keys - see <c>TaskEngine.Application.Providers.ProviderSettingsKeys</c>), since
+    /// this key was never meant to be shared before now.
+    /// </summary>
+    internal const string ConnectedProviderSettingKey = "provider:connected";
 
     private readonly IReadOnlyDictionary<string, IProviderAuthenticator> _authenticatorsByProviderId;
     private readonly IProviderClientFactory _providerClientFactory;
