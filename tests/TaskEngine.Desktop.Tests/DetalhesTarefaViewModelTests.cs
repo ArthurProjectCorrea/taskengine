@@ -26,6 +26,7 @@ public class DetalhesTarefaViewModelTests
             taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
         var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
             workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
+        var addUnmappedTimeModalViewModel = new AddUnmappedTimeModalViewModel(unmappedTimeEntryRepository);
 
         return new DetalhesTarefaViewModel(
             taskRepository,
@@ -34,7 +35,8 @@ public class DetalhesTarefaViewModelTests
             startWorkSessionUseCase,
             pauseWorkSessionUseCase,
             navigationService ?? new FakeNavigationService(),
-            concludeTaskModalViewModel);
+            concludeTaskModalViewModel,
+            addUnmappedTimeModalViewModel);
     }
 
     [Fact]

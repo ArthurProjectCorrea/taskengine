@@ -86,6 +86,15 @@
                         <ProgressBar Progress="{Binding UnmappedFraction}" HeightRequest="6" />
                     </VerticalStackLayout>
 
+                    <!-- Adicionar tempo não mapeado (RF-006): só disponível para uma tarefa já iniciada e não concluída - ver DetalhesTarefaViewModel.CanAddUnmappedTime. -->
+                    <Button Text="Adicionar tempo não mapeado"
+                            IsVisible="{Binding CanAddUnmappedTime}"
+                            Command="{Binding OpenAddUnmappedTimeCommand}"
+                            HorizontalOptions="Start"
+                            FontSize="12"
+                            Padding="10,7"
+                            MinimumHeightRequest="0" />
+
                     <!-- "Relatório" (RF-010/RF-011): só visível quando a tarefa está concluída.
                          O comando em si é um no-op documentado até a tela de relatório por tarefa
                          existir (plano geral, item 9) - ver DetalhesTarefaViewModel.RequestReport. -->
@@ -140,6 +149,7 @@
     </Grid>
 
     <components:ConcludeTaskModalView BindingContext="{Binding ConcludeModal}" />
+    <components:AddUnmappedTimeModalView BindingContext="{Binding AddUnmappedTimeModal}" />
 
     </Grid>
 

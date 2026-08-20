@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Overlay modal for "Adicionar tempo não mapeado" (RF-006/Schema-002, ERS-Tarefas.md; issue
+     mentioned in the plan for #18's follow-up). Purely presentational - see
+     AddUnmappedTimeModalViewModel's own doc comment for why it owns the save call itself. Loosely
+     mirrors docs/prototipo/TaskEngine Dashboard.dc.html's offlineOpen modal (duration, início,
+     justificativa, Cancelar/Registrar) without pixel-perfect fidelity. Same overlay convention as
+     ConcludeTaskModalView - see that file's own note on the lack of a popup/dialog library. -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             x:Class="TaskEngine.Desktop.Views.Components.AddUnmappedTimeModalView"
+             x:DataType="viewModels:AddUnmappedTimeModalViewModel"
+             IsVisible="{Binding IsOpen}"
+             InputTransparent="False">
+
+    <Grid BackgroundColor="#66000000">
+        <Border MaximumWidthRequest="400"
+                Margin="24"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Padding="0"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}">
+            <VerticalStackLayout Spacing="0">
+
+                <VerticalStackLayout Padding="18,16,18,4" Spacing="3">
+                    <Label Text="Tempo não mapeado" FontAttributes="Bold" FontSize="15" />
+                    <Label Text="Tempo dedicado à tarefa fora do TaskEngine."
+                           FontSize="11.5"
+                           TextColor="{StaticResource Gray500}" />
+                </VerticalStackLayout>
+
+                <Label IsVisible="{Binding HasError}"
+                       Text="{Binding ErrorMessage}"
+                       FontSize="12"
+                       Margin="18,4,18,0"
+                       Padding="10,8"
+                       TextColor="{StaticResource White}"
+                       BackgroundColor="#C42B1C" />
+
+                <VerticalStackLayout Padding="18,14,18,18" Spacing="13">
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Duração" FontSize="12" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6">
+                            <Entry Grid.Column="0" WidthRequest="60" Placeholder="0" Keyboard="Numeric" Text="{Binding HoursText, Mode=TwoWay}" />
+                            <Label Grid.Column="1" Text="h" VerticalOptions="Center" TextColor="{StaticResource Gray500}" />
+                            <Entry Grid.Column="2" WidthRequest="60" Placeholder="00" Keyboard="Numeric" Text="{Binding MinutesText, Mode=TwoWay}" />
+                            <Label Grid.Column="3" Text="min" VerticalOptions="Center" TextColor="{StaticResource Gray500}" />
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Início" FontSize="12" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <DatePicker Grid.Column="0" Date="{Binding StartDate, Mode=TwoWay}" />
+                            <TimePicker Grid.Column="1" WidthRequest="110" Time="{Binding StartTime, Mode=TwoWay}" />
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Justificativa" FontSize="12" FontAttributes="Bold" />
+                        <Entry Placeholder="Ex.: reunião de alinhamento presencial" Text="{Binding Justification, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      ColumnSpacing="10"
+                      Padding="18,13"
+                      BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+                    <Button Grid.Column="1" Text="Cancelar" Command="{Binding CancelCommand}" Padding="14,9" MinimumHeightRequest="0" />
+                    <Button Grid.Column="2"
+                            Text="Registrar"
+                            Command="{Binding SaveCommand}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="{StaticResource White}"
+                            Padding="16,9"
+                            MinimumHeightRequest="0" />
+                </Grid>
+
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+</ContentView>

@@ -92,7 +92,8 @@ public sealed class DashboardViewModel : ObservableObject
         GenerateTaskReportUseCase generateTaskReportUseCase,
         StartWorkSessionUseCase startWorkSessionUseCase,
         PauseWorkSessionUseCase pauseWorkSessionUseCase,
-        ConcludeTaskModalViewModel concludeTaskModalViewModel)
+        ConcludeTaskModalViewModel concludeTaskModalViewModel,
+        AddUnmappedTimeModalViewModel addUnmappedTimeModalViewModel)
     {
         _taskRepository = taskRepository;
         _workSessionRepository = workSessionRepository;
@@ -100,11 +101,14 @@ public sealed class DashboardViewModel : ObservableObject
         _startWorkSessionUseCase = startWorkSessionUseCase;
         _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         ConcludeModal = concludeTaskModalViewModel;
+        AddUnmappedTimeModal = addUnmappedTimeModalViewModel;
 
         ConcludeModal.Concluded += OnTaskConcluded;
+        AddUnmappedTimeModal.Saved += OnUnmappedTimeSaved;
 
         StatusChangeCommand = new AsyncRelayCommand(
             param => ChangeStatusAsync((DomainTaskStatus)param!, CancellationToken.None));
+        OpenAddUnmappedTimeCommand = new RelayCommand(_ => OpenAddUnmappedTime());
     }
 
     public ObservableCollection<DashboardTaskListItem> Tasks { get; } = [];
@@ -155,6 +159,7 @@ public sealed class DashboardViewModel : ObservableObject
             if (SetProperty(ref _hasSelection, value))
             {
                 OnPropertyChanged(nameof(NoSelection));
+                OnPropertyChanged(nameof(CanAddUnmappedTime));
             }
         }
     }
@@ -178,7 +183,13 @@ public sealed class DashboardViewModel : ObservableObject
     public DomainTaskStatus SelectedStatus
     {
         get => _selectedStatus;
-        private set => SetProperty(ref _selectedStatus, value);
+        private set
+        {
+            if (SetProperty(ref _selectedStatus, value))
+            {
+                OnPropertyChanged(nameof(CanAddUnmappedTime));
+            }
+        }
     }
 
     public string ElapsedLabel
@@ -242,11 +253,21 @@ public sealed class DashboardViewModel : ObservableObject
         private set => SetProperty(ref _unmappedFraction, value);
     }
 
+    /// <summary>Gate for "Adicionar tempo não mapeado" (RF-006/CA-006.1: the task must be in progress or paused, i.e. already started).</summary>
+    public bool CanAddUnmappedTime =>
+        HasSelection && SelectedStatus is DomainTaskStatus.InProgress or DomainTaskStatus.Paused;
+
     /// <summary>The "Concluir tarefa" modal (RF-007, issue #18) for the selected task - see <see cref="ConcludeTaskModalViewModel"/>'s own doc comment.</summary>
     public ConcludeTaskModalViewModel ConcludeModal { get; }
 
+    /// <summary>The "Adicionar tempo não mapeado" modal (RF-006) for the selected task - see <see cref="AddUnmappedTimeModalViewModel"/>'s own doc comment.</summary>
+    public AddUnmappedTimeModalViewModel AddUnmappedTimeModal { get; }
+
     /// <summary>Bound to <c>StatusButtonView.StatusChangeCommand</c> for the selected task.</summary>
     public AsyncRelayCommand StatusChangeCommand { get; }
+
+    /// <summary>Opens <see cref="AddUnmappedTimeModal"/> for the selected task - see <see cref="CanAddUnmappedTime"/> for its visibility gate.</summary>
+    public RelayCommand OpenAddUnmappedTimeCommand { get; }
 
     /// <summary>
     /// Loads/reloads every KPI, the side list and the selected task's detail panel from local
@@ -317,8 +338,19 @@ public sealed class DashboardViewModel : ObservableObject
         await LoadAsync(cancellationToken);
     }
 
+    private void OpenAddUnmappedTime()
+    {
+        if (SelectedTask is { } selected)
+        {
+            AddUnmappedTimeModal.Open(selected.Id);
+        }
+    }
+
     /// <summary>Reloads once <see cref="ConcludeModal"/> reports a successful conclusion, so the side list/detail panel reflect the task's new status.</summary>
     private void OnTaskConcluded(Guid taskId) => _ = LoadAsync(CancellationToken.None);
+
+    /// <summary>Reloads once <see cref="AddUnmappedTimeModal"/> reports a successful save, so the não-mapeado total reflects the new entry.</summary>
+    private void OnUnmappedTimeSaved(Guid taskId) => _ = LoadAsync(CancellationToken.None);
 
     private void RebuildTaskList()
     {

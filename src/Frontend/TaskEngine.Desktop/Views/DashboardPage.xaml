@@ -79,6 +79,15 @@
                                 </VerticalStackLayout>
                             </Border>
 
+                            <!-- Adicionar tempo não mapeado (RF-006): só disponível para uma tarefa já iniciada e não concluída - ver DashboardViewModel.CanAddUnmappedTime. -->
+                            <Button Text="Adicionar tempo não mapeado"
+                                    IsVisible="{Binding CanAddUnmappedTime}"
+                                    Command="{Binding OpenAddUnmappedTimeCommand}"
+                                    HorizontalOptions="Start"
+                                    FontSize="12"
+                                    Padding="10,7"
+                                    MinimumHeightRequest="0" />
+
                             <!-- Proporção humano/IA/expediente/não-mapeado (reaproveita
                                  GenerateTaskReportUseCase - ver DashboardViewModel). -->
                             <VerticalStackLayout Spacing="7">
@@ -136,6 +145,7 @@
     </Grid>
 
     <components:ConcludeTaskModalView BindingContext="{Binding ConcludeModal}" />
+    <components:AddUnmappedTimeModalView BindingContext="{Binding AddUnmappedTimeModal}" />
 
     </Grid>
 

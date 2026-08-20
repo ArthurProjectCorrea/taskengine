@@ -25,6 +25,7 @@ public class DashboardViewModelTests
             taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
         var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
             workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
+        var addUnmappedTimeModalViewModel = new AddUnmappedTimeModalViewModel(unmappedTimeEntryRepository);
 
         return new DashboardViewModel(
             taskRepository,
@@ -32,7 +33,8 @@ public class DashboardViewModelTests
             generateTaskReportUseCase,
             startWorkSessionUseCase,
             pauseWorkSessionUseCase,
-            concludeTaskModalViewModel);
+            concludeTaskModalViewModel,
+            addUnmappedTimeModalViewModel);
     }
 
     [Fact]

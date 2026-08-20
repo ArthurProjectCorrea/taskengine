@@ -91,7 +91,8 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         StartWorkSessionUseCase startWorkSessionUseCase,
         PauseWorkSessionUseCase pauseWorkSessionUseCase,
         INavigationService navigationService,
-        ConcludeTaskModalViewModel concludeTaskModalViewModel)
+        ConcludeTaskModalViewModel concludeTaskModalViewModel,
+        AddUnmappedTimeModalViewModel addUnmappedTimeModalViewModel)
     {
         _taskRepository = taskRepository;
         _workSessionRepository = workSessionRepository;
@@ -100,13 +101,16 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         _navigationService = navigationService;
         ConcludeModal = concludeTaskModalViewModel;
+        AddUnmappedTimeModal = addUnmappedTimeModalViewModel;
 
         ConcludeModal.Concluded += OnTaskConcluded;
+        AddUnmappedTimeModal.Saved += OnUnmappedTimeSaved;
 
         StatusChangeCommand = new AsyncRelayCommand(
             param => ChangeStatusAsync((DomainTaskStatus)param!, CancellationToken.None));
         ReportCommand = new RelayCommand(_ => RequestReport());
         BackCommand = new RelayCommand(_ => _navigationService.NavigateTo(AppSection.Tarefas));
+        OpenAddUnmappedTimeCommand = new RelayCommand(_ => AddUnmappedTimeModal.Open(_taskId));
     }
 
     public ObservableCollection<TimeRecordListItem> Sessions { get; } = [];
@@ -120,6 +124,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
             if (SetProperty(ref _hasTask, value))
             {
                 OnPropertyChanged(nameof(NoTask));
+                OnPropertyChanged(nameof(CanAddUnmappedTime));
             }
         }
     }
@@ -143,7 +148,13 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     public DomainTaskStatus Status
     {
         get => _status;
-        private set => SetProperty(ref _status, value);
+        private set
+        {
+            if (SetProperty(ref _status, value))
+            {
+                OnPropertyChanged(nameof(CanAddUnmappedTime));
+            }
+        }
     }
 
     public string ElapsedLabel
@@ -216,6 +227,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
             if (SetProperty(ref _isDone, value))
             {
                 OnPropertyChanged(nameof(ShowReportButton));
+                OnPropertyChanged(nameof(CanAddUnmappedTime));
             }
         }
     }
@@ -223,8 +235,14 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     /// <summary>Alias of <see cref="IsDone"/> for the view's "Relatório" button visibility binding.</summary>
     public bool ShowReportButton => IsDone;
 
+    /// <summary>Gate for "Adicionar tempo não mapeado" (RF-006/CA-006.1: the task must be in progress or paused, i.e. already started and not yet concluded).</summary>
+    public bool CanAddUnmappedTime => HasTask && !IsDone && Status != DomainTaskStatus.ToDo;
+
     /// <summary>The "Concluir tarefa" modal (RF-007, issue #18) for this task - see <see cref="ConcludeTaskModalViewModel"/>'s own doc comment.</summary>
     public ConcludeTaskModalViewModel ConcludeModal { get; }
+
+    /// <summary>The "Adicionar tempo não mapeado" modal (RF-006) for this task - see <see cref="AddUnmappedTimeModalViewModel"/>'s own doc comment.</summary>
+    public AddUnmappedTimeModalViewModel AddUnmappedTimeModal { get; }
 
     /// <summary>True right after "Relatório" was clicked - see <see cref="RequestReport"/> for why the action itself is a documented no-op today.</summary>
     public bool ShowReportUnavailableNotice
@@ -243,6 +261,9 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     public RelayCommand ReportCommand { get; }
 
     public RelayCommand BackCommand { get; }
+
+    /// <summary>Opens <see cref="AddUnmappedTimeModal"/> for this task - see <see cref="CanAddUnmappedTime"/> for its visibility gate.</summary>
+    public RelayCommand OpenAddUnmappedTimeCommand { get; }
 
     /// <summary>
     /// Receives the task id (issue #53) - the only parameter <see cref="AppSection.DetalhesTarefa"/>
@@ -348,6 +369,9 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
 
     /// <summary>Reloads once <see cref="ConcludeModal"/> reports a successful conclusion, so the panel reflects the task's new status.</summary>
     private void OnTaskConcluded(Guid taskId) => _ = LoadAsync(CancellationToken.None);
+
+    /// <summary>Reloads once <see cref="AddUnmappedTimeModal"/> reports a successful save, so the não-mapeado total reflects the new entry.</summary>
+    private void OnUnmappedTimeSaved(Guid taskId) => _ = LoadAsync(CancellationToken.None);
 
     /// <summary>
     /// TODO(plano geral, item 9 - relatório por tarefa): chamar
