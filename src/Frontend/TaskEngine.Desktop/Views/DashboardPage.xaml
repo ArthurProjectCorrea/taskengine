@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Despite the file name (kept for parity with "DashboardPage" as referenced by the plan/issue
+     #19), this is a ContentView, not a ContentPage - SectionViewFactory hosts every section screen
+     inside MainShellPage's SectionHost (a ContentView), which requires a View, matching
+     PlaceholderView's own base class. -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             xmlns:components="clr-namespace:TaskEngine.Desktop.Views.Components"
+             x:Class="TaskEngine.Desktop.Views.DashboardPage"
+             x:DataType="viewModels:DashboardViewModel">
+
+    <Grid RowDefinitions="Auto,*" Padding="12" RowSpacing="10">
+
+        <!-- KPIs (issue #19): total de tarefas, tempo investido hoje, tempo investido na semana -
+             calculados a partir dos dados locais (ver DashboardViewModel). -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+            <Border Grid.Column="0" Padding="14,10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="TOTAL DE TAREFAS" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Text="{Binding TotalTasksCount}" FontSize="22" FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="1" Padding="14,10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="TEMPO INVESTIDO HOJE" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Text="{Binding TimeInvestedTodayLabel}" FontSize="22" FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="2" Padding="14,10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="TEMPO INVESTIDO NA SEMANA" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Text="{Binding TimeInvestedWeekLabel}" FontSize="22" FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- Painel de detalhe (esquerda) + lista "Em andamento e a fazer" (direita). -->
+        <Grid Grid.Row="1" ColumnDefinitions="3*,220" ColumnSpacing="10">
+
+            <Border Grid.Column="0" Padding="0">
+                <Grid>
+
+                    <!-- Placeholder quando nada está selecionado (nenhuma tarefa em andamento/a fazer). -->
+                    <Label IsVisible="{Binding NoSelection}"
+                           Text="Nenhuma tarefa em andamento ou a fazer.&#10;Selecione uma tarefa na lista ao lado."
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource Gray500}" />
+
+                    <ScrollView IsVisible="{Binding HasSelection}">
+                        <VerticalStackLayout Padding="18" Spacing="14">
+
+                            <!-- Cabeçalho: título + status/ações rápidas (iniciar/pausar/retomar via
+                                 StatusButtonView; "Concluir" fica indisponível - ver
+                                 DashboardViewModel.ChangeStatusAsync). -->
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <VerticalStackLayout Grid.Column="0" Spacing="1">
+                                    <Label Text="{Binding SelectedMetaLabel}" FontSize="11" TextColor="{StaticResource Gray500}" />
+                                    <Label Text="{Binding SelectedTitle}" FontSize="17" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+                                <components:StatusButtonView Grid.Column="1"
+                                                              WidthRequest="200"
+                                                              Status="{Binding SelectedStatus}"
+                                                              StatusChangeCommand="{Binding StatusChangeCommand}" />
+                            </Grid>
+
+                            <Label IsVisible="{Binding ShowConcludeUnavailableNotice}"
+                                   Text="Concluir tarefas pelo Dashboard estará disponível quando a tela de conclusão (seleção de atividades, RF-007) existir."
+                                   FontSize="12"
+                                   Padding="10"
+                                   BackgroundColor="{StaticResource Secondary}"
+                                   TextColor="{StaticResource PrimaryDarkText}" />
+
+                            <!-- Timer visual: tempo decorrido da sessão ativa, se houver. -->
+                            <Border Padding="16" BackgroundColor="{StaticResource Secondary}">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="TEMPO DE EXECUÇÃO" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray600}" />
+                                    <Label Text="{Binding ElapsedLabel}" FontSize="30" FontAttributes="Bold" FontFamily="OpenSansSemibold" />
+                                    <Label Text="{Binding ElapsedHint}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Proporção humano/IA/expediente/não-mapeado (reaproveita
+                                 GenerateTaskReportUseCase - ver DashboardViewModel). -->
+                            <VerticalStackLayout Spacing="7">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0" Text="Humano" FontSize="12.5" />
+                                    <Label Grid.Column="1" Text="{Binding HumanLabel}" FontSize="12.5" FontAttributes="Bold" />
+                                </Grid>
+                                <ProgressBar Progress="{Binding HumanFraction}" HeightRequest="6" />
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                    <Label Grid.Column="0" Text="IA" FontSize="12.5" />
+                                    <Label Grid.Column="1" Text="{Binding AiLabel}" FontSize="12.5" FontAttributes="Bold" />
+                                </Grid>
+                                <ProgressBar Progress="{Binding AiFraction}" HeightRequest="6" />
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                    <Label Grid.Column="0" Text="Expediente" FontSize="12.5" />
+                                    <Label Grid.Column="1" Text="{Binding OfficeLabel}" FontSize="12.5" FontAttributes="Bold" />
+                                </Grid>
+                                <ProgressBar Progress="{Binding OfficeFraction}" HeightRequest="6" />
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                    <Label Grid.Column="0" Text="Não mapeado" FontSize="12.5" />
+                                    <Label Grid.Column="1" Text="{Binding UnmappedLabel}" FontSize="12.5" FontAttributes="Bold" />
+                                </Grid>
+                                <ProgressBar Progress="{Binding UnmappedFraction}" HeightRequest="6" />
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+
+            <!-- Lista lateral "Em andamento e a fazer" (RF-003/RF-005, ERS-Tarefas.md). -->
+            <Border Grid.Column="1" Padding="0">
+                <Grid RowDefinitions="Auto,*">
+                    <Label Grid.Row="0" Text="Em andamento e a fazer" FontAttributes="Bold" Padding="14,10,14,4" />
+                    <CollectionView Grid.Row="1"
+                                     ItemsSource="{Binding Tasks}"
+                                     SelectionMode="Single"
+                                     SelectedItem="{Binding SelectedTask}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:DashboardTaskListItem">
+                                <VerticalStackLayout Padding="14,10" Spacing="2">
+                                    <Label Text="{Binding Title}" FontSize="12.5" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding StatusLabel}" FontSize="10.5" TextColor="{StaticResource Gray500}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Grid>
+
+</ContentView>

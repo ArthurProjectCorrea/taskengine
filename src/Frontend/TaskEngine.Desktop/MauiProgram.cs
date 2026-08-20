@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TaskEngine.Application.Abstractions;
+using TaskEngine.Application.Reports;
 using TaskEngine.Application.Tasks;
+using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Navigation;
 using TaskEngine.Desktop.ViewModels;
 using TaskEngine.Desktop.ViewModels.Navigation;
@@ -65,6 +67,9 @@ public static class MauiProgram
         services.AddSingleton<IAppSettingsStore, SqliteAppSettingsStore>();
         services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
         services.AddSingleton<ITaskRepository, SqliteTaskRepository>();
+        services.AddSingleton<IWorkSessionRepository, SqliteWorkSessionRepository>();
+        services.AddSingleton<IWorkScheduleStore, AppSettingsWorkScheduleStore>();
+        services.AddSingleton<IUnmappedTimeEntryRepository, SqliteUnmappedTimeEntryRepository>();
 
         // Client ID do GitHub App real registrado pelo Arthur (ver issue #22). Não é segredo -
         // client_id de um cliente público PKCE vai literalmente na URL de autorização, visível
@@ -84,6 +89,13 @@ public static class MauiProgram
         services.AddSingleton<IProviderClientFactory, ProviderClientFactory>();
 
         services.AddTransient<CreateTaskUseCase>();
+
+        // Dashboard (issue #19): work-session lifecycle use cases + the general task report use
+        // case (GenerateTaskReportUseCase, RF-016), reused as-is by DashboardViewModel for the
+        // selected task's human/AI/expediente/não-mapeado split - see its own doc comment.
+        services.AddTransient<StartWorkSessionUseCase>();
+        services.AddTransient<PauseWorkSessionUseCase>();
+        services.AddTransient<GenerateTaskReportUseCase>();
 
         // Monitoring module (RF-001/RF-002, ERS-Monitoramento.md, issues #12/#11). Registered as
         // singletons so the same watcher instance (and its in-memory debounce/aggregation state)
@@ -110,5 +122,12 @@ public static class MauiProgram
         services.AddSingleton<SectionViewFactory>();
         services.AddSingleton<ShellViewModel>();
         services.AddSingleton<MainShellPage>();
+
+        // Dashboard (issue #19): transient, unlike the shell above - a fresh instance is resolved
+        // by SectionViewFactory on every navigation into AppSection.Dashboard (same lifetime
+        // PlaceholderView already gets for the other sections), not shared across the app's
+        // lifetime like the single-window shell.
+        services.AddTransient<DashboardViewModel>();
+        services.AddTransient<DashboardPage>();
     }
 }
