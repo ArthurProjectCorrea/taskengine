@@ -139,5 +139,12 @@ public static class MauiProgram
         // fresh instance per navigation into AppSection.Tarefas.
         services.AddTransient<TarefasViewModel>();
         services.AddTransient<TarefasPage>();
+
+        // Detalhes da Tarefa (issue #53, ERS-Tarefas.md): same transient lifetime as
+        // Dashboard/Tarefas above - a fresh instance per navigation into
+        // AppSection.DetalhesTarefa (see SectionViewFactory, which also feeds it the task id via
+        // INavigationAware.ApplyParameter right after resolution).
+        services.AddTransient<DetalhesTarefaViewModel>();
+        services.AddTransient<DetalhesTarefaPage>();
     }
 }

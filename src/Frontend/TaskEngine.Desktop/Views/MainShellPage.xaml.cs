@@ -32,5 +32,9 @@ public partial class MainShellPage : ContentPage
 
     private void OnSectionChanged(AppSection section) => ShowSection(section);
 
-    private void ShowSection(AppSection section) => SectionHost.Content = _sectionViewFactory.CreateView(section);
+    // Reads _navigationService.CurrentParameter (issue #53) rather than taking it as a second
+    // parameter of this method - by the time SectionChanged fires (or on first load, in the
+    // constructor above), NavigationService has already recorded it for the current section.
+    private void ShowSection(AppSection section) =>
+        SectionHost.Content = _sectionViewFactory.CreateView(section, _navigationService.CurrentParameter);
 }

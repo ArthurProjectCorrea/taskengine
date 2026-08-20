@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- ContentView (not ContentPage) for the same reason as DashboardPage.xaml/TarefasPage.xaml -
+     SectionViewFactory/MainShellPage's SectionHost require a View. Unlike those two, this screen's
+     data load is not driven by Loaded (see DetalhesTarefaPage.xaml.cs) - it starts from
+     DetalhesTarefaViewModel.ApplyParameter, called by SectionViewFactory right after this page is
+     resolved (issue #53). -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             xmlns:components="clr-namespace:TaskEngine.Desktop.Views.Components"
+             x:Class="TaskEngine.Desktop.Views.DetalhesTarefaPage"
+             x:DataType="viewModels:DetalhesTarefaViewModel">
+
+    <Grid RowDefinitions="Auto,*" Padding="12" RowSpacing="10">
+
+        <!-- Cabeçalho: Voltar (sempre para Tarefas - ver DetalhesTarefaViewModel.BackCommand) +
+             título + status/ações rápidas (mesmo StatusButtonView do Dashboard/Tarefas). -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Text="← Voltar"
+                    Command="{Binding BackCommand}"
+                    FontSize="12"
+                    Padding="10,6"
+                    MinimumHeightRequest="0" />
+            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                <Label Text="{Binding MetaLabel}" FontSize="11" TextColor="{StaticResource Gray500}" />
+                <Label Text="{Binding Title}" FontSize="17" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+            <components:StatusButtonView Grid.Column="2"
+                                          WidthRequest="200"
+                                          Status="{Binding Status}"
+                                          StatusChangeCommand="{Binding StatusChangeCommand}" />
+        </Grid>
+
+        <!-- Estado "não encontrada"/carregando (mesma convenção do Dashboard - NoSelection/NoTask). -->
+        <Label Grid.Row="1"
+               IsVisible="{Binding NoTask}"
+               Text="Carregando tarefa..."
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               TextColor="{StaticResource Gray500}" />
+
+        <ScrollView Grid.Row="1" IsVisible="{Binding HasTask}">
+            <Grid ColumnDefinitions="1.3*,1*" ColumnSpacing="16">
+
+                <!-- Painel de progresso (esquerda): mesmo timer + barras humano/IA/expediente/
+                     não-mapeado do Dashboard (DashboardViewModel/DashboardPage), reaproveitando
+                     GenerateTaskReportUseCase - ver DetalhesTarefaViewModel.LoadAsync. -->
+                <VerticalStackLayout Grid.Column="0" Spacing="14">
+
+                    <Label IsVisible="{Binding ShowConcludeUnavailableNotice}"
+                           Text="Concluir esta tarefa estará disponível quando a tela de conclusão (seleção de atividades, RF-007) existir."
+                           FontSize="12"
+                           Padding="10"
+                           BackgroundColor="{StaticResource Secondary}"
+                           TextColor="{StaticResource PrimaryDarkText}" />
+
+                    <Border Padding="16" BackgroundColor="{StaticResource Secondary}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="TEMPO DE EXECUÇÃO" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray600}" />
+                            <Label Text="{Binding ElapsedLabel}" FontSize="30" FontAttributes="Bold" FontFamily="OpenSansSemibold" />
+                            <Label Text="{Binding ElapsedHint}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <VerticalStackLayout Spacing="7">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="Humano" FontSize="12.5" />
+                            <Label Grid.Column="1" Text="{Binding HumanLabel}" FontSize="12.5" FontAttributes="Bold" />
+                        </Grid>
+                        <ProgressBar Progress="{Binding HumanFraction}" HeightRequest="6" />
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                            <Label Grid.Column="0" Text="IA" FontSize="12.5" />
+                            <Label Grid.Column="1" Text="{Binding AiLabel}" FontSize="12.5" FontAttributes="Bold" />
+                        </Grid>
+                        <ProgressBar Progress="{Binding AiFraction}" HeightRequest="6" />
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                            <Label Grid.Column="0" Text="Expediente" FontSize="12.5" />
+                            <Label Grid.Column="1" Text="{Binding OfficeLabel}" FontSize="12.5" FontAttributes="Bold" />
+                        </Grid>
+                        <ProgressBar Progress="{Binding OfficeFraction}" HeightRequest="6" />
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                            <Label Grid.Column="0" Text="Não mapeado" FontSize="12.5" />
+                            <Label Grid.Column="1" Text="{Binding UnmappedLabel}" FontSize="12.5" FontAttributes="Bold" />
+                        </Grid>
+                        <ProgressBar Progress="{Binding UnmappedFraction}" HeightRequest="6" />
+                    </VerticalStackLayout>
+
+                    <!-- "Relatório" (RF-010/RF-011): só visível quando a tarefa está concluída.
+                         O comando em si é um no-op documentado até a tela de relatório por tarefa
+                         existir (plano geral, item 9) - ver DetalhesTarefaViewModel.RequestReport. -->
+                    <Button Text="Relatório"
+                            IsVisible="{Binding ShowReportButton}"
+                            Command="{Binding ReportCommand}" />
+                    <Label IsVisible="{Binding ShowReportUnavailableNotice}"
+                           Text="O relatório por tarefa (linha do tempo, RF-010/RF-011) ainda não tem tela própria."
+                           FontSize="12"
+                           Padding="10"
+                           BackgroundColor="{StaticResource Secondary}"
+                           TextColor="{StaticResource PrimaryDarkText}" />
+
+                </VerticalStackLayout>
+
+                <!-- Coluna direita: link do provedor (GAP - ver DetalhesTarefaViewModel.ProviderLinkUnavailableNote)
+                     + lista de registros de tempo (Schema-004, via IWorkSessionRepository). -->
+                <VerticalStackLayout Grid.Column="1" Spacing="14">
+
+                    <Border Padding="14">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Abrir no provedor" FontAttributes="Bold" FontSize="13" />
+                            <Label Text="{Binding MetaLabel}" FontSize="12.5" />
+                            <Label Text="{Binding ProviderLinkUnavailableNote}"
+                                   FontSize="10.5"
+                                   TextColor="{StaticResource Gray500}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Registros de tempo" FontAttributes="Bold" FontSize="12" />
+                        <CollectionView ItemsSource="{Binding Sessions}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:TimeRecordListItem">
+                                    <Grid ColumnDefinitions="*,Auto" Padding="10,8" ColumnSpacing="8">
+                                        <VerticalStackLayout Grid.Column="0" Spacing="1">
+                                            <Label Text="{Binding PeriodLabel}" FontSize="12" LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding KindLabel}" FontSize="10.5" TextColor="{StaticResource Gray500}" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding DurationLabel}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+
+            </Grid>
+        </ScrollView>
+
+    </Grid>
+
+</ContentView>

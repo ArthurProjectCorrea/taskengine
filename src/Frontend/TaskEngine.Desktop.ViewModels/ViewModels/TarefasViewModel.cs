@@ -5,6 +5,7 @@ using TaskEngine.Application.Reports;
 using TaskEngine.Application.Tasks;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Mvvm;
+using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Domain.Entities;
 
 using DomainTaskStatus = TaskEngine.Domain.Entities.TaskStatus;
@@ -96,6 +97,7 @@ public sealed class TarefasViewModel : ObservableObject
     private readonly StartWorkSessionUseCase _startWorkSessionUseCase;
     private readonly PauseWorkSessionUseCase _pauseWorkSessionUseCase;
     private readonly IAppSettingsStore _appSettingsStore;
+    private readonly INavigationService _navigationService;
 
     private IReadOnlyList<TaskItem> _allTasks = [];
     private IReadOnlyDictionary<Guid, double> _investedSecondsByTaskId = new Dictionary<Guid, double>();
@@ -116,7 +118,8 @@ public sealed class TarefasViewModel : ObservableObject
         GenerateTaskReportUseCase generateTaskReportUseCase,
         StartWorkSessionUseCase startWorkSessionUseCase,
         PauseWorkSessionUseCase pauseWorkSessionUseCase,
-        IAppSettingsStore appSettingsStore)
+        IAppSettingsStore appSettingsStore,
+        INavigationService navigationService)
     {
         _taskRepository = taskRepository;
         _syncTasksUseCase = syncTasksUseCase;
@@ -124,6 +127,7 @@ public sealed class TarefasViewModel : ObservableObject
         _startWorkSessionUseCase = startWorkSessionUseCase;
         _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         _appSettingsStore = appSettingsStore;
+        _navigationService = navigationService;
 
         SyncCommand = new AsyncRelayCommand(_ => SyncAsync(CancellationToken.None));
         PreviousPageCommand = new RelayCommand(_ => ChangePage(-1), _ => _currentPageIndex > 0);
@@ -275,19 +279,13 @@ public sealed class TarefasViewModel : ObservableObject
     }
 
     /// <summary>
-    /// TODO(próximo item do plano - "Detalhes da Tarefa"): navegar para a tela de detalhes com o
-    /// <paramref name="taskId"/>. <see cref="Navigation.INavigationService"/> hoje só troca de
-    /// <see cref="Navigation.AppSection"/>, sem suportar parâmetros, e a tela de destino ainda não
-    /// existe. Estender a interface (ex.: um método dedicado tipo
-    /// <c>NavigateToTaskDetails(Guid taskId)</c>, ou um parâmetro genérico em
-    /// <c>NavigateTo</c>) e criar TaskDetailsPage/TaskDetailsViewModel ficam para esse próximo
-    /// item - deixado como no-op aqui de propósito, para não travar esta tela nem inventar uma
-    /// navegação quebrada/lançar exceção.
+    /// Navigates to the Detalhes da Tarefa screen (issue #53, ERS-Tarefas.md) with
+    /// <paramref name="taskId"/> as the navigation parameter - see
+    /// <see cref="Navigation.INavigationService.NavigateTo(Navigation.AppSection, object?)"/> and
+    /// <c>DetalhesTarefaViewModel.ApplyParameter</c>, which receives it on the other end.
     /// </summary>
-    private void OpenTaskDetails(Guid taskId)
-    {
-        // Intentional no-op - see TODO above.
-    }
+    private void OpenTaskDetails(Guid taskId) =>
+        _navigationService.NavigateTo(AppSection.DetalhesTarefa, taskId);
 
     private void ChangePage(int delta)
     {

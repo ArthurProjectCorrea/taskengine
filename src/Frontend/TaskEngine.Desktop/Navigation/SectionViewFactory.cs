@@ -6,10 +6,10 @@ namespace TaskEngine.Desktop.Navigation;
 
 /// <summary>
 /// Resolves the View that represents each <see cref="AppSection"/> in the shell's content area.
-/// Dashboard (issue #19) and Tarefas (ERS-Tarefas.md RF-001/RF-003) are wired to their real
-/// screens; Configurações still resolves to a titled <see cref="PlaceholderView"/> until its own
-/// Fase E work lands - wiring it in later only means replacing the corresponding branch here,
-/// without touching <see cref="ViewModels.ShellViewModel"/> or <see cref="NavigationService"/>.
+/// Dashboard (issue #19), Tarefas (ERS-Tarefas.md RF-001/RF-003) and DetalhesTarefa (issue #53) are
+/// wired to their real screens; Configurações still resolves to a titled <see cref="PlaceholderView"/>
+/// until its own Fase E work lands - wiring it in later only means replacing the corresponding
+/// branch here, without touching <see cref="ViewModels.ShellViewModel"/> or <see cref="NavigationService"/>.
 /// </summary>
 public sealed class SectionViewFactory
 {
@@ -26,11 +26,28 @@ public sealed class SectionViewFactory
         _serviceProvider = serviceProvider;
     }
 
-    public View CreateView(AppSection section) => section switch
+    /// <summary>
+    /// Resolves <paramref name="section"/>'s View and, if its resolved <c>BindingContext</c> opts
+    /// into <see cref="INavigationAware"/>, hands it <paramref name="parameter"/> (issue #53) -
+    /// e.g. <c>DetalhesTarefaViewModel</c> receiving the task id to load. Every other section's
+    /// view model is unaffected, since none of them implement that interface.
+    /// </summary>
+    public View CreateView(AppSection section, object? parameter = null)
     {
-        AppSection.Dashboard => _serviceProvider.GetRequiredService<DashboardPage>(),
-        AppSection.Tarefas => _serviceProvider.GetRequiredService<TarefasPage>(),
-        AppSection.Configuracoes => new PlaceholderView("Configurações (placeholder)"),
-        _ => throw new ArgumentOutOfRangeException(nameof(section), section, "Unknown app section."),
-    };
+        View view = section switch
+        {
+            AppSection.Dashboard => _serviceProvider.GetRequiredService<DashboardPage>(),
+            AppSection.Tarefas => _serviceProvider.GetRequiredService<TarefasPage>(),
+            AppSection.Configuracoes => new PlaceholderView("Configurações (placeholder)"),
+            AppSection.DetalhesTarefa => _serviceProvider.GetRequiredService<DetalhesTarefaPage>(),
+            _ => throw new ArgumentOutOfRangeException(nameof(section), section, "Unknown app section."),
+        };
+
+        if (view.BindingContext is INavigationAware navigationAware)
+        {
+            navigationAware.ApplyParameter(parameter);
+        }
+
+        return view;
+    }
 }

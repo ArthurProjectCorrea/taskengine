@@ -3,6 +3,7 @@ using TaskEngine.Application.Tasks;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Mvvm;
 using TaskEngine.Desktop.ViewModels;
+using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Domain.Entities;
 
 using DomainTaskStatus = TaskEngine.Domain.Entities.TaskStatus;
@@ -14,7 +15,8 @@ public class TarefasViewModelTests
     private static TarefasViewModel CreateViewModel(
         FakeTaskRepository taskRepository,
         FakeAppSettingsStore? appSettingsStore = null,
-        FakeProviderClientFactory? providerClientFactory = null)
+        FakeProviderClientFactory? providerClientFactory = null,
+        FakeNavigationService? navigationService = null)
     {
         var workSessionRepository = new FakeWorkSessionRepository();
         var workScheduleStore = new FakeWorkScheduleStore();
@@ -42,7 +44,8 @@ public class TarefasViewModelTests
             generateTaskReportUseCase,
             startWorkSessionUseCase,
             pauseWorkSessionUseCase,
-            appSettingsStore);
+            appSettingsStore,
+            navigationService ?? new FakeNavigationService());
     }
 
     [Fact]
@@ -179,6 +182,27 @@ public class TarefasViewModelTests
 
         TaskItem? updatedTask = await taskRepository.GetByIdAsync(task.Id, CancellationToken.None);
         Assert.Equal(DomainTaskStatus.InProgress, updatedTask!.Status);
+    }
+
+    [Fact]
+    public async Task OpenDetailsCommand_NavigatesToDetalhesTarefa_WithTheRowsTaskId()
+    {
+        // issue #53: tapping a row navigates to Detalhes da Tarefa, carrying the task id as the
+        // navigation parameter - see TarefasViewModel.OpenTaskDetails.
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Corrigir bug de sincronização");
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var navigationService = new FakeNavigationService();
+        var viewModel = CreateViewModel(taskRepository, navigationService: navigationService);
+        await viewModel.LoadAsync();
+
+        TarefaListItem row = Assert.Single(viewModel.Tasks);
+        row.OpenDetailsCommand.Execute(null);
+
+        (AppSection Section, object? Parameter) call = Assert.Single(navigationService.Calls);
+        Assert.Equal(AppSection.DetalhesTarefa, call.Section);
+        Assert.Equal(task.Id, call.Parameter);
     }
 
     [Fact]

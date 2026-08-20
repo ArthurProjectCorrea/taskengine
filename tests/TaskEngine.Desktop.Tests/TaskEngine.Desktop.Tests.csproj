@@ -32,4 +32,14 @@
     <ProjectReference Include="..\..\src\Frontend\TaskEngine.Desktop.ViewModels\TaskEngine.Desktop.ViewModels.csproj" />
   </ItemGroup>
 
+  <!-- NavigationService (TaskEngine.Desktop.Navigation) has no Microsoft.Maui.* dependency of its
+       own - it is only organizationally a Desktop-only file. Compiled directly into this test
+       assembly (rather than referenced via a ProjectReference to TaskEngine.Desktop, which is a
+       MAUI SingleProject and hits the same "duplicate file names" Resizetizer problem explained
+       above) so NavigationServiceTests.cs can cover its real parameter-passing/guard-clause logic
+       (issue #53) instead of only a hand-written fake. -->
+  <ItemGroup>
+    <Compile Include="..\..\src\Frontend\TaskEngine.Desktop\Navigation\NavigationService.cs" Link="Navigation\NavigationService.cs" />
+  </ItemGroup>
+
 </Project>

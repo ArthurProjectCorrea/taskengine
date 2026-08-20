@@ -64,8 +64,8 @@
                                   ColumnSpacing="8"
                                   Padding="12,8">
 
-                                <!-- Navega para Detalhes da Tarefa (item 6 do plano) - ver
-                                     TarefasViewModel.OpenTaskDetails para o TODO/motivo do no-op. -->
+                                <!-- Navega para Detalhes da Tarefa (issue #53) - ver
+                                     TarefasViewModel.OpenTaskDetails. -->
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding OpenDetailsCommand}" />
                                 </Grid.GestureRecognizers>
