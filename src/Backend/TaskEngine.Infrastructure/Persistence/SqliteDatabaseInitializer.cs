@@ -79,6 +79,18 @@ public sealed class SqliteDatabaseInitializer
                 justification TEXT NOT NULL,
                 recorded_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS monitored_activities (
+                id TEXT PRIMARY KEY,
+                source TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                ended_at TEXT NOT NULL,
+                type TEXT NULL,
+                path TEXT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_monitored_activities_period
+                ON monitored_activities (started_at, ended_at);
             """;
 
         await command.ExecuteNonQueryAsync(cancellationToken);

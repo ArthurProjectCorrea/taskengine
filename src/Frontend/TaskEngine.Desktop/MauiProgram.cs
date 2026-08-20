@@ -6,6 +6,7 @@ using TaskEngine.Desktop.Navigation;
 using TaskEngine.Desktop.ViewModels;
 using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Desktop.Views;
+using TaskEngine.Infrastructure.Monitoring;
 using TaskEngine.Infrastructure.Persistence;
 using TaskEngine.Infrastructure.Providers;
 using TaskEngine.Infrastructure.Providers.GitHub;
@@ -46,6 +47,12 @@ public static class MauiProgram
             .GetAwaiter()
             .GetResult();
 
+        // Monitoring module (ERS-Monitoramento.md, RN-001): runs continuously for the whole app
+        // lifetime, independent of any task being in progress - started once here, never gated by
+        // task/session state.
+        app.Services.GetRequiredService<IFileActivityWatcher>().Start();
+        app.Services.GetRequiredService<IWindowFocusWatcher>().Start();
+
         return app;
     }
 
@@ -77,6 +84,17 @@ public static class MauiProgram
         services.AddSingleton<IProviderClientFactory, ProviderClientFactory>();
 
         services.AddTransient<CreateTaskUseCase>();
+
+        // Monitoring module (RF-001/RF-002, ERS-Monitoramento.md, issues #12/#11). Registered as
+        // singletons so the same watcher instance (and its in-memory debounce/aggregation state)
+        // lives for the whole app lifetime - see Start() call in CreateMauiApp above.
+        services.AddSingleton<IMonitoredActivityRepository, SqliteMonitoredActivityRepository>();
+        services.AddSingleton<IRunningProcessesProvider, SystemRunningProcessesProvider>();
+        services.AddSingleton(FileActivityWatcherOptions.CreateDefault());
+        services.AddSingleton<IFileActivityWatcher, FileSystemActivityWatcher>();
+        services.AddSingleton<IForegroundWindowSampler, Win32ForegroundWindowSampler>();
+        services.AddSingleton(new WindowFocusWatcherOptions());
+        services.AddSingleton<IWindowFocusWatcher, WindowFocusActivityWatcher>();
     }
 
     private static void RegisterPresentation(IServiceCollection services)

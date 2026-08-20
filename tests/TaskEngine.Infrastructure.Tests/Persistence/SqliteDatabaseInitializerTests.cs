@@ -6,7 +6,10 @@ namespace TaskEngine.Infrastructure.Tests.Persistence;
 public class SqliteDatabaseInitializerTests
 {
     private static readonly string[] ExpectedTables =
-        ["activity_intervals", "app_settings", "tasks", "unmapped_time_entries", "work_sessions", "worklogs"];
+    [
+        "activity_intervals", "app_settings", "monitored_activities", "tasks", "unmapped_time_entries",
+        "work_sessions", "worklogs",
+    ];
 
     [Fact]
     public async Task EnsureCreatedAsync_FromScratch_CreatesFileAndAllTables()
