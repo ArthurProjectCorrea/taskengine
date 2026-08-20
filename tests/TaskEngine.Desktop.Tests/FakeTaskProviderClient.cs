@@ -8,10 +8,9 @@ namespace TaskEngine.Desktop.Tests;
 
 /// <summary>
 /// Hand-written fake for <see cref="ITaskProviderClient"/>. Originally (issue #20) only exercised
-/// <see cref="GetTaskSchemaAsync"/>; issue #26 reuses it for <c>CreateTaskViewModel</c> tests too,
-/// so <see cref="CreateTaskAsync"/> is now configurable via <paramref name="createTaskResult"/> -
-/// callers that don't pass one (e.g. the pre-existing onboarding tests) keep the old "throws if
-/// called" behavior. <see cref="UpdateStatusAsync"/> is still unused by either flow.
+/// <see cref="GetTaskSchemaAsync"/>; <see cref="CreateTaskAsync"/> is configurable via
+/// <paramref name="createTaskResult"/> - callers that don't pass one (e.g. the onboarding tests)
+/// keep the old "throws if called" behavior. <see cref="UpdateStatusAsync"/> is still unused.
 /// </summary>
 public sealed class FakeTaskProviderClient : ITaskProviderClient
 {

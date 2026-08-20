@@ -102,9 +102,6 @@ public static class MauiProgram
         services.AddTransient<OnboardingViewModel>();
         services.AddTransient<OnboardingPage>();
 
-        services.AddTransient<CreateTaskViewModel>();
-        services.AddTransient<CreateTaskPage>();
-
         // Shell/navegação (issue #2). Singletons: há uma única janela para o app inteiro - ela
         // nunca é recriada, só escondida/mostrada (ver MainWindowManager) - então o estado de
         // navegação (qual seção está ativa) precisa sobreviver a esses ciclos, não ser recriado a

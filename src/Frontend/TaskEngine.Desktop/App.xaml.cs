@@ -53,8 +53,6 @@ public partial class App : Microsoft.Maui.Controls.Application
     /// mostra <see cref="OnboardingPage"/> primeiro. Depois que o onboarding conecta um provedor
     /// com sucesso, a navegação para o shell só acontece no próximo start - navegar
     /// automaticamente na hora não faz parte do escopo da #2 (só o mecanismo de navegação em si).
-    /// <see cref="CreateTaskPage"/> continua registrada no DI (Fase E) mas não é mais o destino de
-    /// startup.
     /// </summary>
     private Page ResolveStartupPage()
     {
