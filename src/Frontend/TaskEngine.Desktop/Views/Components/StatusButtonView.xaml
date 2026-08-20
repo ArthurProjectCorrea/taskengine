@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TaskEngine.Desktop.Views.Components.StatusButtonView">
+
+    <!-- Reproduz a estrutura do protótipo (docs/prototipo/TaskEngine Status Botao.dc.html): botão
+         "split" (rótulo do status + chevron) e, abaixo dele, o painel de opções de transição. Sem
+         fidelidade visual pixel-perfect (cores/estilo padrão do MAUI) e sem popup flutuante -
+         nenhuma biblioteca de terceiros (ex. CommunityToolkit.Maui.Popup) está disponível, então o
+         painel apenas aparece/desaparece no fluxo normal do layout em vez de flutuar por cima do
+         conteúdo. -->
+    <ContentView.Resources>
+        <Style x:Key="StatusButtonSplitStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+            <Setter Property="TextColor" Value="{StaticResource White}" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="FontAttributes" Value="Bold" />
+        </Style>
+
+        <Style x:Key="StatusOptionButtonStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="HorizontalOptions" Value="Fill" />
+        </Style>
+    </ContentView.Resources>
+
+    <VerticalStackLayout Spacing="2">
+
+        <Grid ColumnDefinitions="*,Auto">
+            <!-- Rótulo do status atual (ex. "Em Andamento"). Clicar aqui também abre o dropdown,
+                 já que o texto não representa mais uma ação específica (só o status). -->
+            <Button x:Name="MainButton"
+                    Grid.Column="0"
+                    Style="{StaticResource StatusButtonSplitStyle}"
+                    Clicked="OnToggleMenuClicked"
+                    Padding="12,10"
+                    HorizontalOptions="Fill"
+                    LineBreakMode="TailTruncation" />
+
+            <!-- Chevron: some (coluna Auto some junto) quando o status atual não tem transições
+                 válidas (Done/DonePendingSync são terminais). -->
+            <Button x:Name="ChevronButton"
+                    Grid.Column="1"
+                    Text="▾"
+                    Style="{StaticResource StatusButtonSplitStyle}"
+                    Clicked="OnToggleMenuClicked"
+                    WidthRequest="34"
+                    Padding="0"
+                    SemanticProperties.Description="Abrir opções de status" />
+        </Grid>
+
+        <Border x:Name="MenuPanel"
+                IsVisible="False"
+                Stroke="{StaticResource Gray300}"
+                StrokeThickness="1"
+                Padding="2">
+            <VerticalStackLayout x:Name="OptionsHost" Spacing="1" />
+        </Border>
+
+    </VerticalStackLayout>
+
+</ContentView>
