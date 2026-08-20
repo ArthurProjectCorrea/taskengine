@@ -32,11 +32,11 @@ public static class CsvTaskReportWriter
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(writer);
 
-        WriteRow(writer, Header);
+        CsvWriting.WriteRow(writer, Header);
 
         foreach (TaskReportRow row in rows)
         {
-            WriteRow(
+            CsvWriting.WriteRow(
                 writer,
                 [
                     row.TaskId.ToString(),
@@ -53,31 +53,6 @@ public static class CsvTaskReportWriter
         }
     }
 
-    private static void WriteRow(TextWriter writer, IReadOnlyList<string> fields)
-    {
-        for (var i = 0; i < fields.Count; i++)
-        {
-            if (i > 0)
-            {
-                writer.Write(',');
-            }
-
-            writer.Write(Escape(fields[i]));
-        }
-
-        writer.Write("\r\n");
-    }
-
     private static string FormatDate(DateOnly? date) =>
         date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty;
-
-    private static string Escape(string field)
-    {
-        if (field.IndexOfAny([',', '"', '\r', '\n']) < 0)
-        {
-            return field;
-        }
-
-        return $"\"{field.Replace("\"", "\"\"")}\"";
-    }
 }
