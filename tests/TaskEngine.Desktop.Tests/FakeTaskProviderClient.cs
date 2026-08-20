@@ -77,4 +77,7 @@ public sealed class FakeTaskProviderClient : ITaskProviderClient
 
     public Task<IReadOnlyList<ProviderTaskSummary>> ListAssignedTasksAsync(CancellationToken cancellationToken) =>
         throw new NotSupportedException("Not used by the onboarding or task-creation flows.");
+
+    public Task ReportCompletionAsync(ProviderTaskReference reference, TimeSpan totalDuration, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Not used by the onboarding or task-creation flows.");
 }

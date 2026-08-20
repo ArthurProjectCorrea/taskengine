@@ -122,6 +122,62 @@ public class GitHubProjectsClientTests
         Assert.Contains("OPT_done", handler.CapturedRequestBodies[1]);
     }
 
+    private const string SchemaWithTimeFieldResponse = """
+        {
+          "data": {
+            "user": {
+              "projectV2": {
+                "id": "PVT_project1",
+                "fields": {
+                  "nodes": [
+                    {
+                      "id": "F_status",
+                      "name": "Status",
+                      "dataType": "SINGLE_SELECT",
+                      "options": [
+                        { "id": "OPT_todo", "name": "Todo" },
+                        { "id": "OPT_progress", "name": "In Progress" },
+                        { "id": "OPT_done", "name": "Done" }
+                      ]
+                    },
+                    { "id": "F_time", "name": "Time Spent", "dataType": "NUMBER" }
+                  ]
+                }
+              }
+            },
+            "organization": { "projectV2": null }
+          }
+        }
+        """;
+
+    [Fact]
+    public async Task ReportCompletionAsync_UpdatesStatusAndTimeFieldWhenConfigured()
+    {
+        var handler = new FakeHttpMessageHandler(
+            SchemaWithTimeFieldResponse, UpdateFieldValueResponse, SchemaWithTimeFieldResponse, UpdateFieldValueResponse);
+        var client = CreateClient(handler);
+        var reference = new ProviderTaskReference("github", "PVTI_item1", null);
+
+        await client.ReportCompletionAsync(reference, TimeSpan.FromHours(2.5), CancellationToken.None);
+
+        Assert.Equal(4, handler.CapturedRequestBodies.Count);
+        Assert.Contains("OPT_done", handler.CapturedRequestBodies[1]);
+        Assert.Contains("F_time", handler.CapturedRequestBodies[3]);
+        Assert.Contains("2.5", handler.CapturedRequestBodies[3]);
+    }
+
+    [Fact]
+    public async Task ReportCompletionAsync_WithNoTimeFieldConfigured_OnlyUpdatesStatus()
+    {
+        var handler = new FakeHttpMessageHandler(SchemaResponse, UpdateFieldValueResponse, SchemaResponse);
+        var client = CreateClient(handler);
+        var reference = new ProviderTaskReference("github", "PVTI_item1", null);
+
+        await client.ReportCompletionAsync(reference, TimeSpan.FromHours(1), CancellationToken.None);
+
+        Assert.Equal(3, handler.CapturedRequestBodies.Count);
+    }
+
     [Fact]
     public async Task UpdateStatusAsync_ThrowsWhenProjectHasNoStatusField()
     {

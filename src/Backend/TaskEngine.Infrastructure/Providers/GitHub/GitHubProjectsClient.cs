@@ -176,6 +176,14 @@ public sealed class GitHubProjectsClient : ITaskProviderClient
         [TaskStatus.Paused] = [],
     };
 
+    /// <summary>
+    /// Candidate labels for a Number field configured to track time invested (RF-009) - same
+    /// best-effort matching rationale as <see cref="StatusOptionNames"/>. GitHub Projects v2 has
+    /// no built-in time-tracking field, so this only works if the project owner configured one of
+    /// these names themselves.
+    /// </summary>
+    private static readonly string[] TimeFieldNames = ["Time Spent", "Hours", "Time Invested", "Tempo Investido"];
+
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -264,6 +272,31 @@ public sealed class GitHubProjectsClient : ITaskProviderClient
         await ExecuteAsync<EmptyDataDto>(
             UpdateFieldValueMutation,
             new { projectId = project.Id, itemId = reference.ExternalId, fieldId = statusField.Id, value },
+            cancellationToken);
+    }
+
+    public async Task ReportCompletionAsync(ProviderTaskReference reference, TimeSpan totalDuration, CancellationToken cancellationToken)
+    {
+        await UpdateStatusAsync(reference, TaskStatus.Done, cancellationToken);
+
+        var project = await FetchProjectWithFieldsAsync(cancellationToken);
+
+        var timeField = project.Fields.Nodes.FirstOrDefault(
+            f => MapDataType(f.DataType) == ProviderFieldType.Number
+                && f.Name is not null
+                && TimeFieldNames.Any(name => string.Equals(name, f.Name, StringComparison.OrdinalIgnoreCase)));
+
+        if (timeField is null)
+        {
+            // Best-effort only - not every project has a time-tracking field configured.
+            return;
+        }
+
+        var value = new { number = totalDuration.TotalHours };
+
+        await ExecuteAsync<EmptyDataDto>(
+            UpdateFieldValueMutation,
+            new { projectId = project.Id, itemId = reference.ExternalId, fieldId = timeField.Id, value },
             cancellationToken);
     }
 

@@ -1,6 +1,9 @@
 using TaskEngine.Application.Abstractions;
+using TaskEngine.Application.Providers;
 using TaskEngine.Domain.Entities;
 using TaskEngine.Domain.TimeTracking;
+
+using TaskStatus = TaskEngine.Domain.Entities.TaskStatus;
 
 namespace TaskEngine.Application.Tasks;
 
@@ -9,23 +12,30 @@ namespace TaskEngine.Application.Tasks;
 /// (RF-007/Schema-003, ERS-Tarefas.md): applies the selection to every active
 /// <see cref="WorkSession"/>, computes the final human/AI/total time strictly from the selected
 /// items in active periods only (RN-005/RN-012 - pause periods, see <see cref="WorkSessionType.Pause"/>,
-/// never contribute), and closes out tracking. <see cref="TimeIntervalMerger"/> (item #6) is used
-/// twice: once per origin for <see cref="ConcludeTaskResult.HumanDuration"/>/
+/// never contribute), then syncs status and time to the provider (RF-009) via
+/// <see cref="ITaskProviderClient.ReportCompletionAsync"/>. <see cref="TimeIntervalMerger"/> is
+/// used twice: once per origin for <see cref="ConcludeTaskResult.HumanDuration"/>/
 /// <see cref="ConcludeTaskResult.AiDuration"/>, and once across both origins together for
 /// <see cref="ConcludeTaskResult.TotalDuration"/> (RN-007 - a period where human and AI activity
 /// overlap is not double-counted in the total, even though it still counts once for each origin).
-/// Provider sync (RF-009, "atualiza status + registra tempo trabalhado no GitHub") is added on top
-/// of this same flow by the item that wires <see cref="ITaskProviderClient"/> in - not here.
 /// </summary>
 public sealed class ConcludeTaskUseCase
 {
     private readonly ITaskRepository _taskRepository;
     private readonly IWorkSessionRepository _workSessionRepository;
+    private readonly IProviderClientFactory _providerClientFactory;
+    private readonly IAppSettingsStore _appSettingsStore;
 
-    public ConcludeTaskUseCase(ITaskRepository taskRepository, IWorkSessionRepository workSessionRepository)
+    public ConcludeTaskUseCase(
+        ITaskRepository taskRepository,
+        IWorkSessionRepository workSessionRepository,
+        IProviderClientFactory providerClientFactory,
+        IAppSettingsStore appSettingsStore)
     {
         _taskRepository = taskRepository;
         _workSessionRepository = workSessionRepository;
+        _providerClientFactory = providerClientFactory;
+        _appSettingsStore = appSettingsStore;
     }
 
     public async Task<ConcludeTaskResult> ExecuteAsync(
@@ -34,12 +44,33 @@ public sealed class ConcludeTaskUseCase
         TaskItem task = await _taskRepository.GetByIdAsync(request.TaskId, cancellationToken)
             ?? throw new InvalidOperationException($"Task '{request.TaskId}' was not found.");
 
-        // Mutate the task first (throws if it isn't InProgress/Paused, e.g. already concluded -
-        // RN-006) so nothing is persisted at all if the task itself can't be completed.
-        task.Complete();
+        if (task.Status != TaskStatus.InProgress && task.Status != TaskStatus.Paused)
+        {
+            // Mirrors TaskItem.Complete()'s own guard, checked up front (before any session work
+            // or provider call) so an invalid conclusion attempt (e.g. already Done - RN-006)
+            // leaves everything untouched.
+            throw new InvalidOperationException($"Cannot complete a task in status '{task.Status}'.");
+        }
+
+        if (task.ProviderId is not null)
+        {
+            // RF-013/CA-013.1: conclusion is blocked outright while the provider is frozen -
+            // checked before any mutation so the task is left exactly as it was ("manter a tarefa
+            // como está"). This is different from RF-014's offline fallback below, which only
+            // applies to a *newly* detected failure (e.g. a fresh 401, or no connectivity), not a
+            // provider already known to be frozen.
+            var frozen = await _appSettingsStore.GetAsync(ProviderSettingsKeys.Frozen(task.ProviderId), cancellationToken);
+            if (frozen is not null)
+            {
+                throw new ProviderFrozenException(task.ProviderId);
+            }
+        }
 
         IReadOnlyList<WorkSession> sessions = await _workSessionRepository.ListByTaskIdAsync(request.TaskId, cancellationToken);
 
+        // Everything below mutates in-memory only - nothing is persisted until the provider
+        // outcome (if any) is resolved, so a freshly-detected ProviderFrozenException still
+        // leaves local state untouched.
         var humanIntervals = new List<TimeInterval>();
         var aiIntervals = new List<TimeInterval>();
         var allIntervals = new List<TimeInterval>();
@@ -59,17 +90,58 @@ public sealed class ConcludeTaskUseCase
             {
                 session.End(DateTimeOffset.UtcNow);
             }
-
-            await _workSessionRepository.UpdateAsync(session, cancellationToken);
         }
-
-        await _taskRepository.UpdateAsync(task, cancellationToken);
 
         var humanDuration = TimeIntervalMerger.TotalDuration(humanIntervals);
         var aiDuration = TimeIntervalMerger.TotalDuration(aiIntervals);
         var totalDuration = TimeIntervalMerger.TotalDuration(allIntervals);
 
+        await SyncOrCompleteOfflineAsync(task, totalDuration, cancellationToken);
+
+        foreach (WorkSession session in sessions)
+        {
+            await _workSessionRepository.UpdateAsync(session, cancellationToken);
+        }
+
+        await _taskRepository.UpdateAsync(task, cancellationToken);
+
         return new ConcludeTaskResult(ToDto(task), humanDuration, aiDuration, totalDuration);
+    }
+
+    /// <summary>
+    /// Decides between <see cref="TaskItem.Complete"/> (synced) and <see cref="TaskItem.CompleteOffline"/>
+    /// (RF-014/RN-009 - pending sync, picked up later by <c>ReconnectProviderUseCase</c>). A task
+    /// with no provider link has nothing to sync, so it always completes normally. A freshly
+    /// detected <see cref="ProviderFrozenException"/> (e.g. a 401 during this very call) is not
+    /// swallowed into an offline completion - CA-013.1 blocks the action outright instead.
+    /// </summary>
+    private async Task SyncOrCompleteOfflineAsync(TaskItem task, TimeSpan totalDuration, CancellationToken cancellationToken)
+    {
+        if (task.ProviderId is null || task.ProviderTaskId is null)
+        {
+            task.Complete();
+            return;
+        }
+
+        try
+        {
+            ITaskProviderClient providerClient = await _providerClientFactory.CreateAsync(task.ProviderId, cancellationToken);
+            var reference = new ProviderTaskReference(task.ProviderId, task.ProviderTaskId, Url: null);
+            await providerClient.ReportCompletionAsync(reference, totalDuration, cancellationToken);
+
+            task.Complete();
+        }
+        catch (ProviderFrozenException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Offline, or any other provider failure (timeout, GraphQL error, etc.) - RF-014:
+            // conclude locally anyway, deferred sync via ReconnectProviderUseCase (RNF-003: no
+            // loss of the already-computed local time/selection).
+            task.CompleteOffline();
+        }
     }
 
     private static void AccumulateSelectedIntervals(

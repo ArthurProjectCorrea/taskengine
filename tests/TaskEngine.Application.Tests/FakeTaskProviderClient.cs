@@ -49,4 +49,22 @@ public sealed class FakeTaskProviderClient : ITaskProviderClient
     {
         return Task.FromResult(AssignedTasksToReturn);
     }
+
+    public ProviderTaskReference? LastReportedCompletionReference { get; private set; }
+
+    public TimeSpan? LastReportedCompletionDuration { get; private set; }
+
+    public Exception? ReportCompletionFailure { get; set; }
+
+    public Task ReportCompletionAsync(ProviderTaskReference reference, TimeSpan totalDuration, CancellationToken cancellationToken)
+    {
+        if (ReportCompletionFailure is not null)
+        {
+            throw ReportCompletionFailure;
+        }
+
+        LastReportedCompletionReference = reference;
+        LastReportedCompletionDuration = totalDuration;
+        return Task.CompletedTask;
+    }
 }

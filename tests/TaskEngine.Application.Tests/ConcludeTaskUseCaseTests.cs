@@ -1,3 +1,4 @@
+using TaskEngine.Application.Providers;
 using TaskEngine.Application.Tasks;
 using TaskEngine.Domain.Entities;
 using TaskStatus = TaskEngine.Domain.Entities.TaskStatus;
@@ -8,8 +9,12 @@ public class ConcludeTaskUseCaseTests
 {
     private static readonly DateTimeOffset Start = new(2026, 8, 17, 9, 0, 0, TimeSpan.Zero);
 
-    private static ConcludeTaskUseCase CreateUseCase(FakeTaskRepository taskRepository, FakeWorkSessionRepository workSessionRepository) =>
-        new(taskRepository, workSessionRepository);
+    private static ConcludeTaskUseCase CreateUseCase(
+        FakeTaskRepository taskRepository,
+        FakeWorkSessionRepository workSessionRepository,
+        FakeProviderClientFactory? providerClientFactory = null,
+        FakeAppSettingsStore? appSettingsStore = null) =>
+        new(taskRepository, workSessionRepository, providerClientFactory ?? new FakeProviderClientFactory(), appSettingsStore ?? new FakeAppSettingsStore());
 
     [Fact]
     public async Task ExecuteAsync_WithSelectedActivities_ComputesHumanAndAiDurations()
@@ -212,5 +217,111 @@ public class ConcludeTaskUseCaseTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => useCase.ExecuteAsync(new ConcludeTaskRequest(task.Id, new HashSet<Guid>())));
         Assert.Empty(workSessionRepository.Sessions);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithProviderLinkedTask_ReportsCompletionAndCompletesOnline()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-1", providerId: "github");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var session = WorkSession.Start(task.Id, Start);
+        session.RecordActivity(ActivitySource.Human, Start, Start.AddMinutes(30));
+        session.End(Start.AddMinutes(30));
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var providerClientFactory = new FakeProviderClientFactory();
+        var useCase = CreateUseCase(taskRepository, workSessionRepository, providerClientFactory);
+
+        ConcludeTaskResult result = await useCase.ExecuteAsync(
+            new ConcludeTaskRequest(task.Id, new HashSet<Guid> { session.Activities[0].Id }));
+
+        Assert.Equal(TaskStatus.Done.ToString(), result.Task.Status);
+        Assert.Equal("gh-1", providerClientFactory.ClientToReturn.LastReportedCompletionReference?.ExternalId);
+        Assert.Equal(TimeSpan.FromMinutes(30), providerClientFactory.ClientToReturn.LastReportedCompletionDuration);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithProviderTaskButPushFails_CompletesOfflinePendingSync()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-1", providerId: "github");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var providerClientFactory = new FakeProviderClientFactory();
+        providerClientFactory.ClientToReturn.ReportCompletionFailure = new HttpRequestException("No connectivity.");
+        var useCase = CreateUseCase(taskRepository, workSessionRepository, providerClientFactory);
+
+        ConcludeTaskResult result = await useCase.ExecuteAsync(new ConcludeTaskRequest(task.Id, new HashSet<Guid>()));
+
+        Assert.Equal(TaskStatus.DonePendingSync.ToString(), result.Task.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithoutProviderLink_NeverCallsTheProviderClientFactory()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var task = TaskItem.Create("Local-only task");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var providerClientFactory = new FakeProviderClientFactory();
+        var useCase = CreateUseCase(taskRepository, workSessionRepository, providerClientFactory);
+
+        await useCase.ExecuteAsync(new ConcludeTaskRequest(task.Id, new HashSet<Guid>()));
+
+        Assert.Null(providerClientFactory.LastRequestedProviderId);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenProviderIsAlreadyFrozen_ThrowsAndLeavesTaskAndSessionsUntouched()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-1", providerId: "github");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var session = WorkSession.Start(task.Id, Start);
+        session.RecordActivity(ActivitySource.Human, Start, Start.AddMinutes(30));
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var appSettingsStore = new FakeAppSettingsStore();
+        await appSettingsStore.SetAsync(ProviderSettingsKeys.Frozen("github"), "true", CancellationToken.None);
+        var providerClientFactory = new FakeProviderClientFactory();
+        var useCase = CreateUseCase(taskRepository, workSessionRepository, providerClientFactory, appSettingsStore);
+
+        await Assert.ThrowsAsync<ProviderFrozenException>(
+            () => useCase.ExecuteAsync(new ConcludeTaskRequest(task.Id, new HashSet<Guid> { session.Activities[0].Id })));
+
+        Assert.Equal(TaskStatus.InProgress, Assert.Single(taskRepository.Tasks).Status);
+        Assert.True(workSessionRepository.Sessions.Single().IsOpen);
+        Assert.False(workSessionRepository.Sessions.Single().Activities.Single().SelectedAtConclusion);
+        Assert.Null(providerClientFactory.LastRequestedProviderId);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenProviderFreezesDuringThePush_ThrowsWithoutFallingBackToOffline()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-1", providerId: "github");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var providerClientFactory = new FakeProviderClientFactory();
+        providerClientFactory.ClientToReturn.ReportCompletionFailure = new ProviderFrozenException("github");
+        var useCase = CreateUseCase(taskRepository, workSessionRepository, providerClientFactory);
+
+        await Assert.ThrowsAsync<ProviderFrozenException>(
+            () => useCase.ExecuteAsync(new ConcludeTaskRequest(task.Id, new HashSet<Guid>())));
+
+        Assert.Equal(TaskStatus.InProgress, Assert.Single(taskRepository.Tasks).Status);
     }
 }

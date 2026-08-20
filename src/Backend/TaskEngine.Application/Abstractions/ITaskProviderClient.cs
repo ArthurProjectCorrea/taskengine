@@ -39,4 +39,13 @@ public interface ITaskProviderClient
     /// already exist on the provider, rather than creating them from TaskEngine.
     /// </summary>
     Task<IReadOnlyList<ProviderTaskSummary>> ListAssignedTasksAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Pushes the final outcome of a locally concluded task to the provider (RF-009): updates its
+    /// status to done and, best-effort, records <paramref name="totalDuration"/> if the connected
+    /// project has a recognizable time-tracking field configured - same "match a field by common
+    /// names" approach already used for status (not every provider/project supports recording
+    /// time, so not finding such a field is not an error). Used by <c>ConcludeTaskUseCase</c>.
+    /// </summary>
+    Task ReportCompletionAsync(ProviderTaskReference reference, TimeSpan totalDuration, CancellationToken cancellationToken);
 }
