@@ -38,6 +38,11 @@ public class TarefasViewModelTests
             startWorkSessionUseCase,
             endWorkSessionUseCase);
 
+        var concludeTaskUseCase = new ConcludeTaskUseCase(
+            taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
+        var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
+            workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
+
         return new TarefasViewModel(
             taskRepository,
             syncTasksUseCase,
@@ -45,7 +50,8 @@ public class TarefasViewModelTests
             startWorkSessionUseCase,
             pauseWorkSessionUseCase,
             appSettingsStore,
-            navigationService ?? new FakeNavigationService());
+            navigationService ?? new FakeNavigationService(),
+            concludeTaskModalViewModel);
     }
 
     [Fact]
@@ -161,10 +167,11 @@ public class TarefasViewModelTests
     }
 
     [Fact]
-    public async Task StatusChangeCommand_ToDone_DoesNotCompleteTask_OnlyShowsUnavailableNotice()
+    public async Task StatusChangeCommand_ToDone_OpensConcludeModal_WithoutCompletingTaskDirectly()
     {
-        // Same convention as DashboardViewModel: RF-007's completion modal (activity selection)
-        // does not exist yet, so "Concluir" must not silently complete the task.
+        // Same convention as DashboardViewModel: RF-007 requires selecting which recorded
+        // activities belong to the task before conclusion, via ConcludeModal (issue #18) -
+        // "Concluir" must not silently complete the task here.
         var taskRepository = new FakeTaskRepository();
         var task = TaskItem.Create("Tarefa em andamento");
         task.Start();
@@ -173,12 +180,12 @@ public class TarefasViewModelTests
         var viewModel = CreateViewModel(taskRepository);
         await viewModel.LoadAsync();
 
-        Assert.False(viewModel.ShowConcludeUnavailableNotice);
+        Assert.False(viewModel.ConcludeModal.IsOpen);
 
         TarefaListItem row = Assert.Single(viewModel.Tasks);
         await ((AsyncRelayCommand)row.StatusChangeCommand).ExecuteAsync(DomainTaskStatus.Done);
 
-        Assert.True(viewModel.ShowConcludeUnavailableNotice);
+        Assert.True(viewModel.ConcludeModal.IsOpen);
 
         TaskItem? updatedTask = await taskRepository.GetByIdAsync(task.Id, CancellationToken.None);
         Assert.Equal(DomainTaskStatus.InProgress, updatedTask!.Status);

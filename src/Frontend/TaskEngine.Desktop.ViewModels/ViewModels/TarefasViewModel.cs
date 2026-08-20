@@ -84,8 +84,7 @@ public sealed class TarefaListItem
 ///
 /// Status transitions reuse exactly the same orchestration as <c>DashboardViewModel</c>
 /// (<see cref="StartWorkSessionUseCase"/>/<see cref="PauseWorkSessionUseCase"/>, and the same
-/// "Concluir is unavailable until the RF-007 completion modal exists" convention) - see
-/// <see cref="ChangeStatusAsync"/>.
+/// "Concluir opens the RF-007 completion modal" convention) - see <see cref="ChangeStatusAsync"/>.
 /// </summary>
 public sealed class TarefasViewModel : ObservableObject
 {
@@ -107,7 +106,6 @@ public sealed class TarefasViewModel : ObservableObject
     private string _searchText = string.Empty;
     private string _syncButtonLabel = "Sincronizar";
     private string? _syncErrorMessage;
-    private bool _showConcludeUnavailableNotice;
     private string _countLabel = "0 tarefas";
     private string _pageLabel = "Página 1 de 1";
     private bool _showPagination;
@@ -119,7 +117,8 @@ public sealed class TarefasViewModel : ObservableObject
         StartWorkSessionUseCase startWorkSessionUseCase,
         PauseWorkSessionUseCase pauseWorkSessionUseCase,
         IAppSettingsStore appSettingsStore,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        ConcludeTaskModalViewModel concludeTaskModalViewModel)
     {
         _taskRepository = taskRepository;
         _syncTasksUseCase = syncTasksUseCase;
@@ -128,6 +127,9 @@ public sealed class TarefasViewModel : ObservableObject
         _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         _appSettingsStore = appSettingsStore;
         _navigationService = navigationService;
+        ConcludeModal = concludeTaskModalViewModel;
+
+        ConcludeModal.Concluded += OnTaskConcluded;
 
         SyncCommand = new AsyncRelayCommand(_ => SyncAsync(CancellationToken.None));
         PreviousPageCommand = new RelayCommand(_ => ChangePage(-1), _ => _currentPageIndex > 0);
@@ -167,12 +169,8 @@ public sealed class TarefasViewModel : ObservableObject
 
     public bool HasSyncError => SyncErrorMessage is not null;
 
-    /// <summary>True right after any row's "Concluir" was requested - see <see cref="ChangeStatusAsync"/>.</summary>
-    public bool ShowConcludeUnavailableNotice
-    {
-        get => _showConcludeUnavailableNotice;
-        private set => SetProperty(ref _showConcludeUnavailableNotice, value);
-    }
+    /// <summary>The "Concluir tarefa" modal (RF-007, issue #18), shared by every row - see <see cref="ConcludeTaskModalViewModel"/>'s own doc comment.</summary>
+    public ConcludeTaskModalViewModel ConcludeModal { get; }
 
     public string CountLabel
     {
@@ -251,20 +249,16 @@ public sealed class TarefasViewModel : ObservableObject
     /// Handles both <see cref="TarefaListItem.StatusChangeCommand"/> (any transition picked from a
     /// row's dropdown) and <see cref="TarefaListItem.ActionCommand"/> (the row's one-click
     /// shortcut) - both ultimately call this. Identical shape to
-    /// <c>DashboardViewModel.ChangeStatusAsync</c>: <c>Done</c> is a deliberate no-op (RF-007's
-    /// completion modal, with its required activity selection, does not exist yet - see
-    /// <see cref="ShowConcludeUnavailableNotice"/>) rather than a shortcut that would silently skip
-    /// that required step.
+    /// <c>DashboardViewModel.ChangeStatusAsync</c>: <c>Done</c> opens <see cref="ConcludeModal"/>
+    /// (RF-007, issue #18) instead of completing the task directly.
     /// </summary>
     private async Task ChangeStatusAsync(Guid taskId, DomainTaskStatus targetStatus, CancellationToken cancellationToken)
     {
         if (targetStatus == DomainTaskStatus.Done)
         {
-            ShowConcludeUnavailableNotice = true;
+            await ConcludeModal.OpenAsync(taskId, cancellationToken);
             return;
         }
-
-        ShowConcludeUnavailableNotice = false;
 
         if (targetStatus == DomainTaskStatus.InProgress)
         {
@@ -277,6 +271,9 @@ public sealed class TarefasViewModel : ObservableObject
 
         await LoadAsync(cancellationToken);
     }
+
+    /// <summary>Reloads once <see cref="ConcludeModal"/> reports a successful conclusion, so the list reflects the row's new status.</summary>
+    private void OnTaskConcluded(Guid taskId) => _ = LoadAsync(CancellationToken.None);
 
     /// <summary>
     /// Navigates to the Detalhes da Tarefa screen (issue #53, ERS-Tarefas.md) with

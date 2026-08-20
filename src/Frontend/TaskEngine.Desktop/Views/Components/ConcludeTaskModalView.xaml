@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Overlay modal for "Concluir tarefa" (RF-007, issue #18) - purely presentational: all state and
+     the ConcludeTaskUseCase call itself live in ConcludeTaskModalViewModel (see its own doc comment
+     for why); this view only binds and lets the user emit intent (search, check/uncheck, confirm,
+     cancel). Loosely mirrors docs/prototipo/TaskEngine Dashboard.dc.html's concludeOpen modal
+     (search, files grouped by folder, browser items, footer count + actions) without pixel-perfect
+     fidelity. No popup/dialog library is available (see StatusButtonView's own note) - this is a
+     full-bleed scrim + centered panel shown via IsVisible, overlaid by the hosting page in a Grid
+     (see DashboardPage.xaml/TarefasPage.xaml/DetalhesTarefaPage.xaml). -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             x:Class="TaskEngine.Desktop.Views.Components.ConcludeTaskModalView"
+             x:DataType="viewModels:ConcludeTaskModalViewModel"
+             IsVisible="{Binding IsOpen}"
+             InputTransparent="False">
+
+    <Grid BackgroundColor="#66000000">
+        <Border MaximumWidthRequest="560"
+                MaximumHeightRequest="560"
+                Margin="24"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Padding="0"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray900}}">
+            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="0">
+
+                <VerticalStackLayout Grid.Row="0" Padding="18,16,18,4" Spacing="3">
+                    <Label Text="Concluir tarefa" FontAttributes="Bold" FontSize="15" />
+                    <Label Text="Marque o que foi de fato trabalhado antes de encerrar a sessão."
+                           FontSize="11.5"
+                           TextColor="{StaticResource Gray500}" />
+                </VerticalStackLayout>
+
+                <Label Grid.Row="1"
+                       IsVisible="{Binding HasError}"
+                       Text="{Binding ErrorMessage}"
+                       FontSize="12"
+                       Margin="18,4,18,0"
+                       Padding="10,8"
+                       TextColor="{StaticResource White}"
+                       BackgroundColor="#C42B1C" />
+
+                <Border Grid.Row="2" Margin="18,10,18,4" Padding="10,0">
+                    <Entry Placeholder="Buscar arquivo ou link" Text="{Binding SearchText, Mode=TwoWay}" />
+                </Border>
+
+                <Grid Grid.Row="3">
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+
+                    <ScrollView Padding="18,4,18,8">
+                        <VerticalStackLayout Spacing="14">
+
+                            <Label Text="Nenhuma atividade monitorada foi registrada durante o período ativo desta tarefa."
+                                   IsVisible="{Binding HasNoItems}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource Gray500}" />
+
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Arquivos alterados" FontAttributes="Bold" FontSize="10.5" TextColor="{StaticResource Gray500}" />
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding FolderGroups}" Spacing="8">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="viewModels:ConcludeFolderGroup">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                    <CheckBox Grid.Column="0" IsChecked="{Binding AllSelected, Mode=TwoWay}" />
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding FolderPath}"
+                                                           FontAttributes="Bold"
+                                                           FontSize="12"
+                                                           VerticalOptions="Center"
+                                                           LineBreakMode="TailTruncation" />
+                                                </Grid>
+                                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Margin="30,0,0,0">
+                                                    <BindableLayout.ItemTemplate>
+                                                        <DataTemplate x:DataType="viewModels:ConcludeActivityItem">
+                                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Padding="0,3">
+                                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                                                                <Label Grid.Column="1"
+                                                                       Text="{Binding Label}"
+                                                                       FontSize="12"
+                                                                       VerticalOptions="Center"
+                                                                       LineBreakMode="TailTruncation" />
+                                                                <Label Grid.Column="2"
+                                                                       Text="{Binding DurationLabel}"
+                                                                       FontSize="11"
+                                                                       FontAttributes="Bold"
+                                                                       VerticalOptions="Center" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </BindableLayout.ItemTemplate>
+                                                </VerticalStackLayout>
+                                            </VerticalStackLayout>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Navegadores e links acessados" FontAttributes="Bold" FontSize="10.5" TextColor="{StaticResource Gray500}" />
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding BrowserItems}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="viewModels:ConcludeActivityItem">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Padding="0,4">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                    <Label Text="{Binding Label}" FontSize="12.5" LineBreakMode="TailTruncation" />
+                                                    <Label Text="{Binding Url}" FontSize="10.5" TextColor="{StaticResource Gray500}" LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                                <Label Grid.Column="2"
+                                                       Text="{Binding DurationLabel}"
+                                                       FontSize="11"
+                                                       FontAttributes="Bold"
+                                                       VerticalOptions="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+
+                <Grid Grid.Row="4"
+                      ColumnDefinitions="*,Auto,Auto"
+                      ColumnSpacing="10"
+                      Padding="18,13"
+                      BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+                    <Label Grid.Column="0"
+                           Text="{Binding SelectedCountLabel}"
+                           FontSize="11.5"
+                           TextColor="{StaticResource Gray500}"
+                           VerticalOptions="Center"
+                           LineBreakMode="TailTruncation" />
+                    <Button Grid.Column="1"
+                            Text="Cancelar"
+                            Command="{Binding CancelCommand}"
+                            Padding="14,9"
+                            MinimumHeightRequest="0" />
+                    <Button Grid.Column="2"
+                            Text="Concluir tarefa"
+                            Command="{Binding ConfirmCommand}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="{StaticResource White}"
+                            Padding="16,9"
+                            MinimumHeightRequest="0" />
+                </Grid>
+
+            </Grid>
+        </Border>
+    </Grid>
+
+</ContentView>

@@ -8,6 +8,9 @@
              x:Class="TaskEngine.Desktop.Views.TarefasPage"
              x:DataType="viewModels:TarefasViewModel">
 
+    <!-- Outer Grid overlays the "Concluir tarefa" modal (RF-007, issue #18) on top of the whole
+         page - see ConcludeTaskModalView's own note on the lack of a popup/dialog library. -->
+    <Grid>
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="12" RowSpacing="8">
 
         <!-- Busca (RF-003/CA-003.1, client-side) + Sincronizar (RF-001/RF-002, ERS-Tarefas.md). -->
@@ -30,16 +33,6 @@
                Padding="10,8"
                TextColor="{StaticResource White}"
                BackgroundColor="#C42B1C" />
-
-        <!-- Mesma convenção do Dashboard: "Concluir" (via StatusButtonView, coluna Status) fica
-             indisponível até a tela de conclusão (seleção de atividades, RF-007) existir. -->
-        <Label Grid.Row="2"
-               IsVisible="{Binding ShowConcludeUnavailableNotice}"
-               Text="Concluir tarefas pela lista estará disponível quando a tela de conclusão (seleção de atividades, RF-007) existir."
-               FontSize="12"
-               Padding="10,8"
-               BackgroundColor="{StaticResource Secondary}"
-               TextColor="{StaticResource PrimaryDarkText}" />
 
         <Border Grid.Row="3" Padding="0">
             <Grid RowDefinitions="Auto,*">
@@ -130,6 +123,10 @@
                     Padding="10,6"
                     MinimumHeightRequest="0" />
         </Grid>
+
+    </Grid>
+
+    <components:ConcludeTaskModalView BindingContext="{Binding ConcludeModal}" />
 
     </Grid>
 

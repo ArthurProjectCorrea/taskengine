@@ -10,6 +10,10 @@
              x:Class="TaskEngine.Desktop.Views.DashboardPage"
              x:DataType="viewModels:DashboardViewModel">
 
+    <!-- Outer Grid overlays the two modals (RF-006/RF-007, issue #18) on top of the whole page -
+         see ConcludeTaskModalView/AddUnmappedTimeModalView's own notes on the lack of a
+         popup/dialog library. -->
+    <Grid>
     <Grid RowDefinitions="Auto,*" Padding="12" RowSpacing="10">
 
         <!-- KPIs (issue #19): total de tarefas, tempo investido hoje, tempo investido na semana -
@@ -65,13 +69,6 @@
                                                               Status="{Binding SelectedStatus}"
                                                               StatusChangeCommand="{Binding StatusChangeCommand}" />
                             </Grid>
-
-                            <Label IsVisible="{Binding ShowConcludeUnavailableNotice}"
-                                   Text="Concluir tarefas pelo Dashboard estará disponível quando a tela de conclusão (seleção de atividades, RF-007) existir."
-                                   FontSize="12"
-                                   Padding="10"
-                                   BackgroundColor="{StaticResource Secondary}"
-                                   TextColor="{StaticResource PrimaryDarkText}" />
 
                             <!-- Timer visual: tempo decorrido da sessão ativa, se houver. -->
                             <Border Padding="16" BackgroundColor="{StaticResource Secondary}">
@@ -136,6 +133,10 @@
             </Border>
 
         </Grid>
+    </Grid>
+
+    <components:ConcludeTaskModalView BindingContext="{Binding ConcludeModal}" />
+
     </Grid>
 
 </ContentView>

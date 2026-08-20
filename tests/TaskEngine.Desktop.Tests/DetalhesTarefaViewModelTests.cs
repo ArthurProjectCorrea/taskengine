@@ -1,4 +1,5 @@
 using TaskEngine.Application.Reports;
+using TaskEngine.Application.Tasks;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.ViewModels;
 using TaskEngine.Desktop.ViewModels.Navigation;
@@ -21,6 +22,10 @@ public class DetalhesTarefaViewModelTests
             taskRepository, workSessionRepository, workScheduleStore, unmappedTimeEntryRepository);
         var startWorkSessionUseCase = new StartWorkSessionUseCase(taskRepository, workSessionRepository);
         var pauseWorkSessionUseCase = new PauseWorkSessionUseCase(taskRepository, workSessionRepository);
+        var concludeTaskUseCase = new ConcludeTaskUseCase(
+            taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
+        var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
+            workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
 
         return new DetalhesTarefaViewModel(
             taskRepository,
@@ -28,7 +33,8 @@ public class DetalhesTarefaViewModelTests
             generateTaskReportUseCase,
             startWorkSessionUseCase,
             pauseWorkSessionUseCase,
-            navigationService ?? new FakeNavigationService());
+            navigationService ?? new FakeNavigationService(),
+            concludeTaskModalViewModel);
     }
 
     [Fact]
@@ -156,10 +162,11 @@ public class DetalhesTarefaViewModelTests
     }
 
     [Fact]
-    public async Task StatusChangeCommand_ToDone_DoesNotCompleteTask_OnlyShowsUnavailableNotice()
+    public async Task StatusChangeCommand_ToDone_OpensConcludeModal_WithoutCompletingTaskDirectly()
     {
-        // Same convention as DashboardViewModel/TarefasViewModel: RF-007's completion modal
-        // (activity selection) does not exist yet, so "Concluir" must not silently complete.
+        // Same convention as DashboardViewModel/TarefasViewModel: RF-007 requires selecting which
+        // recorded activities belong to the task before conclusion, via ConcludeModal (issue #18) -
+        // "Concluir" must not silently complete the task here.
         var taskRepository = new FakeTaskRepository();
         var task = TaskItem.Create("Tarefa em andamento");
         task.Start();
@@ -169,11 +176,11 @@ public class DetalhesTarefaViewModelTests
         viewModel.ApplyParameter(task.Id);
         await viewModel.LoadAsync();
 
-        Assert.False(viewModel.ShowConcludeUnavailableNotice);
+        Assert.False(viewModel.ConcludeModal.IsOpen);
 
         await viewModel.StatusChangeCommand.ExecuteAsync(DomainTaskStatus.Done);
 
-        Assert.True(viewModel.ShowConcludeUnavailableNotice);
+        Assert.True(viewModel.ConcludeModal.IsOpen);
 
         TaskItem? updatedTask = await taskRepository.GetByIdAsync(task.Id, CancellationToken.None);
         Assert.Equal(DomainTaskStatus.InProgress, updatedTask!.Status);

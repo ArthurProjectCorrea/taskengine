@@ -82,7 +82,6 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     private double _officeFraction;
     private double _unmappedFraction;
     private bool _isDone;
-    private bool _showConcludeUnavailableNotice;
     private bool _showReportUnavailableNotice;
 
     public DetalhesTarefaViewModel(
@@ -91,7 +90,8 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         GenerateTaskReportUseCase generateTaskReportUseCase,
         StartWorkSessionUseCase startWorkSessionUseCase,
         PauseWorkSessionUseCase pauseWorkSessionUseCase,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        ConcludeTaskModalViewModel concludeTaskModalViewModel)
     {
         _taskRepository = taskRepository;
         _workSessionRepository = workSessionRepository;
@@ -99,6 +99,9 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         _startWorkSessionUseCase = startWorkSessionUseCase;
         _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         _navigationService = navigationService;
+        ConcludeModal = concludeTaskModalViewModel;
+
+        ConcludeModal.Concluded += OnTaskConcluded;
 
         StatusChangeCommand = new AsyncRelayCommand(
             param => ChangeStatusAsync((DomainTaskStatus)param!, CancellationToken.None));
@@ -220,12 +223,8 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     /// <summary>Alias of <see cref="IsDone"/> for the view's "Relatório" button visibility binding.</summary>
     public bool ShowReportButton => IsDone;
 
-    /// <summary>True right after "Concluir" was requested from <see cref="StatusChangeCommand"/> - same convention as <c>DashboardViewModel</c>/<c>TarefasViewModel</c> (RF-007's completion modal does not exist yet).</summary>
-    public bool ShowConcludeUnavailableNotice
-    {
-        get => _showConcludeUnavailableNotice;
-        private set => SetProperty(ref _showConcludeUnavailableNotice, value);
-    }
+    /// <summary>The "Concluir tarefa" modal (RF-007, issue #18) for this task - see <see cref="ConcludeTaskModalViewModel"/>'s own doc comment.</summary>
+    public ConcludeTaskModalViewModel ConcludeModal { get; }
 
     /// <summary>True right after "Relatório" was clicked - see <see cref="RequestReport"/> for why the action itself is a documented no-op today.</summary>
     public bool ShowReportUnavailableNotice
@@ -278,7 +277,6 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         Status = task.Status;
         IsDone = task.Status is DomainTaskStatus.Done or DomainTaskStatus.DonePendingSync;
         MetaLabel = BuildMetaLabel(task);
-        ShowConcludeUnavailableNotice = false;
 
         IReadOnlyList<WorkSession> sessions = await _workSessionRepository.ListByTaskIdAsync(_taskId, cancellationToken);
         _openActiveSession = sessions.FirstOrDefault(s => s.IsOpen && s.Type == WorkSessionType.Active);
@@ -322,15 +320,19 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         }
     }
 
+    /// <summary>
+    /// Handles a transition requested via <see cref="StatusChangeCommand"/> - same shape as
+    /// <c>DashboardViewModel.ChangeStatusAsync</c>/<c>TarefasViewModel.ChangeStatusAsync</c>.
+    /// <c>Done</c> opens <see cref="ConcludeModal"/> (RF-007, issue #18) instead of completing the
+    /// task directly - <see cref="OnTaskConcluded"/> reloads once it reports success.
+    /// </summary>
     private async Task ChangeStatusAsync(DomainTaskStatus targetStatus, CancellationToken cancellationToken)
     {
         if (targetStatus == DomainTaskStatus.Done)
         {
-            ShowConcludeUnavailableNotice = true;
+            await ConcludeModal.OpenAsync(_taskId, cancellationToken);
             return;
         }
-
-        ShowConcludeUnavailableNotice = false;
 
         if (targetStatus == DomainTaskStatus.InProgress)
         {
@@ -343,6 +345,9 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
 
         await LoadAsync(cancellationToken);
     }
+
+    /// <summary>Reloads once <see cref="ConcludeModal"/> reports a successful conclusion, so the panel reflects the task's new status.</summary>
+    private void OnTaskConcluded(Guid taskId) => _ = LoadAsync(CancellationToken.None);
 
     /// <summary>
     /// TODO(plano geral, item 9 - relatório por tarefa): chamar

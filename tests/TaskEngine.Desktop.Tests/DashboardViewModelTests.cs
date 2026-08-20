@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using TaskEngine.Application.Reports;
+using TaskEngine.Application.Tasks;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.ViewModels;
 using TaskEngine.Domain.Entities;
@@ -20,13 +21,18 @@ public class DashboardViewModelTests
             taskRepository, workSessionRepository, workScheduleStore, unmappedTimeEntryRepository);
         var startWorkSessionUseCase = new StartWorkSessionUseCase(taskRepository, workSessionRepository);
         var pauseWorkSessionUseCase = new PauseWorkSessionUseCase(taskRepository, workSessionRepository);
+        var concludeTaskUseCase = new ConcludeTaskUseCase(
+            taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
+        var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
+            workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
 
         return new DashboardViewModel(
             taskRepository,
             workSessionRepository,
             generateTaskReportUseCase,
             startWorkSessionUseCase,
-            pauseWorkSessionUseCase);
+            pauseWorkSessionUseCase,
+            concludeTaskModalViewModel);
     }
 
     [Fact]
@@ -186,11 +192,11 @@ public class DashboardViewModelTests
     }
 
     [Fact]
-    public async Task StatusChangeCommand_ToDone_DoesNotCompleteTask_OnlyShowsUnavailableNotice()
+    public async Task StatusChangeCommand_ToDone_OpensConcludeModal_WithoutCompletingTaskDirectly()
     {
         // RF-007 requires selecting which recorded activities belong to the task before
-        // conclusion, via a modal that does not exist yet on this screen (plan decision for
-        // issue #19) - the Dashboard must not silently skip that step.
+        // conclusion, via ConcludeModal (issue #18) - the Dashboard must not silently skip that
+        // step by completing the task directly here.
         var taskRepository = new FakeTaskRepository();
         var task = TaskItem.Create("Tarefa em andamento");
         task.Start();
@@ -200,15 +206,37 @@ public class DashboardViewModelTests
         var viewModel = CreateViewModel(taskRepository, workSessionRepository);
         await viewModel.LoadAsync();
 
-        Assert.False(viewModel.ShowConcludeUnavailableNotice);
+        Assert.False(viewModel.ConcludeModal.IsOpen);
 
         await viewModel.StatusChangeCommand.ExecuteAsync(DomainTaskStatus.Done);
 
-        Assert.True(viewModel.ShowConcludeUnavailableNotice);
+        Assert.True(viewModel.ConcludeModal.IsOpen);
         Assert.Equal(DomainTaskStatus.InProgress, viewModel.SelectedStatus);
 
         TaskItem? updatedTask = await taskRepository.GetByIdAsync(task.Id, CancellationToken.None);
         Assert.Equal(DomainTaskStatus.InProgress, updatedTask!.Status);
+    }
+
+    [Fact]
+    public async Task ConcludeModal_Concluded_ReloadsDashboard_ReflectingTheNewStatus()
+    {
+        // issue #18: once ConcludeModal reports a successful conclusion, the Dashboard must
+        // reload so the side list/detail panel reflect the task's new (terminal) status.
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Tarefa em andamento");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var viewModel = CreateViewModel(taskRepository, workSessionRepository);
+        await viewModel.LoadAsync();
+
+        await viewModel.ConcludeModal.OpenAsync(task.Id);
+        await viewModel.ConcludeModal.ConfirmCommand.ExecuteAsync(null);
+
+        TaskItem? updatedTask = await taskRepository.GetByIdAsync(task.Id, CancellationToken.None);
+        Assert.Equal(DomainTaskStatus.Done, updatedTask!.Status);
+        Assert.Empty(viewModel.Tasks);
     }
 
     [Fact]

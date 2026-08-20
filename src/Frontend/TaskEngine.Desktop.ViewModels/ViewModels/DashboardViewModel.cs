@@ -85,20 +85,23 @@ public sealed class DashboardViewModel : ObservableObject
     private double _aiFraction;
     private double _officeFraction;
     private double _unmappedFraction;
-    private bool _showConcludeUnavailableNotice;
 
     public DashboardViewModel(
         ITaskRepository taskRepository,
         IWorkSessionRepository workSessionRepository,
         GenerateTaskReportUseCase generateTaskReportUseCase,
         StartWorkSessionUseCase startWorkSessionUseCase,
-        PauseWorkSessionUseCase pauseWorkSessionUseCase)
+        PauseWorkSessionUseCase pauseWorkSessionUseCase,
+        ConcludeTaskModalViewModel concludeTaskModalViewModel)
     {
         _taskRepository = taskRepository;
         _workSessionRepository = workSessionRepository;
         _generateTaskReportUseCase = generateTaskReportUseCase;
         _startWorkSessionUseCase = startWorkSessionUseCase;
         _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
+        ConcludeModal = concludeTaskModalViewModel;
+
+        ConcludeModal.Concluded += OnTaskConcluded;
 
         StatusChangeCommand = new AsyncRelayCommand(
             param => ChangeStatusAsync((DomainTaskStatus)param!, CancellationToken.None));
@@ -122,7 +125,6 @@ public sealed class DashboardViewModel : ObservableObject
                 return;
             }
 
-            ShowConcludeUnavailableNotice = false;
             _ = LoadSelectedTaskDetailAsync(value?.Id, CancellationToken.None);
         }
     }
@@ -240,15 +242,8 @@ public sealed class DashboardViewModel : ObservableObject
         private set => SetProperty(ref _unmappedFraction, value);
     }
 
-    /// <summary>
-    /// True right after the user tries to conclude the selected task from the Dashboard - see
-    /// <see cref="ChangeStatusAsync"/> for why that action is intentionally a no-op today.
-    /// </summary>
-    public bool ShowConcludeUnavailableNotice
-    {
-        get => _showConcludeUnavailableNotice;
-        private set => SetProperty(ref _showConcludeUnavailableNotice, value);
-    }
+    /// <summary>The "Concluir tarefa" modal (RF-007, issue #18) for the selected task - see <see cref="ConcludeTaskModalViewModel"/>'s own doc comment.</summary>
+    public ConcludeTaskModalViewModel ConcludeModal { get; }
 
     /// <summary>Bound to <c>StatusButtonView.StatusChangeCommand</c> for the selected task.</summary>
     public AsyncRelayCommand StatusChangeCommand { get; }
@@ -272,7 +267,6 @@ public sealed class DashboardViewModel : ObservableObject
         // Sets the backing field directly (not the public setter) so the detail load below runs
         // exactly once instead of racing a second fire-and-forget load triggered by the setter.
         SetProperty(ref _selectedTask, nextSelection, nameof(SelectedTask));
-        ShowConcludeUnavailableNotice = false;
         await LoadSelectedTaskDetailAsync(nextSelection?.Id, cancellationToken);
     }
 
@@ -294,10 +288,9 @@ public sealed class DashboardViewModel : ObservableObject
     /// <summary>
     /// Handles a transition requested via <see cref="StatusChangeCommand"/>. <c>InProgress</c>
     /// covers both "iniciar" (ToDo) and "retomar" (Paused) - <see cref="StartWorkSessionUseCase"/>
-    /// already tells those apart. <c>Done</c> is a deliberate no-op: RF-007 requires the user to
-    /// pick which recorded activities belong to the task before conclusion, via a modal that does
-    /// not exist yet on this screen - completing the task here would silently skip that required
-    /// step, so the action is left unavailable (with a notice) instead of a degraded shortcut.
+    /// already tells those apart. <c>Done</c> opens <see cref="ConcludeModal"/> (RF-007, issue #18)
+    /// instead of completing the task directly - <see cref="OnTaskConcluded"/> reloads once the
+    /// modal itself reports a successful conclusion.
     /// </summary>
     private async Task ChangeStatusAsync(DomainTaskStatus targetStatus, CancellationToken cancellationToken)
     {
@@ -308,11 +301,9 @@ public sealed class DashboardViewModel : ObservableObject
 
         if (targetStatus == DomainTaskStatus.Done)
         {
-            ShowConcludeUnavailableNotice = true;
+            await ConcludeModal.OpenAsync(selected.Id, cancellationToken);
             return;
         }
-
-        ShowConcludeUnavailableNotice = false;
 
         if (targetStatus == DomainTaskStatus.InProgress)
         {
@@ -325,6 +316,9 @@ public sealed class DashboardViewModel : ObservableObject
 
         await LoadAsync(cancellationToken);
     }
+
+    /// <summary>Reloads once <see cref="ConcludeModal"/> reports a successful conclusion, so the side list/detail panel reflect the task's new status.</summary>
+    private void OnTaskConcluded(Guid taskId) => _ = LoadAsync(CancellationToken.None);
 
     private void RebuildTaskList()
     {

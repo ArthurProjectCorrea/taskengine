@@ -128,6 +128,12 @@ public static class MauiProgram
         services.AddSingleton<ShellViewModel>();
         services.AddSingleton<MainShellPage>();
 
+        // "Concluir tarefa" modal (RF-007, issue #18): transient like every section view model
+        // below - Dashboard/Tarefas/DetalhesTarefa each get their own fresh modal instance
+        // injected via constructor, so no state (open/closed, checklist selection) leaks between
+        // screens or between navigations into the same one.
+        services.AddTransient<ConcludeTaskModalViewModel>();
+
         // Dashboard (issue #19): transient, unlike the shell above - a fresh instance is resolved
         // by SectionViewFactory on every navigation into AppSection.Dashboard (same lifetime
         // PlaceholderView already gets for the other sections), not shared across the app's

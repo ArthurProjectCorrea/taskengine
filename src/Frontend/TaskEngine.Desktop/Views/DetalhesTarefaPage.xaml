@@ -11,6 +11,10 @@
              x:Class="TaskEngine.Desktop.Views.DetalhesTarefaPage"
              x:DataType="viewModels:DetalhesTarefaViewModel">
 
+    <!-- Outer Grid overlays the two modals (RF-006/RF-007, issue #18) on top of the whole page -
+         see ConcludeTaskModalView/AddUnmappedTimeModalView's own notes on the lack of a
+         popup/dialog library. -->
+    <Grid>
     <Grid RowDefinitions="Auto,*" Padding="12" RowSpacing="10">
 
         <!-- Cabeçalho: Voltar (sempre para Tarefas - ver DetalhesTarefaViewModel.BackCommand) +
@@ -47,13 +51,6 @@
                      não-mapeado do Dashboard (DashboardViewModel/DashboardPage), reaproveitando
                      GenerateTaskReportUseCase - ver DetalhesTarefaViewModel.LoadAsync. -->
                 <VerticalStackLayout Grid.Column="0" Spacing="14">
-
-                    <Label IsVisible="{Binding ShowConcludeUnavailableNotice}"
-                           Text="Concluir esta tarefa estará disponível quando a tela de conclusão (seleção de atividades, RF-007) existir."
-                           FontSize="12"
-                           Padding="10"
-                           BackgroundColor="{StaticResource Secondary}"
-                           TextColor="{StaticResource PrimaryDarkText}" />
 
                     <Border Padding="16" BackgroundColor="{StaticResource Secondary}">
                         <VerticalStackLayout Spacing="4">
@@ -139,6 +136,10 @@
 
             </Grid>
         </ScrollView>
+
+    </Grid>
+
+    <components:ConcludeTaskModalView BindingContext="{Binding ConcludeModal}" />
 
     </Grid>
 
