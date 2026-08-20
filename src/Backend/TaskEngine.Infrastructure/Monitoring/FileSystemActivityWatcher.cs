@@ -1,6 +1,7 @@
 using System.Threading;
 using TaskEngine.Application.Abstractions;
 using TaskEngine.Domain.Entities;
+using TaskEngine.Domain.Monitoring;
 
 namespace TaskEngine.Infrastructure.Monitoring;
 
@@ -10,14 +11,13 @@ namespace TaskEngine.Infrastructure.Monitoring;
 /// recursively, debounces the resulting flood of change notifications through
 /// <see cref="FileActivityAggregator"/> (so one edit doesn't produce one interval per keystroke/
 /// autosave), and persists a completed <see cref="ActivityInterval"/> per file once it has been
-/// quiet for the debounce window. Origin classification (RF-003) is a placeholder heuristic here:
-/// issue #12 is specifically about catching AI-agent edits made in the background (Claude Code,
-/// Copilot, scripts) while the user isn't focused on the window, so a file change is attributed to
+/// quiet for the debounce window. Origin classification (RF-003) delegates to
+/// <see cref="ActivitySourceClassifier.ClassifyFromRunningProcesses"/>: issue #12 is specifically
+/// about catching AI-agent edits made in the background (Claude Code, Copilot, scripts) while the
+/// user isn't focused on the window, so a file change is attributed to
 /// <see cref="ActivitySource.Ai"/> when a known AI agent process is running at flush time, and to
-/// <see cref="ActivitySource.Human"/> otherwise. This is intentionally centralized in
-/// <c>TaskEngine.Domain.Monitoring.ActivitySourceClassifier</c> instead (see that type's remarks).
-/// Runs independent of any task being in progress (RN-001) - <see cref="Start"/> is called once at
-/// application startup, not gated by task state.
+/// <see cref="ActivitySource.Human"/> otherwise. Runs independent of any task being in progress
+/// (RN-001) - <see cref="Start"/> is called once at application startup, not gated by task state.
 /// </summary>
 public sealed class FileSystemActivityWatcher : IFileActivityWatcher, IDisposable
 {
@@ -125,7 +125,7 @@ public sealed class FileSystemActivityWatcher : IFileActivityWatcher, IDisposabl
             return;
         }
 
-        var source = ClassifySource(_processesProvider.GetRunningProcessNames());
+        var source = ActivitySourceClassifier.ClassifyFromRunningProcesses(_processesProvider.GetRunningProcessNames());
 
         foreach (CompletedFileActivity change in completed)
         {
@@ -145,26 +145,5 @@ public sealed class FileSystemActivityWatcher : IFileActivityWatcher, IDisposabl
             // Best-effort background persistence: monitoring must never crash the app over a
             // transient I/O failure (e.g. the DB file briefly locked by a concurrent write).
         }
-    }
-
-    private static readonly string[] KnownAiProcessNames =
-    [
-        "claude", "cursor", "copilot", "aider", "codex", "windsurf", "amazonq", "continue",
-    ];
-
-    private static ActivitySource ClassifySource(IReadOnlyList<string> runningProcessNames)
-    {
-        foreach (var processName in runningProcessNames)
-        {
-            foreach (var known in KnownAiProcessNames)
-            {
-                if (processName.Contains(known, StringComparison.OrdinalIgnoreCase))
-                {
-                    return ActivitySource.Ai;
-                }
-            }
-        }
-
-        return ActivitySource.Human;
     }
 }
