@@ -86,15 +86,12 @@ public static class MauiProgram
         services.AddSingleton<IProviderAuthenticator, GitHubOAuthAuthenticator>();
 
         // IProviderClientFactory (issue #26) substitui o registro antigo de um único
-        // ITaskProviderClient construído aqui no startup com opções placeholder (token/OwnerLogin/
-        // ProjectNumber fixos) - essa fábrica resolve o client concreto sob demanda, injetando o
-        // token real (via ICredentialStore, salvo pelo onboarding) só no momento do uso.
-        // OwnerLogin/ProjectNumber continuam placeholder dentro da própria fábrica (ver
-        // TaskEngine.Infrastructure.Providers.ProviderClientFactory) até existir uma tela de
-        // escolha de projeto do GitHub - fora do escopo da #26.
+        // ITaskProviderClient construído aqui no startup com opções placeholder (token fixo) -
+        // essa fábrica resolve o client concreto sob demanda, injetando o token real (via
+        // ICredentialStore, salvo pelo onboarding) só no momento do uso. Desde a troca para a
+        // Issues Search API do GitHub (busca "is:issue assignee:@me"), não há mais owner/projeto
+        // para escolher - a fábrica não precisa de nenhuma configuração além do token.
         services.AddSingleton<IProviderClientFactory, ProviderClientFactory>();
-
-        services.AddTransient<CreateTaskUseCase>();
 
         // RF-007 (ERS-Tarefas.md, issue #18): was missing from this composition root entirely -
         // ConcludeTaskModalViewModel (registered below) takes ConcludeTaskUseCase as a constructor

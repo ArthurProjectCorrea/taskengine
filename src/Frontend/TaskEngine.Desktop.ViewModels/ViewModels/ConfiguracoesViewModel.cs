@@ -490,7 +490,7 @@ public sealed class ConfiguracoesViewModel : ObservableObject
     /// <see cref="ReconnectProviderUseCase"/>. A fresh authentication is required here (not just
     /// calling <see cref="ReconnectProviderUseCase"/> directly): <see cref="DisconnectProviderUseCase"/>
     /// deletes the saved token outright, and an externally-revoked token
-    /// (<c>GitHubProjectsClient</c>'s 401 handling) is no longer valid at the provider either - so
+    /// (<c>GitHubIssuesClient</c>'s 401 handling) is no longer valid at the provider either - so
     /// in both cases the old token cannot carry a reconnect on its own.
     /// </summary>
     private async Task ReconnectAsync(CancellationToken cancellationToken)

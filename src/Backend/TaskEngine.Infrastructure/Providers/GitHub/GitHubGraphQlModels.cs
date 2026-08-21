@@ -19,138 +19,35 @@ internal sealed class EmptyDataDto
 {
 }
 
-internal sealed class ProjectSchemaResponseDto
+internal sealed class SearchResponseDto
 {
-    public OwnerProjectDto? User { get; set; }
-
-    public OwnerProjectDto? Organization { get; set; }
+    public SearchConnectionDto? Search { get; set; }
 }
 
-internal sealed class OwnerProjectDto
+internal sealed class SearchConnectionDto
 {
-    public ProjectV2Dto? ProjectV2 { get; set; }
+    public List<IssueNodeDto> Nodes { get; set; } = [];
+
+    public PageInfoDto PageInfo { get; set; } = new();
 }
 
-internal sealed class ProjectV2Dto
+internal sealed class PageInfoDto
 {
-    public string Id { get; set; } = "";
+    public bool HasNextPage { get; set; }
 
-    public FieldsConnectionDto Fields { get; set; } = new();
-}
-
-internal sealed class FieldsConnectionDto
-{
-    public List<FieldNodeDto> Nodes { get; set; } = [];
+    public string? EndCursor { get; set; }
 }
 
 /// <summary>
-/// Flat shape covering every GitHub Projects v2 field kind: <c>ProjectV2FieldCommon</c>
-/// (id/name/dataType) applies to all of them, <c>Options</c> is only present when the node is
-/// actually a <c>ProjectV2SingleSelectField</c> (GraphQL simply omits fields that don't apply).
+/// <c>search(type: ISSUE)</c> nodes are typed as <c>SearchResultItem</c> - only the <c>... on
+/// Issue</c> inline fragment requested in the query actually resolves, but GraphQL still flattens
+/// its fields into this same flat JSON object per node (same behavior already relied on for
+/// GitHub Projects v2 union/interface fields elsewhere in this codebase).
 /// </summary>
-internal sealed class FieldNodeDto
+internal sealed class IssueNodeDto
 {
     public string? Id { get; set; }
 
-    public string? Name { get; set; }
-
-    public string? DataType { get; set; }
-
-    public List<OptionNodeDto>? Options { get; set; }
-}
-
-internal sealed class OptionNodeDto
-{
-    public string Id { get; set; } = "";
-
-    public string Name { get; set; } = "";
-}
-
-internal sealed class AddDraftIssueResponseDto
-{
-    public AddDraftIssuePayloadDto? AddProjectV2DraftIssue { get; set; }
-}
-
-internal sealed class AddDraftIssuePayloadDto
-{
-    public ProjectItemDto? ProjectItem { get; set; }
-}
-
-internal sealed class ProjectItemDto
-{
-    public string Id { get; set; } = "";
-}
-
-internal sealed class ViewerResponseDto
-{
-    public ViewerDto? Viewer { get; set; }
-}
-
-internal sealed class ViewerDto
-{
-    public string Login { get; set; } = "";
-}
-
-internal sealed class ProjectItemsResponseDto
-{
-    public OwnerProjectItemsDto? User { get; set; }
-
-    public OwnerProjectItemsDto? Organization { get; set; }
-}
-
-internal sealed class OwnerProjectItemsDto
-{
-    public ProjectV2ItemsDto? ProjectV2 { get; set; }
-}
-
-internal sealed class ProjectV2ItemsDto
-{
-    public ItemsConnectionDto Items { get; set; } = new();
-}
-
-internal sealed class ItemsConnectionDto
-{
-    public List<ProjectItemNodeDto> Nodes { get; set; } = [];
-}
-
-internal sealed class ProjectItemNodeDto
-{
-    public string Id { get; set; } = "";
-
-    public FieldValuesConnectionDto FieldValues { get; set; } = new();
-
-    public ProjectItemContentDto? Content { get; set; }
-}
-
-internal sealed class FieldValuesConnectionDto
-{
-    public List<FieldValueNodeDto> Nodes { get; set; } = [];
-}
-
-/// <summary>
-/// Only covers <c>ProjectV2ItemFieldSingleSelectValue</c> (Status/Priority are both single-select
-/// in this codebase's usage) - GraphQL omits fields that don't match the requested inline
-/// fragment, same reasoning as <see cref="FieldNodeDto"/>.
-/// </summary>
-internal sealed class FieldValueNodeDto
-{
-    public string? Name { get; set; }
-
-    public FieldRefDto? Field { get; set; }
-}
-
-internal sealed class FieldRefDto
-{
-    public string? Name { get; set; }
-}
-
-/// <summary>
-/// Covers both <c>Issue</c> and <c>DraftIssue</c> project item content kinds - the fields queried
-/// (title/body/createdAt/assignees) are shared between them, only <c>url</c> is Issue-only (draft
-/// issues have no page of their own), so it's left null for draft issues rather than omitted.
-/// </summary>
-internal sealed class ProjectItemContentDto
-{
     public string? Title { get; set; }
 
     public string? Body { get; set; }
@@ -159,15 +56,18 @@ internal sealed class ProjectItemContentDto
 
     public string? Url { get; set; }
 
-    public AssigneesConnectionDto? Assignees { get; set; }
+    /// <summary>Raw GraphQL <c>IssueState</c> value: <c>"OPEN"</c> or <c>"CLOSED"</c>.</summary>
+    public string? State { get; set; }
+
+    public LabelsConnectionDto? Labels { get; set; }
 }
 
-internal sealed class AssigneesConnectionDto
+internal sealed class LabelsConnectionDto
 {
-    public List<AssigneeDto> Nodes { get; set; } = [];
+    public List<LabelNodeDto> Nodes { get; set; } = [];
 }
 
-internal sealed class AssigneeDto
+internal sealed class LabelNodeDto
 {
-    public string Login { get; set; } = "";
+    public string Name { get; set; } = "";
 }

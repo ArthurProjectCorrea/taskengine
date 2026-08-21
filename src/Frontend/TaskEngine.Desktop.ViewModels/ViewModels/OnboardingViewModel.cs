@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Text.Json;
 using TaskEngine.Application.Abstractions;
 using TaskEngine.Desktop.Mvvm;
 
@@ -28,10 +27,9 @@ public enum ConnectionState
 
 /// <summary>
 /// View model for the onboarding screen (issue #20): lists available task providers, lets the
-/// user connect one via OAuth, and persists the resulting token/schema so the app can skip this
-/// screen on the next start. Contains presentation logic only (state transitions, error
-/// messages) — the actual auth/schema/storage work is delegated to the injected ports; no
-/// business rule lives here.
+/// user connect one via OAuth, and persists the resulting token so the app can skip this screen
+/// on the next start. Contains presentation logic only (state transitions, error messages) — the
+/// actual auth/storage work is delegated to the injected ports; no business rule lives here.
 /// </summary>
 public sealed class OnboardingViewModel : ObservableObject
 {
@@ -57,7 +55,6 @@ public sealed class OnboardingViewModel : ObservableObject
     internal const string ConnectedProviderSettingKey = "provider:connected";
 
     private readonly IReadOnlyDictionary<string, IProviderAuthenticator> _authenticatorsByProviderId;
-    private readonly IProviderClientFactory _providerClientFactory;
     private readonly ICredentialStore _credentialStore;
     private readonly IAppSettingsStore _appSettingsStore;
 
@@ -65,22 +62,12 @@ public sealed class OnboardingViewModel : ObservableObject
     private string? _errorMessage;
     private string? _connectedProviderId;
 
-    /// <summary>
-    /// Takes <see cref="IProviderClientFactory"/> (issue #26), not <c>IEnumerable&lt;ITaskProviderClient&gt;</c>
-    /// as before: issue #26 removed the DI registration of a single <c>ITaskProviderClient</c>
-    /// built at startup with a placeholder token (the same mistake #26's own
-    /// <c>ProviderClientFactory</c> avoids for real task creation) in favor of this factory, which
-    /// resolves the concrete client on demand with the real token from <see cref="ICredentialStore"/>
-    /// - by the time the best-effort schema pre-fetch below runs, that token was just saved.
-    /// </summary>
     public OnboardingViewModel(
         IEnumerable<IProviderAuthenticator> authenticators,
-        IProviderClientFactory providerClientFactory,
         ICredentialStore credentialStore,
         IAppSettingsStore appSettingsStore)
     {
         _authenticatorsByProviderId = authenticators.ToDictionary(a => a.ProviderId);
-        _providerClientFactory = providerClientFactory;
         _credentialStore = credentialStore;
         _appSettingsStore = appSettingsStore;
 
@@ -141,24 +128,6 @@ public sealed class OnboardingViewModel : ObservableObject
 
             ConnectedProviderId = providerId;
             State = ConnectionState.Connected;
-
-            // Best-effort schema pre-fetch, not a connection requirement: providers like GitHub
-            // Projects v2 need extra config (which project) that has no selection UI yet, so this
-            // is expected to fail until that exists - a login that otherwise succeeded must not
-            // be reported as an error, and must not be left un-flagged as connected (that would
-            // loop the onboarding screen forever despite a valid saved token). #26 (task creation
-            // screen) fetches the schema on demand if it's still missing here.
-            try
-            {
-                var client = await _providerClientFactory.CreateAsync(providerId, cancellationToken);
-                var schema = await client.GetTaskSchemaAsync(cancellationToken);
-                var schemaJson = JsonSerializer.Serialize(schema);
-                await _appSettingsStore.SetAsync(SchemaSettingKey(providerId), schemaJson, cancellationToken);
-            }
-            catch
-            {
-                // Swallowed intentionally - see comment above.
-            }
         }
         catch (Exception ex)
         {
@@ -168,6 +137,4 @@ public sealed class OnboardingViewModel : ObservableObject
     }
 
     private static string TokenSettingKey(string providerId) => $"provider:{providerId}:token";
-
-    private static string SchemaSettingKey(string providerId) => $"provider:{providerId}:schema";
 }

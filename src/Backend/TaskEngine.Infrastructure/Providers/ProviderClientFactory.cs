@@ -33,14 +33,7 @@ public sealed class ProviderClientFactory : IProviderClientFactory
 
         if (providerId == "github")
         {
-            // TODO: Owner login and project number are placeholders - there is no UI yet for the
-            // user to pick which GitHub Projects v2 board a task should be created in (tracked
-            // separately; out of scope for issue #26, which only wires up the "create on
-            // provider" flow itself).
-            return new GitHubProjectsClient(
-                _httpClient,
-                new GitHubProjectsOptions(token, OwnerLogin: "TODO_GITHUB_PROJECTS_OWNER_LOGIN", ProjectNumber: 0),
-                _appSettingsStore);
+            return new GitHubIssuesClient(_httpClient, new GitHubIssuesOptions(token), _appSettingsStore);
         }
 
         throw new InvalidOperationException($"Unknown provider '{providerId}'.");

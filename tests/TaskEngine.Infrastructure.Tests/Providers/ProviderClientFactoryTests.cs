@@ -19,7 +19,7 @@ public class ProviderClientFactoryTests
     }
 
     [Fact]
-    public async Task CreateAsync_WhenTokenIsStoredForGitHub_ReturnsGitHubProjectsClient()
+    public async Task CreateAsync_WhenTokenIsStoredForGitHub_ReturnsGitHubIssuesClient()
     {
         var credentialStore = new FakeCredentialStore();
         await credentialStore.SaveAsync("provider:github:token", "gh-token", CancellationToken.None);
@@ -27,7 +27,7 @@ public class ProviderClientFactoryTests
 
         var client = await factory.CreateAsync("github", CancellationToken.None);
 
-        Assert.IsType<GitHubProjectsClient>(client);
+        Assert.IsType<GitHubIssuesClient>(client);
         Assert.Equal("github", client.ProviderId);
     }
 

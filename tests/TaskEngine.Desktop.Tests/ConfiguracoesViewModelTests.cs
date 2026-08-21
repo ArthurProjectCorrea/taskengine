@@ -277,10 +277,7 @@ public class ConfiguracoesViewModelTests
         await appSettingsStore.SetAsync(ProviderSettingsKeys.Frozen("github"), "true", CancellationToken.None);
         var credentialStore = new FakeCredentialStore();
         var authenticator = new FakeProviderAuthenticator("github", SuccessfulAuthResult);
-        var providerClient = new FakeTaskProviderClient(
-            "github",
-            new ProviderTaskSchema("github", []),
-            assignedTasks: []);
+        var providerClient = new FakeTaskProviderClient("github", assignedTasks: []);
 
         Fixture fixture = CreateFixture(
             appSettingsStore: appSettingsStore,
