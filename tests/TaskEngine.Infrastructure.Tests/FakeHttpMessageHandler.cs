@@ -18,6 +18,9 @@ internal sealed class FakeHttpMessageHandler : HttpMessageHandler
 
     public List<string> CapturedRequestBodies { get; } = [];
 
+    /// <summary>Request URIs, in the same order as <see cref="CapturedRequestBodies"/>.</summary>
+    public List<Uri> CapturedRequestUris { get; } = [];
+
     /// <summary>Status code returned for every response - defaults to 200 OK; set to simulate e.g. a 401.</summary>
     public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
 
@@ -26,6 +29,7 @@ internal sealed class FakeHttpMessageHandler : HttpMessageHandler
     {
         var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
         CapturedRequestBodies.Add(body);
+        CapturedRequestUris.Add(request.RequestUri!);
 
         var json = _responses.Count > 0 ? _responses.Dequeue() : """{"data":null}""";
 

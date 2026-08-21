@@ -1,0 +1,17 @@
+{
+  // Schema de referência do Wrangler 4.x - útil para autocomplete em editores que suportam
+  // $schema em JSONC, mas não é necessário instalar nada para o Worker funcionar.
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "taskengine-oauth-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  }
+
+  // Sem bindings de KV/D1/R2: o Worker é stateless, só repassa uma chamada HTTP para o GitHub.
+  // Os únicos valores sensíveis (GITHUB_CLIENT_ID e GITHUB_CLIENT_SECRET) são secrets do
+  // Worker (não var, não vivem neste arquivo) - ver README.md nesta pasta para como configurá-los
+  // com `wrangler secret put`.
+}

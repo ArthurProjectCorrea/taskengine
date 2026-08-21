@@ -12,13 +12,16 @@ namespace TaskEngine.Infrastructure.Providers.GitHub;
 
 /// <summary>
 /// <see cref="IProviderAuthenticator"/> implementation for GitHub, using Authorization Code + PKCE
-/// via a local loopback listener (see <see cref="LoopbackCallbackListener"/>) - no client secret,
-/// suitable for a GitHub App registered as a public client.
+/// via a local loopback listener (see <see cref="LoopbackCallbackListener"/>). The authorize step
+/// goes straight to GitHub with the public client id; the token-exchange step goes through
+/// <see cref="GitHubOAuthOptions.TokenExchangeProxyUrl"/> instead, because GitHub always requires a
+/// client secret for that step even with PKCE - see <see cref="GitHubOAuthOptions"/> for the full
+/// rationale. This app never holds the client secret.
 /// </summary>
 public sealed class GitHubOAuthAuthenticator : IProviderAuthenticator
 {
     private const string AuthorizeEndpoint = "https://github.com/login/oauth/authorize";
-    private const string AccessTokenEndpoint = "https://github.com/login/oauth/access_token";
+    private const string TokenExchangeProxyPath = "/github/token";
 
     /// <summary>32 bytes of randomness, base64url-encoded, for the anti-CSRF `state` parameter.</summary>
     private const int StateEntropyBytes = 32;
@@ -90,14 +93,18 @@ public sealed class GitHubOAuthAuthenticator : IProviderAuthenticator
     private async Task<GitHubAccessTokenResponseDto> ExchangeCodeForTokenAsync(
         string code, string codeVerifier, Uri redirectUri, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, AccessTokenEndpoint)
+        // Vai para a ponte (services/oauth-proxy/), não para o GitHub diretamente - ela já sabe o
+        // client_id e guarda o client_secret, então o corpo aqui não leva nenhum dos dois (ver
+        // GitHubOAuthOptions.TokenExchangeProxyUrl para o porquê).
+        var tokenExchangeUri = $"{_options.TokenExchangeProxyUrl.TrimEnd('/')}{TokenExchangeProxyPath}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, tokenExchangeUri)
         {
             Content = JsonContent.Create(new
             {
-                client_id = _options.ClientId,
                 code,
-                redirect_uri = redirectUri.ToString(),
-                code_verifier = codeVerifier,
+                codeVerifier,
+                redirectUri = redirectUri.ToString(),
             }),
         };
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -106,7 +113,7 @@ public sealed class GitHubOAuthAuthenticator : IProviderAuthenticator
         response.EnsureSuccessStatusCode();
 
         var body = await response.Content.ReadFromJsonAsync<GitHubAccessTokenResponseDto>(SerializerOptions, cancellationToken)
-            ?? throw new InvalidOperationException("GitHub token endpoint returned an empty response.");
+            ?? throw new InvalidOperationException("Token exchange proxy returned an empty response.");
 
         if (!string.IsNullOrEmpty(body.Error))
         {
@@ -115,7 +122,7 @@ public sealed class GitHubOAuthAuthenticator : IProviderAuthenticator
 
         if (string.IsNullOrEmpty(body.AccessToken))
         {
-            throw new InvalidOperationException("GitHub token endpoint did not return an access token.");
+            throw new InvalidOperationException("Token exchange proxy did not return an access token.");
         }
 
         return body;

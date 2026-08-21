@@ -5,7 +5,10 @@ namespace TaskEngine.Infrastructure.Tests.Providers.GitHub;
 
 public class GitHubOAuthAuthenticatorTests
 {
-    private static GitHubOAuthOptions CreateOptions() => new("test-client-id", ["repo", "project"]);
+    private const string TokenExchangeProxyUrl = "https://taskengine-oauth-proxy.example.workers.dev";
+
+    private static GitHubOAuthOptions CreateOptions() =>
+        new("test-client-id", ["repo", "project"], TokenExchangeProxyUrl);
 
     [Fact]
     public async Task AuthenticateAsync_SuccessFlow_ReturnsAccessTokenFromTokenEndpoint()
@@ -39,7 +42,13 @@ public class GitHubOAuthAuthenticatorTests
 
         Assert.Single(handler.CapturedRequestBodies);
         Assert.Contains("auth-code-123", handler.CapturedRequestBodies[0]);
-        Assert.Contains("code_verifier", handler.CapturedRequestBodies[0]);
+        Assert.Contains("codeVerifier", handler.CapturedRequestBodies[0]);
+
+        // Troca de código por token vai para a ponte (services/oauth-proxy/), não para o GitHub
+        // diretamente - e sem client_id/client_secret no corpo, já que a ponte já sabe os dois.
+        Assert.Equal(new Uri($"{TokenExchangeProxyUrl}/github/token"), handler.CapturedRequestUris[0]);
+        Assert.DoesNotContain("client_id", handler.CapturedRequestBodies[0]);
+        Assert.DoesNotContain("client_secret", handler.CapturedRequestBodies[0]);
     }
 
     [Fact]

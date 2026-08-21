@@ -79,10 +79,15 @@ public static class MauiProgram
 
         // Client ID do GitHub App real registrado pelo Arthur (ver issue #22). Não é segredo -
         // client_id de um cliente público PKCE vai literalmente na URL de autorização, visível
-        // no navegador; por isso não há client secret aqui (fluxo Authorization Code + PKCE).
+        // no navegador; por isso não há client secret aqui (fluxo Authorization Code + PKCE) - o
+        // GitHub exige client_secret na troca de código por token mesmo com PKCE, então essa etapa
+        // (só ela) passa pela ponte em services/oauth-proxy/ (Cloudflare Worker), que guarda o
+        // secret. Ver GitHubOAuthOptions.TokenExchangeProxyUrl para o racional completo.
+        // TODO: atualizar com a URL real depois do `wrangler deploy` (ver services/oauth-proxy/README.md).
         services.AddSingleton(new GitHubOAuthOptions(
             ClientId: "Ov23liY5GoHGRKLB1dfZ",
-            Scopes: ["repo", "read:project"]));
+            Scopes: ["repo", "read:project"],
+            TokenExchangeProxyUrl: "https://taskengine-oauth-proxy.PLACEHOLDER.workers.dev"));
         services.AddSingleton<IProviderAuthenticator, GitHubOAuthAuthenticator>();
 
         // IProviderClientFactory (issue #26) substitui o registro antigo de um único

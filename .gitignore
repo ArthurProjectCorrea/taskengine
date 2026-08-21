@@ -499,3 +499,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Cloudflare Workers (services/oauth-proxy/) - local dev state and secrets, never committed.
+# node_modules/ already ignored above.
+.wrangler/
+.dev.vars
+.dev.vars.*

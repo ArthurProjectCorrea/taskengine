@@ -1,0 +1,17 @@
+{
+  "name": "taskengine-oauth-proxy",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cloudflare Worker that exchanges a GitHub OAuth authorization code for an access token on behalf of the TaskEngine desktop app, keeping the GitHub App's client_secret out of the distributed binary.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.0.0"
+  }
+}
