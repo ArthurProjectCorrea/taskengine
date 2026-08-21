@@ -411,6 +411,13 @@ FodyWeavers.xsd
 # é listada aqui explicitamente para deixar claro que nada dentro dela deve ser commitado.
 src/Frontend/TaskEngine.Desktop/Certs/
 
+# Exceção deliberada: releases/ guarda os artefatos de instalação distribuídos (o .msix assinado
+# e o certificado PÚBLICO .cer, sem chave privada — não confundir com Certs/.pfx acima, que nunca
+# é versionado). *.msix é ignorado globalmente por padrão (regra acima), então essas linhas
+# reabilitam só o que está dentro de releases/.
+!releases/
+!releases/**
+
 ##
 ## Visual studio for Mac
 ##
