@@ -5,6 +5,7 @@ using TaskEngine.Application.Reports;
 using TaskEngine.Application.Tasks;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Mvvm;
+using TaskEngine.Desktop.ViewModels.Formatting;
 using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Domain.Entities;
 
@@ -320,7 +321,7 @@ public sealed class TarefasViewModel : ObservableObject
 
     private TarefaListItem BuildListItem(TaskItem task)
     {
-        var investedTimeLabel = FormatDuration(
+        var investedTimeLabel = DurationFormatter.Format(
             TimeSpan.FromSeconds(_investedSecondsByTaskId.GetValueOrDefault(task.Id)));
 
         (string actionLabel, bool actionEnabled, DomainTaskStatus? actionTarget) = task.Status switch
@@ -354,17 +355,4 @@ public sealed class TarefasViewModel : ObservableObject
             openDetailsCommand);
     }
 
-    private static string FormatDuration(TimeSpan duration)
-    {
-        var totalMinutes = (int)Math.Round(duration.TotalMinutes);
-        var hours = totalMinutes / 60;
-        var minutes = totalMinutes % 60;
-
-        if (hours <= 0)
-        {
-            return $"{minutes}min";
-        }
-
-        return minutes > 0 ? $"{hours}h {minutes}min" : $"{hours}h";
-    }
 }

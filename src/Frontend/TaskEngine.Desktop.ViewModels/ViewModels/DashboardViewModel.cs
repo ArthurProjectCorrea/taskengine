@@ -3,6 +3,7 @@ using TaskEngine.Application.Abstractions;
 using TaskEngine.Application.Reports;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Mvvm;
+using TaskEngine.Desktop.ViewModels.Formatting;
 using TaskEngine.Domain.Entities;
 using TaskEngine.Domain.TimeTracking;
 
@@ -398,8 +399,8 @@ public sealed class DashboardViewModel : ObservableObject
         // RN-007: overlapping human/AI activity within the same window counts once toward the
         // total time invested - see TimeIntervalMerger, the same primitive GenerateTaskReportUseCase
         // uses for its own totals.
-        TimeInvestedTodayLabel = FormatDuration(TimeIntervalMerger.TotalDuration(todayIntervals));
-        TimeInvestedWeekLabel = FormatDuration(TimeIntervalMerger.TotalDuration(weekIntervals));
+        TimeInvestedTodayLabel = DurationFormatter.Format(TimeIntervalMerger.TotalDuration(todayIntervals));
+        TimeInvestedWeekLabel = DurationFormatter.Format(TimeIntervalMerger.TotalDuration(weekIntervals));
     }
 
     private async Task LoadSelectedTaskDetailAsync(Guid? taskId, CancellationToken cancellationToken)
@@ -437,10 +438,10 @@ public sealed class DashboardViewModel : ObservableObject
         var unmapped = TimeSpan.FromSeconds(row?.UnmappedSeconds ?? 0);
         var maxSeconds = new[] { human.TotalSeconds, ai.TotalSeconds, office.TotalSeconds, unmapped.TotalSeconds, 1d }.Max();
 
-        HumanLabel = FormatDuration(human);
-        AiLabel = FormatDuration(ai);
-        OfficeLabel = FormatDuration(office);
-        UnmappedLabel = FormatDuration(unmapped);
+        HumanLabel = DurationFormatter.Format(human);
+        AiLabel = DurationFormatter.Format(ai);
+        OfficeLabel = DurationFormatter.Format(office);
+        UnmappedLabel = DurationFormatter.Format(unmapped);
         HumanFraction = human.TotalSeconds / maxSeconds;
         AiFraction = ai.TotalSeconds / maxSeconds;
         OfficeFraction = office.TotalSeconds / maxSeconds;
@@ -458,7 +459,7 @@ public sealed class DashboardViewModel : ObservableObject
         SelectedTitle = string.Empty;
         SelectedMetaLabel = string.Empty;
         SelectedStatus = DomainTaskStatus.ToDo;
-        HumanLabel = AiLabel = OfficeLabel = UnmappedLabel = FormatDuration(TimeSpan.Zero);
+        HumanLabel = AiLabel = OfficeLabel = UnmappedLabel = DurationFormatter.Format(TimeSpan.Zero);
         HumanFraction = AiFraction = OfficeFraction = UnmappedFraction = 0;
         UpdateElapsedDisplay();
     }
@@ -520,17 +521,4 @@ public sealed class DashboardViewModel : ObservableObject
         return $"{totalHours:D2}:{duration.Minutes:D2}:{duration.Seconds:D2}";
     }
 
-    private static string FormatDuration(TimeSpan duration)
-    {
-        var totalMinutes = (int)Math.Round(duration.TotalMinutes);
-        var hours = totalMinutes / 60;
-        var minutes = totalMinutes % 60;
-
-        if (hours <= 0)
-        {
-            return $"{minutes}min";
-        }
-
-        return minutes > 0 ? $"{hours}h {minutes}min" : $"{hours}h";
-    }
 }

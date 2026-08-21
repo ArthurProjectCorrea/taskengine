@@ -3,6 +3,7 @@ using TaskEngine.Application.Abstractions;
 using TaskEngine.Application.Reports;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Mvvm;
+using TaskEngine.Desktop.ViewModels.Formatting;
 using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Desktop.ViewModels.Providers;
 using TaskEngine.Domain.Entities;
@@ -322,10 +323,10 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         var unmapped = TimeSpan.FromSeconds(row?.UnmappedSeconds ?? 0);
         var maxSeconds = new[] { human.TotalSeconds, ai.TotalSeconds, office.TotalSeconds, unmapped.TotalSeconds, 1d }.Max();
 
-        HumanLabel = FormatDuration(human);
-        AiLabel = FormatDuration(ai);
-        OfficeLabel = FormatDuration(office);
-        UnmappedLabel = FormatDuration(unmapped);
+        HumanLabel = DurationFormatter.Format(human);
+        AiLabel = DurationFormatter.Format(ai);
+        OfficeLabel = DurationFormatter.Format(office);
+        UnmappedLabel = DurationFormatter.Format(unmapped);
         HumanFraction = human.TotalSeconds / maxSeconds;
         AiFraction = ai.TotalSeconds / maxSeconds;
         OfficeFraction = office.TotalSeconds / maxSeconds;
@@ -415,7 +416,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
             var typeLabel = session.Type == WorkSessionType.Active ? "Ativo" : "Pausa";
             var originLabel = session.Origin == WorkSessionOrigin.System ? "Sistema" : "Provedor";
 
-            Sessions.Add(new TimeRecordListItem(periodLabel, $"{typeLabel} · {originLabel}", FormatDuration(end - session.StartedAt)));
+            Sessions.Add(new TimeRecordListItem(periodLabel, $"{typeLabel} · {originLabel}", DurationFormatter.Format(end - session.StartedAt)));
         }
     }
 
@@ -458,17 +459,4 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         return $"{totalHours:D2}:{duration.Minutes:D2}:{duration.Seconds:D2}";
     }
 
-    private static string FormatDuration(TimeSpan duration)
-    {
-        var totalMinutes = (int)Math.Round(duration.TotalMinutes);
-        var hours = totalMinutes / 60;
-        var minutes = totalMinutes % 60;
-
-        if (hours <= 0)
-        {
-            return $"{minutes}min";
-        }
-
-        return minutes > 0 ? $"{hours}h {minutes}min" : $"{hours}h";
-    }
 }
