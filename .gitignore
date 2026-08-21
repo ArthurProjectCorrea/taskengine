@@ -406,6 +406,11 @@ FodyWeavers.xsd
 *.sln.iml
 .idea/
 
+# TaskEngine.Desktop: certificado autoassinado usado para assinar o pacote MSIX (chave privada,
+# nunca deve ser versionado). *.pfx e AppPackages/ já são cobertos por regras acima, mas a pasta
+# é listada aqui explicitamente para deixar claro que nada dentro dela deve ser commitado.
+src/Frontend/TaskEngine.Desktop/Certs/
+
 ##
 ## Visual studio for Mac
 ##
