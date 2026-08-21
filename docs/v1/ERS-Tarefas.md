@@ -12,6 +12,7 @@
 | 1.0    | 19/08/2026 | Arthur | Criação do documento inicial, consolidando o escopo da V1 discutido antes da versão final do protótipo visual.                        |
 | 1.1    | 19/08/2026 | Arthur | Revisão a partir da primeira versão navegável do protótipo: adiciona RF-016 (relatório geral consolidado, distinto do relatório por tarefa do RF-010/011) e esclarece que qualquer status fora de "em andamento"/"concluído" pausa o registro, sem exceções por nome de status. |
 | 1.2    | 19/08/2026 | Arthur | Revisão a partir da versão final do protótipo (`docs/prototipo/`): RF-016 passa a permitir filtro opcional por período (CA-016.3). Demais telas confirmadas sem novos requisitos funcionais. |
+| 1.3    | 21/08/2026 | Arthur | Correção de fato em §2.2: o campo Prioridade do Schema-001 é preenchido best-effort a partir de sinais do provedor (ex.: rótulos/labels), não a partir de um "schema dinâmico" configurável por projeto - reflete a implementação real da integração com GitHub (busca de Issues atribuídas, sem seleção de projeto/board). Nenhum requisito funcional foi alterado. |
 
 ---
 
@@ -85,7 +86,7 @@ O módulo de Tarefas é o núcleo funcional do TaskEngine. Ele depende do módul
 
 ### 2.2. Suposições e Dependências
 
-- **Suposições:** o usuário já conectou pelo menos um provedor de tarefas antes de utilizar este módulo; o computador permanece com o sistema em execução durante o período de trabalho para que a atividade seja capturada; como apenas um provedor é conectado por vez nesta versão (ver módulo de Configurações), o campo Prioridade do Schema-001 — quando vem de um schema dinâmico do provedor — não precisa de normalização entre provedores diferentes ainda; isso será avaliado quando houver suporte a múltiplos provedores simultâneos.
+- **Suposições:** o usuário já conectou pelo menos um provedor de tarefas antes de utilizar este módulo; o computador permanece com o sistema em execução durante o período de trabalho para que a atividade seja capturada; como apenas um provedor é conectado por vez nesta versão (ver módulo de Configurações), o campo Prioridade do Schema-001 — preenchido de forma best-effort a partir de sinais do provedor (ex.: rótulos/labels reconhecíveis, quando o provedor não expõe um campo de prioridade dedicado) — não precisa de normalização entre provedores diferentes ainda; isso será avaliado quando houver suporte a múltiplos provedores simultâneos.
 - **Dependências:** disponibilidade do provedor externo para sincronização; módulo de Monitoramento em execução; módulo de Configurações com expediente definido (necessário para o cálculo automático de tempo não mapeado).
 
 ---
