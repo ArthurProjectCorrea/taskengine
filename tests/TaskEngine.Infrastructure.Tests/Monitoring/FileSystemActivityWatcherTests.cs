@@ -1,3 +1,4 @@
+using System.Reflection;
 using TaskEngine.Domain.Entities;
 using TaskEngine.Infrastructure.Monitoring;
 
@@ -13,7 +14,17 @@ public class FileSystemActivityWatcherTests
     [InlineData(@"C:\repo\node_modules\pkg\index.js", true)]
     [InlineData("C:/repo/src/Foo.cs", false)]
     [InlineData("C:/repo/bin/Debug/Foo.dll", true)]
-    public void IsNoise_FiltersBuildAndVcsDirectories(string path, bool expectedNoise)
+    [InlineData(@"C:\Users\arthur\AppData\Local\Temp\tmp1234.tmp", true)]
+    [InlineData(@"C:\Users\arthur\AppData\Local\Packages\Microsoft.WindowsTerminal\LocalState\settings.json", true)]
+    [InlineData(@"C:\Users\arthur\AppData\Local\Google\Chrome\User Data\Default\Cache\data_1", true)]
+    [InlineData(@"C:\Users\arthur\AppData\Local\Mozilla\Firefox\Profiles\abc.default\cache2\entries\1", true)]
+    [InlineData(@"C:\Users\arthur\AppData\Local\Microsoft\Edge\User Data\Default\Code Cache\js\index", true)]
+    [InlineData(@"C:\Users\arthur\.vs\TaskEngine\v17\.suo", true)]
+    [InlineData(@"C:\Users\arthur\.nuget\packages\newtonsoft.json\13.0.1\pkg.nupkg", true)]
+    [InlineData(@"C:\$RECYCLE.BIN\S-1-5-21\file.txt", true)]
+    [InlineData(@"C:\Users\arthur\AppData\Local\Microsoft\Windows\INetCache\image.png", true)]
+    [InlineData(@"C:\Users\arthur\Documents\report.docx", false)]
+    public void IsNoise_FiltersUserProfileNoiseDirectories(string path, bool expectedNoise)
     {
         Assert.Equal(expectedNoise, FileSystemActivityWatcher.IsNoise(path));
     }
@@ -21,8 +32,7 @@ public class FileSystemActivityWatcherTests
     [Fact]
     public async Task Start_OnFileChange_PersistsActivityAfterDebounceWindow()
     {
-        var tempDirectory = Path.Combine(Path.GetTempPath(), $"taskengine-watcher-tests-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDirectory);
+        var tempDirectory = CreateNonNoiseTestDirectory();
         try
         {
             var options = new FileActivityWatcherOptions([tempDirectory], TimeSpan.FromMilliseconds(200));
@@ -50,8 +60,7 @@ public class FileSystemActivityWatcherTests
     [Fact]
     public async Task Start_WithNoKnownAiProcessRunning_ClassifiesActivityAsHuman()
     {
-        var tempDirectory = Path.Combine(Path.GetTempPath(), $"taskengine-watcher-tests-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDirectory);
+        var tempDirectory = CreateNonNoiseTestDirectory();
         try
         {
             var options = new FileActivityWatcherOptions([tempDirectory], TimeSpan.FromMilliseconds(200));
@@ -71,6 +80,47 @@ public class FileSystemActivityWatcherTests
         {
             Directory.Delete(tempDirectory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void OnWatcherError_ReEnablesRaisingEvents_WithoutThrowing()
+    {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), $"taskengine-watcher-error-tests-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDirectory);
+        try
+        {
+            using var watcher = new FileSystemWatcher(tempDirectory) { EnableRaisingEvents = true };
+
+            var handler = typeof(FileSystemActivityWatcher).GetMethod(
+                "OnWatcherError",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("OnWatcherError handler not found via reflection.");
+
+            var errorArgs = new ErrorEventArgs(new IOException("simulated buffer overflow"));
+
+            var exception = Record.Exception(() => handler.Invoke(null, [watcher, errorArgs]));
+
+            Assert.Null(exception);
+            Assert.True(watcher.EnableRaisingEvents);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Creates a scratch directory for watcher tests outside any path <see cref="FileSystemActivityWatcher.IsNoise"/>
+    /// excludes. <see cref="Path.GetTempPath"/> resolves under <c>%LOCALAPPDATA%\Temp</c>, which is
+    /// itself one of the noise patterns now that the watcher scopes to the whole user profile, so
+    /// tests need a directory elsewhere under the profile to actually observe events.
+    /// </summary>
+    private static string CreateNonNoiseTestDirectory()
+    {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var directory = Path.Combine(userProfile, $"taskengine-watcher-tests-{Guid.NewGuid()}");
+        Directory.CreateDirectory(directory);
+        return directory;
     }
 
     private static async Task<ActivityInterval> WaitForActivityAsync(FakeMonitoredActivityRepository repository, TimeSpan timeout)

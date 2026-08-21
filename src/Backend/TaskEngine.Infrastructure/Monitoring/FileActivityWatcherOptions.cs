@@ -2,12 +2,12 @@ namespace TaskEngine.Infrastructure.Monitoring;
 
 /// <summary>
 /// Configuration for <see cref="FileSystemActivityWatcher"/>. <see cref="WatchedDirectories"/> is
-/// deliberately just a list of roots rather than a single "active project" concept: which
-/// directory counts as the working project is left open by ERS-Monitoramento.md ("o escopo exato
-/// ... está em aberto"), and there is no settings UI yet (out of scope for this change) to let the
-/// user configure it. <see cref="CreateDefault"/> picks a reasonable placeholder
-/// (<c>%USERPROFILE%\project</c>, matching this machine's actual dev layout) until a settings
-/// screen exists to make it user-configurable.
+/// deliberately just a list of roots rather than a single "active project" concept: RF-001 in
+/// ERS-Monitoramento.md requires registering every file change on the computer regardless of any
+/// task being in progress, with no notion of a scoped "project" directory. <see cref="CreateDefault"/>
+/// therefore watches the entire logged-in user's profile (<c>%USERPROFILE%</c>) automatically, with
+/// no manual directory configuration screen required. The list shape is kept (rather than a single
+/// path) so a future settings UI can add or narrow roots without a breaking change to this type.
 /// </summary>
 public sealed class FileActivityWatcherOptions
 {
@@ -26,7 +26,6 @@ public sealed class FileActivityWatcherOptions
     public static FileActivityWatcherOptions CreateDefault()
     {
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var defaultDirectory = Path.Combine(userProfile, "project");
-        return new FileActivityWatcherOptions([defaultDirectory]);
+        return new FileActivityWatcherOptions([userProfile]);
     }
 }

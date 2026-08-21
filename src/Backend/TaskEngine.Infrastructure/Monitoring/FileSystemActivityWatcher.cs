@@ -62,6 +62,7 @@ public sealed class FileSystemActivityWatcher : IFileActivityWatcher, IDisposabl
             watcher.Changed += OnFileEvent;
             watcher.Created += OnFileEvent;
             watcher.Renamed += OnFileEvent;
+            watcher.Error += OnWatcherError;
             watcher.EnableRaisingEvents = true;
             _watchers.Add(watcher);
         }
@@ -99,9 +100,33 @@ public sealed class FileSystemActivityWatcher : IFileActivityWatcher, IDisposabl
     }
 
     /// <summary>
+    /// <see cref="FileSystemWatcher"/> has a limited internal buffer; watching a large tree (the
+    /// whole user profile, since RF-001/CreateDefault stopped scoping to a single project folder)
+    /// under bursts of activity can overflow it, which raises <see cref="FileSystemWatcher.Error"/>
+    /// and silently stops delivering further change notifications. Re-enabling
+    /// <see cref="FileSystemWatcher.EnableRaisingEvents"/> is the documented minimal recovery: it
+    /// resets the watcher so it keeps observing instead of going quiet for the rest of the process
+    /// lifetime. Some events raised during the overflow window are unavoidably lost, but that is
+    /// preferable to losing all future events.
+    /// </summary>
+    private static void OnWatcherError(object sender, ErrorEventArgs e)
+    {
+        if (sender is FileSystemWatcher watcher)
+        {
+            watcher.EnableRaisingEvents = false;
+            watcher.EnableRaisingEvents = true;
+        }
+    }
+
+    /// <summary>
     /// Filters out changes under directories that are noise for activity tracking purposes -
-    /// build output, VCS internals, dependency caches - which would otherwise dominate the
-    /// captured history with churn unrelated to actual work.
+    /// build output, VCS internals, dependency caches, and OS/app temp and cache directories -
+    /// which would otherwise dominate the captured history with churn unrelated to actual work.
+    /// Watching the entire user profile (RF-001) is far noisier than a single project directory,
+    /// so this list is deliberately broader than plain build-tool output. This is a heuristic, not
+    /// an exhaustive deny-list: it only excludes directories that are reliably recognizable as
+    /// noise by path convention. Anything not matched here is still captured - CA-001.2 only
+    /// requires that recognized noise be excluded, not that every possible noise source is caught.
     /// </summary>
     public static bool IsNoise(string path)
     {
@@ -109,7 +134,28 @@ public sealed class FileSystemActivityWatcher : IFileActivityWatcher, IDisposabl
         return normalized.Contains("/bin/", StringComparison.OrdinalIgnoreCase)
             || normalized.Contains("/obj/", StringComparison.OrdinalIgnoreCase)
             || normalized.Contains("/.git/", StringComparison.OrdinalIgnoreCase)
-            || normalized.Contains("/node_modules/", StringComparison.OrdinalIgnoreCase);
+            || normalized.Contains("/node_modules/", StringComparison.OrdinalIgnoreCase)
+            // OS/system temp and per-app package data - UWP/Store apps under Packages are
+            // extremely chatty and never represent user work.
+            || normalized.Contains("/appdata/local/temp/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/appdata/local/packages/", StringComparison.OrdinalIgnoreCase)
+            // Windows/legacy IE/Edge network cache.
+            || normalized.Contains("/appdata/local/microsoft/windows/inetcache/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/appdata/local/microsoft/windows/webcache/", StringComparison.OrdinalIgnoreCase)
+            // Dev tool caches: Visual Studio's cache/scratch folder, NuGet's package cache, and
+            // the recycle bin (deletions routed there are not meaningful file activity).
+            || normalized.Contains("/.vs/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/.nuget/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/$recycle.bin/", StringComparison.OrdinalIgnoreCase)
+            // Generic app cache folders (AppData\Roaming|Local\...\Cache) plus the specific cache
+            // directory names used by Chromium- and Gecko-based browsers (Chrome, Edge, Firefox)
+            // under their profile folders (e.g. Google\Chrome\User Data\Default\Cache,
+            // Mozilla\Firefox\Profiles\<profile>\cache2). Matched by segment name rather than a
+            // hardcoded browser path so it survives arbitrary profile names.
+            || normalized.Contains("/cache/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/cache2/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/code cache/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("/gpucache/", StringComparison.OrdinalIgnoreCase);
     }
 
     private void Flush()
