@@ -6,15 +6,26 @@ namespace TaskEngine.Desktop.ViewModels;
 
 /// <summary>
 /// One provider entry rendered by <c>OnboardingPage</c> — pairs a <see cref="IProviderAuthenticator.ProviderId"/>
-/// with a display name. Only GitHub exists today; the list is still driven by whatever
-/// <see cref="IProviderAuthenticator"/>s are registered in DI, not hardcoded in the view, so
+/// with a display name and an optional brand icon. Only GitHub exists today; the list is still driven
+/// by whatever <see cref="IProviderAuthenticator"/>s are registered in DI, not hardcoded in the view, so
 /// adding a second provider later is wiring, not a UI rewrite.
 /// </summary>
-public sealed class ProviderOption(string providerId, string displayName)
+public sealed class ProviderOption(string providerId, string displayName, string? iconFileName)
 {
     public string ProviderId { get; } = providerId;
 
     public string DisplayName { get; } = displayName;
+
+    /// <summary>
+    /// MAUI image resource file name (see <c>Resources/Images/ProviderIcons/</c>), or <see langword="null"/>
+    /// when no icon asset is registered for this provider yet. <c>OnboardingPage.xaml</c> falls back to
+    /// <see cref="Initial"/> in a plain colored circle when this is <see langword="null"/>, instead of
+    /// rendering a broken image.
+    /// </summary>
+    public string? IconFileName { get; } = iconFileName;
+
+    /// <summary>First character of <see cref="DisplayName"/>, used by the fallback rendering above.</summary>
+    public string Initial { get; } = displayName.Length > 0 ? displayName[..1].ToUpperInvariant() : "?";
 }
 
 public enum ConnectionState
@@ -46,6 +57,22 @@ public sealed class OnboardingViewModel : ObservableObject
     };
 
     /// <summary>
+    /// Maps a <see cref="IProviderAuthenticator.ProviderId"/> to the MAUI image resource file name for
+    /// its brand icon (downloaded from Simple Icons, https://simpleicons.org, CC0-licensed — see
+    /// <c>Resources/Images/ProviderIcons/</c>). A provider missing from this table simply renders the
+    /// text-initial fallback (see <see cref="ProviderOption.Initial"/>) instead of a broken image — this
+    /// table is expected to grow as new providers ship (Jira/Trello/ClickUp icons are already bundled
+    /// ahead of their authenticators existing, since Simple Icons covers them already).
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string> ProviderIconFiles = new Dictionary<string, string>
+    {
+        ["github"] = "provider_github.svg",
+        ["jira"] = "provider_jira.svg",
+        ["trello"] = "provider_trello.svg",
+        ["clickup"] = "provider_clickup.svg",
+    };
+
+    /// <summary>
     /// Internal (not private) so <c>TarefasViewModel</c> can read the same key when deciding which
     /// provider to pass to <c>SyncTasksUseCase</c>, instead of duplicating this literal - there is
     /// no <c>ProviderSettingsKeys</c> helper for "which provider is connected" today (only
@@ -73,7 +100,10 @@ public sealed class OnboardingViewModel : ObservableObject
 
         Providers = new ObservableCollection<ProviderOption>(
             _authenticatorsByProviderId.Keys.Select(
-                id => new ProviderOption(id, ProviderDisplayNames.GetValueOrDefault(id, id))));
+                id => new ProviderOption(
+                    id,
+                    ProviderDisplayNames.GetValueOrDefault(id, id),
+                    ProviderIconFiles.GetValueOrDefault(id))));
 
         ConnectCommand = new AsyncRelayCommand(param => ConnectAsync((string)param!, CancellationToken.None));
     }
