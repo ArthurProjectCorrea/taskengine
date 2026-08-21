@@ -13,8 +13,71 @@ namespace TaskEngine.Infrastructure.Auth;
 /// </summary>
 public sealed class LoopbackCallbackListener : IDisposable
 {
-    private const string CallbackResponseHtml =
-        "<html><body><p>Pode fechar esta aba e voltar ao TaskEngine.</p></body></html>";
+    /// <summary>
+    /// Static confirmation page shown by the browser right after the provider redirects back here.
+    /// No JS, no error handling (a denied/error callback never reaches this response - see
+    /// <c>GitHubOAuthAuthenticator.AuthenticateAsync</c>, which reads the query string itself before
+    /// this page is even rendered and surfaces the error in the app's own UI instead). Inline CSS
+    /// only, since this is a plain string constant with nowhere to serve an external stylesheet
+    /// from - kept simple on purpose, it is only ever on screen for a second or two.
+    /// </summary>
+    private const string CallbackResponseHtml = """
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+        <meta charset="utf-8" />
+        <title>TaskEngine</title>
+        <style>
+            :root { color-scheme: light dark; }
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f4f2fb;
+                font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+                color: #201a2b;
+            }
+            .card {
+                text-align: center;
+                padding: 40px 48px;
+                border-radius: 12px;
+                background: #ffffff;
+                box-shadow: 0 8px 24px rgba(81, 43, 212, 0.15);
+                max-width: 360px;
+            }
+            .check {
+                width: 56px;
+                height: 56px;
+                margin: 0 auto 20px;
+                border-radius: 50%;
+                background: #512BD4;
+                color: #ffffff;
+                font-size: 30px;
+                line-height: 56px;
+            }
+            h1 {
+                margin: 0 0 8px;
+                font-size: 20px;
+                color: #512BD4;
+            }
+            p {
+                margin: 0;
+                font-size: 14px;
+                color: #4b4458;
+            }
+        </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="check">&#10003;</div>
+                <h1>Conectado ao TaskEngine</h1>
+                <p>Pode fechar esta aba e voltar ao aplicativo.</p>
+            </div>
+        </body>
+        </html>
+        """;
 
     private readonly HttpListener _listener;
     private bool _disposed;
