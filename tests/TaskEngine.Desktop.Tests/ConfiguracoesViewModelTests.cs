@@ -47,10 +47,11 @@ public class ConfiguracoesViewModelTests
             ? new FakeProviderClientFactory()
             : new FakeProviderClientFactory(providerClient);
         var startWorkSessionUseCase = new StartWorkSessionUseCase(taskRepository, workSessionRepository);
+        var pauseWorkSessionUseCase = new PauseWorkSessionUseCase(taskRepository, workSessionRepository);
         var endWorkSessionUseCase = new EndWorkSessionUseCase(taskRepository, workSessionRepository);
         var syncTasksUseCase = new SyncTasksUseCase(
             taskRepository, providerClientFactory, appSettingsStore,
-            startWorkSessionUseCase, endWorkSessionUseCase);
+            startWorkSessionUseCase, pauseWorkSessionUseCase, endWorkSessionUseCase);
         var reconnectProviderUseCase = new ReconnectProviderUseCase(
             appSettingsStore, taskRepository, workSessionRepository, providerClientFactory, syncTasksUseCase);
 

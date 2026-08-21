@@ -22,6 +22,7 @@ public class SyncTasksUseCaseTests
             providerClientFactory,
             appSettingsStore,
             new StartWorkSessionUseCase(taskRepository, workSessionRepository),
+            new PauseWorkSessionUseCase(taskRepository, workSessionRepository),
             new EndWorkSessionUseCase(taskRepository, workSessionRepository));
     }
 
@@ -211,6 +212,43 @@ public class SyncTasksUseCaseTests
 
         Assert.Equal(TaskStatus.InProgress.ToString(), Assert.Single(result).Status);
         Assert.DoesNotContain(workSessionRepository.Sessions, s => s.Type == WorkSessionType.Pause);
+    }
+
+    /// <summary>
+    /// The opposite of the test above: when GitHubIssuesClient DOES have a real signal - the issue
+    /// is tracked on a GitHub Projects v2 board with a recognized Status field, and that field's
+    /// value simply isn't "in progress" (e.g. the card moved back to "A Fazer"/"Backlog") - that is
+    /// trustworthy enough to auto-pause, unlike the "no information at all" case covered by
+    /// <see cref="ExecuteAsync_WithInProgressTaskThatIsNeitherInProgressNorDoneOnProvider_KeepsTrackingActive"/>.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteAsync_WithInProgressTaskThatHasRecognizedNonInProgressProjectStatus_PausesTracking()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-1", providerId: "github");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+        var session = WorkSession.Start(task.Id, Now.AddHours(-1));
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var providerClientFactory = new FakeProviderClientFactory();
+        providerClientFactory.ClientToReturn.AssignedTasksToReturn =
+        [
+            new ProviderTaskSummary(
+                "gh-1", "Write report", null, "open", IsInProgress: false, IsDone: false, Now, null, null,
+                HasRecognizedProjectStatus: true),
+        ];
+        var appSettingsStore = new FakeAppSettingsStore();
+        var useCase = CreateUseCase(taskRepository, providerClientFactory, appSettingsStore, workSessionRepository);
+
+        IReadOnlyList<TaskDto> result = await useCase.ExecuteAsync("github");
+
+        Assert.Equal(TaskStatus.Paused.ToString(), Assert.Single(result).Status);
+        Assert.False(workSessionRepository.Sessions.Single(s => s.Id == session.Id).IsOpen);
+        Assert.Contains(
+            workSessionRepository.Sessions,
+            s => s.Type == WorkSessionType.Pause && s.Origin == WorkSessionOrigin.Provider && s.IsOpen);
     }
 
     [Fact]

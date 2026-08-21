@@ -25,6 +25,7 @@ public sealed class SyncTasksUseCase
     private readonly IProviderClientFactory _providerClientFactory;
     private readonly IAppSettingsStore _appSettingsStore;
     private readonly StartWorkSessionUseCase _startWorkSessionUseCase;
+    private readonly PauseWorkSessionUseCase _pauseWorkSessionUseCase;
     private readonly EndWorkSessionUseCase _endWorkSessionUseCase;
 
     public SyncTasksUseCase(
@@ -32,12 +33,14 @@ public sealed class SyncTasksUseCase
         IProviderClientFactory providerClientFactory,
         IAppSettingsStore appSettingsStore,
         StartWorkSessionUseCase startWorkSessionUseCase,
+        PauseWorkSessionUseCase pauseWorkSessionUseCase,
         EndWorkSessionUseCase endWorkSessionUseCase)
     {
         _taskRepository = taskRepository;
         _providerClientFactory = providerClientFactory;
         _appSettingsStore = appSettingsStore;
         _startWorkSessionUseCase = startWorkSessionUseCase;
+        _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         _endWorkSessionUseCase = endWorkSessionUseCase;
     }
 
@@ -170,13 +173,27 @@ public sealed class SyncTasksUseCase
 
         // RN-011 ("qualquer status que não seja em-andamento/concluído pausa o rastreamento") only
         // makes sense for a provider whose status vocabulary can actually express "in progress" as
-        // a distinct, positive signal (e.g. a Projects v2 Status column). GitHubIssuesClient can't
-        // - a plain Issue is only ever open or closed, so IsInProgress is permanently false there
-        // by design (see its doc comment). Auto-pausing here on every sync would silently revert
-        // any locally-started task the moment the user clicks "Sincronizar", since GitHub never
-        // confirms "in progress" to begin with. Pausing therefore stays a purely local/manual
-        // action (via the status dropdown) unless/until a provider that can genuinely report
-        // "in progress" exists - do not resurrect this branch without that signal.
+        // a distinct, positive signal (e.g. a Projects v2 Status column). Plain GitHub Issues can't
+        // - they're only ever open or closed - but GitHubIssuesClient also reads a linked Projects
+        // v2 board's Status field (via issue.projectItems), when one exists. That gives two
+        // genuinely different situations to tell apart here, both captured by
+        // ProviderTaskSummary.HasRecognizedProjectStatus:
+        //
+        //  - HasRecognizedProjectStatus == false: no status information exists at all (no linked
+        //    Project v2, or none with a readable Status). Auto-pausing here would silently revert
+        //    any locally-started task the moment the user clicks "Sincronizar", since there is
+        //    nothing on the provider side confirming anything either way - this is the historical
+        //    regression this comment used to warn about. Pausing stays local/manual only.
+        //
+        //  - HasRecognizedProjectStatus == true: the issue IS tracked on a Project v2 board with a
+        //    readable Status, and that status is positively something other than "in progress"
+        //    (e.g. moved back to "A Fazer"/"Backlog") - a real, trustworthy signal, not silence.
+        //    Auto-pause is safe (and desired) here, same spirit as RN-011 originally intended back
+        //    when this provider was Projects v2-only.
+        if (remote.HasRecognizedProjectStatus && task.Status == TaskStatus.InProgress)
+        {
+            await _pauseWorkSessionUseCase.ExecuteAsync(task.Id, WorkSessionOrigin.Provider, cancellationToken);
+        }
     }
 
     private async Task<DateTimeOffset> GetOrEstablishConnectedAtAsync(string providerId, CancellationToken cancellationToken)

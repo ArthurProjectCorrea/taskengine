@@ -70,6 +70,92 @@ public class GitHubIssuesClientTests
         Assert.Null(done.Priority);
     }
 
+    private static string SearchResponseWithProjectStatus(string? statusName) => $$"""
+        {
+          "data": {
+            "search": {
+              "pageInfo": { "hasNextPage": false, "endCursor": null },
+              "nodes": [
+                {
+                  "id": "I_1",
+                  "title": "Task on a board",
+                  "body": null,
+                  "createdAt": "2026-01-01T00:00:00Z",
+                  "url": null,
+                  "state": "OPEN",
+                  "labels": { "nodes": [] },
+                  "projectItems": {
+                    "nodes": [
+                      { "fieldValueByName": {{(statusName is null ? "null" : $$"""{ "name": "{{statusName}}" }""")}} }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+        """;
+
+    [Theory]
+    [InlineData("In Progress")]
+    [InlineData("in progress")]
+    [InlineData("Doing")]
+    [InlineData("Em Andamento")]
+    public async Task ListAssignedTasksAsync_WithRecognizedInProgressProjectStatus_SetsIsInProgress(string statusName)
+    {
+        var handler = new FakeHttpMessageHandler(SearchResponseWithProjectStatus(statusName));
+        var client = CreateClient(handler);
+
+        IReadOnlyList<ProviderTaskSummary> tasks = await client.ListAssignedTasksAsync(CancellationToken.None);
+
+        var task = Assert.Single(tasks);
+        Assert.True(task.IsInProgress);
+        Assert.True(task.HasRecognizedProjectStatus);
+    }
+
+    [Theory]
+    [InlineData("Backlog")]
+    [InlineData("A Fazer")]
+    [InlineData("Blocked")]
+    public async Task ListAssignedTasksAsync_WithRecognizedNonInProgressProjectStatus_SignalsStatusWithoutInProgress(string statusName)
+    {
+        var handler = new FakeHttpMessageHandler(SearchResponseWithProjectStatus(statusName));
+        var client = CreateClient(handler);
+
+        IReadOnlyList<ProviderTaskSummary> tasks = await client.ListAssignedTasksAsync(CancellationToken.None);
+
+        var task = Assert.Single(tasks);
+        Assert.False(task.IsInProgress);
+        Assert.True(task.HasRecognizedProjectStatus);
+    }
+
+    [Fact]
+    public async Task ListAssignedTasksAsync_WithNoProjectStatusValue_HasNoSignalEitherWay()
+    {
+        var handler = new FakeHttpMessageHandler(SearchResponseWithProjectStatus(null));
+        var client = CreateClient(handler);
+
+        IReadOnlyList<ProviderTaskSummary> tasks = await client.ListAssignedTasksAsync(CancellationToken.None);
+
+        var task = Assert.Single(tasks);
+        Assert.False(task.IsInProgress);
+        Assert.False(task.HasRecognizedProjectStatus);
+    }
+
+    [Fact]
+    public async Task ListAssignedTasksAsync_WithNoLinkedProjectAtAll_HasNoSignalEitherWay()
+    {
+        // The fixture used by most tests in this file has no "projectItems" key at all, mirroring
+        // an issue that isn't tracked on any GitHub Projects v2 board.
+        var handler = new FakeHttpMessageHandler(SearchResponse());
+        var client = CreateClient(handler);
+
+        IReadOnlyList<ProviderTaskSummary> tasks = await client.ListAssignedTasksAsync(CancellationToken.None);
+
+        Assert.All(tasks, t => Assert.False(t.IsInProgress));
+        Assert.All(tasks, t => Assert.False(t.HasRecognizedProjectStatus));
+    }
+
     [Fact]
     public async Task ListAssignedTasksAsync_SendsTheAssigneeAtMeSearchQuery()
     {

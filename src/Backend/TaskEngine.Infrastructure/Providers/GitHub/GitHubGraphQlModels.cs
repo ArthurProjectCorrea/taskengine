@@ -60,6 +60,8 @@ internal sealed class IssueNodeDto
     public string? State { get; set; }
 
     public LabelsConnectionDto? Labels { get; set; }
+
+    public ProjectItemsConnectionDto? ProjectItems { get; set; }
 }
 
 internal sealed class LabelsConnectionDto
@@ -70,4 +72,30 @@ internal sealed class LabelsConnectionDto
 internal sealed class LabelNodeDto
 {
     public string Name { get; set; } = "";
+}
+
+/// <summary>
+/// GitHub Projects v2 item(s) this issue belongs to, requested via <c>issue.projectItems</c> -
+/// this is what lets <c>GitHubIssuesClient</c> read a Projects v2 board's Status without any
+/// owner/project configuration: GraphQL walks from the issue outward to whatever project(s) it's
+/// on, rather than the caller having to specify the project up front.
+/// </summary>
+internal sealed class ProjectItemsConnectionDto
+{
+    public List<ProjectItemNodeDto> Nodes { get; set; } = [];
+}
+
+internal sealed class ProjectItemNodeDto
+{
+    /// <summary>
+    /// The project item's "Status" single-select field value, if the project has one named
+    /// exactly "Status" and this item has a value set. Null if the project has no such field, or
+    /// this item's value is unset - <c>fieldValueByName</c> resolves to <c>null</c> in both cases.
+    /// </summary>
+    public ProjectV2FieldValueDto? FieldValueByName { get; set; }
+}
+
+internal sealed class ProjectV2FieldValueDto
+{
+    public string? Name { get; set; }
 }

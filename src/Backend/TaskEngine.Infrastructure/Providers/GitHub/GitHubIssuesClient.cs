@@ -18,7 +18,11 @@ namespace TaskEngine.Infrastructure.Providers.GitHub;
 /// issue assigned to the authenticated user across every repository they can see, with zero
 /// configuration. The tradeoff: plain Issues have no custom fields, so "in progress" and
 /// "Priority" are approximated rather than read from a real field (see
-/// <see cref="ListAssignedTasksAsync"/> and <see cref="ExtractPriority"/>).
+/// <see cref="ListAssignedTasksAsync"/> and <see cref="ExtractPriority"/>). One exception: if the
+/// issue happens to be linked to a GitHub Projects v2 board, its Status field is still readable
+/// via <c>issue.projectItems</c> in the very same search query - no owner/project number needed
+/// up front, since GraphQL walks from the issue to whatever project(s) it belongs to, not the
+/// other way around. See <see cref="ClassifyProjectStatus"/>.
 /// </summary>
 public sealed class GitHubIssuesClient : ITaskProviderClient
 {
@@ -45,6 +49,15 @@ public sealed class GitHubIssuesClient : ITaskProviderClient
                 url
                 state
                 labels(first: 20) { nodes { name } }
+                projectItems(first: 10) {
+                  nodes {
+                    fieldValueByName(name: "Status") {
+                      ... on ProjectV2ItemFieldSingleSelectValue {
+                        name
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -94,6 +107,17 @@ public sealed class GitHubIssuesClient : ITaskProviderClient
     /// StatusOptionNames/TimeFieldNames matching.
     /// </summary>
     private static readonly string[] RecognizedPriorityNames = ["critical", "high", "medium", "low"];
+
+    /// <summary>
+    /// Best-effort, case-insensitive match against a GitHub Projects v2 Status field's option
+    /// name, used by <see cref="ClassifyProjectStatus"/> - same "best effort, not guaranteed"
+    /// spirit as <see cref="RecognizedPriorityNames"/> and the old Projects v2 client's
+    /// StatusOptionNames matching (see git history: <c>GitHubProjectsClient</c>, removed when this
+    /// class replaced it). If the user renamed their "In Progress" column to something not listed
+    /// here, it simply won't be recognized as in-progress - it falls back to "no signal", never to
+    /// a wrong classification.
+    /// </summary>
+    private static readonly string[] InProgressStatusNames = ["in progress", "doing", "em andamento", "andamento"];
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -150,20 +174,25 @@ public sealed class GitHubIssuesClient : ITaskProviderClient
                 }
 
                 var isDone = string.Equals(issue.State, "CLOSED", StringComparison.OrdinalIgnoreCase);
+                var (isInProgress, hasRecognizedProjectStatus) = ClassifyProjectStatus(issue.ProjectItems?.Nodes);
 
                 summaries.Add(new ProviderTaskSummary(
                     ExternalId: issue.Id,
                     Title: issue.Title,
                     Description: issue.Body,
                     StatusName: issue.State?.ToLowerInvariant(),
-                    // Plain GitHub Issues only model open/closed - "in progress" has no
-                    // provider-side signal and is left for the app to decide locally once a work
-                    // session starts (same as RN-011's existing local classification).
-                    IsInProgress: false,
+                    // Plain GitHub Issues only model open/closed, with no "in progress" signal of
+                    // their own. But if this issue is also tracked on a GitHub Projects v2 board,
+                    // ClassifyProjectStatus reads that board's Status field straight from this same
+                    // query (via issue.projectItems) - no owner/project configuration needed. When
+                    // the issue isn't on any board (or none has a recognized Status value), this is
+                    // false, same as before this feature existed.
+                    IsInProgress: isInProgress,
                     IsDone: isDone,
                     CreatedAt: issue.CreatedAt ?? DateTimeOffset.UtcNow,
                     Priority: ExtractPriority(issue.Labels?.Nodes),
-                    Url: issue.Url));
+                    Url: issue.Url,
+                    HasRecognizedProjectStatus: hasRecognizedProjectStatus));
             }
 
             cursor = connection.PageInfo.HasNextPage ? connection.PageInfo.EndCursor : null;
@@ -262,6 +291,51 @@ public sealed class GitHubIssuesClient : ITaskProviderClient
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Best-effort classification of the issue's linked GitHub Projects v2 Status field(s)
+    /// (<c>projectItems.nodes[].fieldValueByName</c> in <see cref="SearchQuery"/>). An issue can be
+    /// tracked on more than one board; the first Status value recognized as "in progress" (see
+    /// <see cref="InProgressStatusNames"/>) wins, and the result is <c>(true, true)</c>.
+    /// <para/>
+    /// If no board's Status matches "in progress" but at least one board item has *some* non-empty
+    /// Status value, that is still a real, positive signal - the user actively maintains a board
+    /// and the card currently sits somewhere other than "in progress" (e.g. moved back to "A
+    /// Fazer"/"Backlog") - so this returns <c>(false, true)</c>. That is meaningfully different
+    /// from an issue with no linked Project v2 at all, or one where the field couldn't be read,
+    /// which carries no signal either way and returns <c>(false, false)</c>. Callers (see
+    /// <see cref="TaskEngine.Application.Tasks.SyncTasksUseCase.ApplyRemoteStatusTransitionAsync"/>)
+    /// rely on this distinction to decide whether "not in progress" is trustworthy enough to
+    /// auto-pause local tracking.
+    /// </summary>
+    private static (bool IsInProgress, bool HasRecognizedProjectStatus) ClassifyProjectStatus(
+        List<ProjectItemNodeDto>? projectItems)
+    {
+        if (projectItems is not { Count: > 0 })
+        {
+            return (false, false);
+        }
+
+        var hasRecognizedStatus = false;
+
+        foreach (var item in projectItems)
+        {
+            var statusName = item.FieldValueByName?.Name?.Trim();
+            if (string.IsNullOrEmpty(statusName))
+            {
+                continue;
+            }
+
+            hasRecognizedStatus = true;
+
+            if (Array.IndexOf(InProgressStatusNames, statusName.ToLowerInvariant()) >= 0)
+            {
+                return (true, true);
+            }
+        }
+
+        return (false, hasRecognizedStatus);
     }
 
     /// <summary>Executes a query/mutation and throws if GitHub reports any GraphQL error.</summary>

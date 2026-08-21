@@ -35,6 +35,7 @@ public class TarefasViewModelTests
             providerClientFactory,
             appSettingsStore,
             startWorkSessionUseCase,
+            pauseWorkSessionUseCase,
             endWorkSessionUseCase);
 
         var monitoredActivityRepository = new FakeMonitoredActivityRepository();
