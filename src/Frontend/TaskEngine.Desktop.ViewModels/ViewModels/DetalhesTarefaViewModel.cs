@@ -303,7 +303,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         Title = task.Title;
         Status = task.Status;
         IsDone = task.Status is DomainTaskStatus.Done or DomainTaskStatus.DonePendingSync;
-        MetaLabel = BuildMetaLabel(task);
+        MetaLabel = TaskMetaLabelFormatter.Build(task);
         _providerUrl = task.ProviderUrl;
         OnPropertyChanged(nameof(HasProviderLink));
         OnPropertyChanged(nameof(NoProviderLink));
@@ -430,12 +430,12 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
                 elapsed = TimeSpan.Zero;
             }
 
-            ElapsedLabel = FormatTimer(elapsed);
+            ElapsedLabel = ElapsedTimerFormatter.Format(elapsed);
             ElapsedHint = "Sessão aberta - contando agora.";
             return;
         }
 
-        ElapsedLabel = FormatTimer(_humanTotal);
+        ElapsedLabel = ElapsedTimerFormatter.Format(_humanTotal);
         ElapsedHint = !HasTask
             ? string.Empty
             : Status == DomainTaskStatus.Paused
@@ -445,18 +445,5 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
                     : "Nenhuma sessão iniciada ainda.";
     }
 
-    private static string BuildMetaLabel(TaskItem task) =>
-        task.ProviderId is { } providerId
-            ? task.ProviderTaskId is { } providerTaskId ? $"{providerId} · {providerTaskId}" : providerId
-            : "Tarefa local (sem provedor vinculado)";
-
     private static string FormatDateTime(DateTimeOffset value) => value.ToLocalTime().ToString("dd/MM HH:mm");
-
-    /// <summary>Formats as total-hours:mm:ss (e.g. "27:41:08" past 24h) - same rationale as <c>DashboardViewModel.FormatTimer</c>.</summary>
-    private static string FormatTimer(TimeSpan duration)
-    {
-        var totalHours = (int)duration.TotalHours;
-        return $"{totalHours:D2}:{duration.Minutes:D2}:{duration.Seconds:D2}";
-    }
-
 }

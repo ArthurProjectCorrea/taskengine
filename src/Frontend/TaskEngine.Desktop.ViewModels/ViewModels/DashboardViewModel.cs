@@ -422,7 +422,7 @@ public sealed class DashboardViewModel : ObservableObject
         HasSelection = true;
         SelectedTitle = task.Title;
         SelectedStatus = task.Status;
-        SelectedMetaLabel = BuildMetaLabel(task);
+        SelectedMetaLabel = TaskMetaLabelFormatter.Build(task);
 
         IReadOnlyList<WorkSession> sessions = await _workSessionRepository.ListByTaskIdAsync(id, cancellationToken);
         _selectedOpenActiveSession = sessions.FirstOrDefault(s => s.IsOpen && s.Type == WorkSessionType.Active);
@@ -474,23 +474,18 @@ public sealed class DashboardViewModel : ObservableObject
                 elapsed = TimeSpan.Zero;
             }
 
-            ElapsedLabel = FormatTimer(elapsed);
+            ElapsedLabel = ElapsedTimerFormatter.Format(elapsed);
             ElapsedHint = "Sessão aberta - contando agora.";
             return;
         }
 
-        ElapsedLabel = FormatTimer(_selectedHumanTotal);
+        ElapsedLabel = ElapsedTimerFormatter.Format(_selectedHumanTotal);
         ElapsedHint = !HasSelection
             ? string.Empty
             : SelectedStatus == DomainTaskStatus.Paused
                 ? "Sessão pausada - o cronômetro está parado."
                 : "Nenhuma sessão iniciada ainda.";
     }
-
-    private static string BuildMetaLabel(TaskItem task) =>
-        task.ProviderId is { } providerId
-            ? task.ProviderTaskId is { } providerTaskId ? $"{providerId} · {providerTaskId}" : providerId
-            : "Tarefa local (sem provedor vinculado)";
 
     private static void AddClipped(
         List<TimeInterval> bucket,
@@ -509,16 +504,5 @@ public sealed class DashboardViewModel : ObservableObject
 
     /// <summary>Days since the most recent Monday (0 for Monday itself), for an ISO-style week start.</summary>
     private static int DaysSinceMonday(DateTimeOffset date) => ((int)date.DayOfWeek + 6) % 7;
-
-    /// <summary>
-    /// Formats as total-hours:mm:ss (e.g. "27:41:08" past 24h) - computed manually rather than via
-    /// <c>TimeSpan.ToString("hh\:mm\:ss")</c>, whose "hh" specifier wraps at 24h instead of showing
-    /// total elapsed hours.
-    /// </summary>
-    private static string FormatTimer(TimeSpan duration)
-    {
-        var totalHours = (int)duration.TotalHours;
-        return $"{totalHours:D2}:{duration.Minutes:D2}:{duration.Seconds:D2}";
-    }
 
 }
