@@ -4,6 +4,7 @@ using TaskEngine.Application.Reports;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Mvvm;
 using TaskEngine.Desktop.ViewModels.Navigation;
+using TaskEngine.Desktop.ViewModels.Providers;
 using TaskEngine.Domain.Entities;
 
 using DomainTaskStatus = TaskEngine.Domain.Entities.TaskStatus;
@@ -48,11 +49,10 @@ public sealed class TimeRecordListItem
 /// <see cref="AppSection.Tarefas"/> - a deliberate simplification: this screen is reachable only
 /// from Tarefas today, so there is no navigation history to restore.
 ///
-/// GAP flagged, not invented: ERS-Tarefas.md Schema-001 lists "Link para o provedor" as a field of
-/// a synced task, but <see cref="TaskItem"/> (TaskEngine.Domain.Entities) does not currently expose
-/// any URL/link property - only <see cref="TaskItem.ProviderId"/>/<see cref="TaskItem.ProviderTaskId"/>.
-/// This view model therefore cannot render a real "Abrir no provedor" link; see
-/// <see cref="ProviderLinkUnavailableNote"/>.
+/// "Abrir no provedor" (RF-012/CA-012.1) opens <see cref="TaskItem.ProviderUrl"/> (Schema-001
+/// "Link para o provedor") via <see cref="IProviderLinkOpener"/> when known; see
+/// <see cref="HasProviderLink"/>/<see cref="ProviderLinkUnavailableNote"/> for the case where the
+/// provider never reported one (e.g. a draft issue, or a task with no provider link at all).
 /// </summary>
 public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
 {
@@ -62,6 +62,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     private readonly StartWorkSessionUseCase _startWorkSessionUseCase;
     private readonly PauseWorkSessionUseCase _pauseWorkSessionUseCase;
     private readonly INavigationService _navigationService;
+    private readonly IProviderLinkOpener _providerLinkOpener;
 
     private Guid _taskId;
     private WorkSession? _openActiveSession;
@@ -70,6 +71,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     private bool _hasTask;
     private string _title = string.Empty;
     private string _metaLabel = string.Empty;
+    private string? _providerUrl;
     private DomainTaskStatus _status = DomainTaskStatus.ToDo;
     private string _elapsedLabel = "--:--:--";
     private string _elapsedHint = string.Empty;
@@ -90,6 +92,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         StartWorkSessionUseCase startWorkSessionUseCase,
         PauseWorkSessionUseCase pauseWorkSessionUseCase,
         INavigationService navigationService,
+        IProviderLinkOpener providerLinkOpener,
         ConcludeTaskModalViewModel concludeTaskModalViewModel,
         AddUnmappedTimeModalViewModel addUnmappedTimeModalViewModel)
     {
@@ -99,6 +102,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         _startWorkSessionUseCase = startWorkSessionUseCase;
         _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         _navigationService = navigationService;
+        _providerLinkOpener = providerLinkOpener;
         ConcludeModal = concludeTaskModalViewModel;
         AddUnmappedTimeModal = addUnmappedTimeModalViewModel;
 
@@ -110,6 +114,7 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         ReportCommand = new RelayCommand(_ => RequestReport());
         BackCommand = new RelayCommand(_ => _navigationService.NavigateTo(AppSection.Tarefas));
         OpenAddUnmappedTimeCommand = new RelayCommand(_ => AddUnmappedTimeModal.Open(_taskId));
+        OpenProviderLinkCommand = new RelayCommand(_ => OpenProviderLink());
     }
 
     public ObservableCollection<TimeRecordListItem> Sessions { get; } = [];
@@ -243,9 +248,14 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     /// <summary>The "Adicionar tempo não mapeado" modal (RF-006) for this task - see <see cref="AddUnmappedTimeModalViewModel"/>'s own doc comment.</summary>
     public AddUnmappedTimeModalViewModel AddUnmappedTimeModal { get; }
 
-    /// <summary>Explains why "Abrir no provedor" has no clickable link today - see class-level GAP doc comment.</summary>
-    public string ProviderLinkUnavailableNote =>
-        "TaskItem ainda não expõe um link para o provedor (Schema-001, ERS-Tarefas.md) - lacuna do backend, sinalizada e não implementada aqui.";
+    /// <summary>True once the loaded task has a known <see cref="TaskItem.ProviderUrl"/> (RF-012/Schema-001) - gates <see cref="OpenProviderLinkCommand"/>'s visibility.</summary>
+    public bool HasProviderLink => _providerUrl is not null;
+
+    /// <summary>Inverse of <see cref="HasProviderLink"/>, exposed only so the view's fallback note can bind directly without a bool-inverting converter - same convention as <see cref="NoTask"/>.</summary>
+    public bool NoProviderLink => !HasProviderLink;
+
+    /// <summary>Shown instead of a clickable link when the provider never reported a URL for this task (e.g. a draft issue, or a task with no provider link at all).</summary>
+    public string ProviderLinkUnavailableNote => "Nenhum link do provedor disponível para esta tarefa.";
 
     /// <summary>Bound to <c>StatusButtonView.StatusChangeCommand</c> - same shape as <c>DashboardViewModel</c>/<c>TarefasViewModel</c>.</summary>
     public AsyncRelayCommand StatusChangeCommand { get; }
@@ -256,6 +266,9 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
 
     /// <summary>Opens <see cref="AddUnmappedTimeModal"/> for this task - see <see cref="CanAddUnmappedTime"/> for its visibility gate.</summary>
     public RelayCommand OpenAddUnmappedTimeCommand { get; }
+
+    /// <summary>Opens <see cref="TaskItem.ProviderUrl"/> in the OS default browser (RF-012/CA-012.1) - see <see cref="HasProviderLink"/> for its visibility gate.</summary>
+    public RelayCommand OpenProviderLinkCommand { get; }
 
     /// <summary>
     /// Receives the task id (issue #53) - the only parameter <see cref="AppSection.DetalhesTarefa"/>
@@ -290,6 +303,9 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
         Status = task.Status;
         IsDone = task.Status is DomainTaskStatus.Done or DomainTaskStatus.DonePendingSync;
         MetaLabel = BuildMetaLabel(task);
+        _providerUrl = task.ProviderUrl;
+        OnPropertyChanged(nameof(HasProviderLink));
+        OnPropertyChanged(nameof(NoProviderLink));
 
         IReadOnlyList<WorkSession> sessions = await _workSessionRepository.ListByTaskIdAsync(_taskId, cancellationToken);
         _openActiveSession = sessions.FirstOrDefault(s => s.IsOpen && s.Type == WorkSessionType.Active);
@@ -376,6 +392,15 @@ public sealed class DetalhesTarefaViewModel : ObservableObject, INavigationAware
     private void RequestReport()
     {
         _navigationService.NavigateTo(AppSection.Relatorio, _taskId);
+    }
+
+    /// <summary>Opens <see cref="TaskItem.ProviderUrl"/> via <see cref="IProviderLinkOpener"/> - a no-op if it isn't known (see <see cref="HasProviderLink"/>), same "no-op over broken UI" convention used elsewhere in this view model.</summary>
+    private void OpenProviderLink()
+    {
+        if (_providerUrl is { } url)
+        {
+            _providerLinkOpener.Open(url);
+        }
     }
 
     private void RebuildSessionList(IReadOnlyList<WorkSession> sessions)

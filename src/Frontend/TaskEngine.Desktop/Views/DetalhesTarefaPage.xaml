@@ -104,7 +104,8 @@
 
                 </VerticalStackLayout>
 
-                <!-- Coluna direita: link do provedor (GAP - ver DetalhesTarefaViewModel.ProviderLinkUnavailableNote)
+                <!-- Coluna direita: link do provedor (RF-012/CA-012.1 - abre no navegador padrão
+                     via DetalhesTarefaViewModel.OpenProviderLinkCommand quando disponível)
                      + lista de registros de tempo (Schema-004, via IWorkSessionRepository). -->
                 <VerticalStackLayout Grid.Column="1" Spacing="14">
 
@@ -112,7 +113,15 @@
                         <VerticalStackLayout Spacing="4">
                             <Label Text="Abrir no provedor" FontAttributes="Bold" FontSize="13" />
                             <Label Text="{Binding MetaLabel}" FontSize="12.5" />
+                            <Button Text="Abrir no provedor"
+                                    IsVisible="{Binding HasProviderLink}"
+                                    Command="{Binding OpenProviderLinkCommand}"
+                                    HorizontalOptions="Start"
+                                    FontSize="12"
+                                    Padding="10,7"
+                                    MinimumHeightRequest="0" />
                             <Label Text="{Binding ProviderLinkUnavailableNote}"
+                                   IsVisible="{Binding NoProviderLink}"
                                    FontSize="10.5"
                                    TextColor="{StaticResource Gray500}" />
                         </VerticalStackLayout>

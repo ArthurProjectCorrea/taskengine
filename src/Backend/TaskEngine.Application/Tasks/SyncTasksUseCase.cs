@@ -85,6 +85,7 @@ public sealed class SyncTasksUseCase
     {
         task.SetPriority(remote.Priority);
         task.SetProviderStatusName(remote.StatusName);
+        task.SetProviderUrl(remote.Url);
         await _taskRepository.UpdateAsync(task, cancellationToken);
 
         await ApplyRemoteStatusTransitionAsync(task, remote, cancellationToken);
@@ -108,6 +109,7 @@ public sealed class SyncTasksUseCase
         TaskItem task = TaskItem.Create(remote.Title, remote.Description, remote.ExternalId, providerId, remote.CreatedAt);
         task.SetPriority(remote.Priority);
         task.SetProviderStatusName(remote.StatusName);
+        task.SetProviderUrl(remote.Url);
         await _taskRepository.AddAsync(task, cancellationToken);
 
         if (remote.IsInProgress || remote.IsDone)
@@ -201,6 +203,7 @@ public sealed class SyncTasksUseCase
             task.Status.ToString(),
             task.CreatedAt,
             ProviderTaskId: task.ProviderTaskId,
-            Priority: task.Priority);
+            Priority: task.Priority,
+            ProviderUrl: task.ProviderUrl);
     }
 }

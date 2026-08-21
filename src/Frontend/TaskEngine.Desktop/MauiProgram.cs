@@ -11,6 +11,7 @@ using TaskEngine.Desktop.Platforms.Windows;
 using TaskEngine.Desktop.ViewModels;
 using TaskEngine.Desktop.ViewModels.LocalBackup;
 using TaskEngine.Desktop.ViewModels.Navigation;
+using TaskEngine.Desktop.ViewModels.Providers;
 using TaskEngine.Desktop.ViewModels.Reports;
 using TaskEngine.Desktop.Views;
 using TaskEngine.Infrastructure.Monitoring;
@@ -116,6 +117,10 @@ public static class MauiProgram
         // a third-party file-picker package.
         services.AddTransient<GenerateTaskActivityTimelineUseCase>();
         services.AddTransient<IReportFileSaveDialog, WindowsReportFileSaveDialog>();
+
+        // Detalhes da Tarefa (RF-012/CA-012.1, ERS-Tarefas.md): opens the task's provider page in
+        // the OS's default browser - see WindowsProviderLinkOpener's own doc comment.
+        services.AddTransient<IProviderLinkOpener, WindowsProviderLinkOpener>();
 
         // Tarefas (RF-001, ERS-Tarefas.md): SyncTasksUseCase depends on EndWorkSessionUseCase too
         // (registered above) - not previously needed by the Dashboard.

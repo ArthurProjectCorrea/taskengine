@@ -48,6 +48,23 @@ public class SqliteTaskRepositoryTests
     }
 
     [Fact]
+    public async Task AddAsync_ThenGetByIdAsync_RoundTripsProviderUrl()
+    {
+        using var db = new TempSqliteDatabase();
+        await db.InitializeAsync();
+        var repository = new SqliteTaskRepository(db.PathProvider);
+
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-123", providerId: "github");
+        task.SetProviderUrl("https://github.com/owner/repo/issues/1");
+
+        await repository.AddAsync(task, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync(task.Id, CancellationToken.None);
+
+        Assert.NotNull(loaded);
+        Assert.Equal("https://github.com/owner/repo/issues/1", loaded!.ProviderUrl);
+    }
+
+    [Fact]
     public async Task UpdateAsync_ThenGetByIdAsync_RoundTripsChanges()
     {
         using var db = new TempSqliteDatabase();

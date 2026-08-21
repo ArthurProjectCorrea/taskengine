@@ -14,7 +14,8 @@ public class DetalhesTarefaViewModelTests
     private static DetalhesTarefaViewModel CreateViewModel(
         FakeTaskRepository taskRepository,
         FakeWorkSessionRepository workSessionRepository,
-        FakeNavigationService? navigationService = null)
+        FakeNavigationService? navigationService = null,
+        FakeProviderLinkOpener? providerLinkOpener = null)
     {
         var workScheduleStore = new FakeWorkScheduleStore();
         var unmappedTimeEntryRepository = new FakeUnmappedTimeEntryRepository();
@@ -22,10 +23,11 @@ public class DetalhesTarefaViewModelTests
             taskRepository, workSessionRepository, workScheduleStore, unmappedTimeEntryRepository);
         var startWorkSessionUseCase = new StartWorkSessionUseCase(taskRepository, workSessionRepository);
         var pauseWorkSessionUseCase = new PauseWorkSessionUseCase(taskRepository, workSessionRepository);
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
         var concludeTaskUseCase = new ConcludeTaskUseCase(
-            taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
+            taskRepository, workSessionRepository, monitoredActivityRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
         var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
-            workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
+            workSessionRepository, monitoredActivityRepository, concludeTaskUseCase);
         var addUnmappedTimeModalViewModel = new AddUnmappedTimeModalViewModel(unmappedTimeEntryRepository);
 
         return new DetalhesTarefaViewModel(
@@ -35,6 +37,7 @@ public class DetalhesTarefaViewModelTests
             startWorkSessionUseCase,
             pauseWorkSessionUseCase,
             navigationService ?? new FakeNavigationService(),
+            providerLinkOpener ?? new FakeProviderLinkOpener(),
             concludeTaskModalViewModel,
             addUnmappedTimeModalViewModel);
     }
@@ -56,6 +59,51 @@ public class DetalhesTarefaViewModelTests
         Assert.False(viewModel.NoTask);
         Assert.Equal("Corrigir cálculo de tempo não mapeado", viewModel.Title);
         Assert.Equal(DomainTaskStatus.InProgress, viewModel.Status);
+    }
+
+    [Fact]
+    public async Task LoadAsync_WithProviderUrl_ExposesHasProviderLink_AndOpensItViaOpener()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-1", providerId: "github");
+        task.SetProviderUrl("https://github.com/owner/repo/issues/1");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var providerLinkOpener = new FakeProviderLinkOpener();
+        var viewModel = CreateViewModel(taskRepository, new FakeWorkSessionRepository(), providerLinkOpener: providerLinkOpener);
+
+        viewModel.ApplyParameter(task.Id);
+        await viewModel.LoadAsync();
+
+        Assert.True(viewModel.HasProviderLink);
+        Assert.False(viewModel.NoProviderLink);
+
+        viewModel.OpenProviderLinkCommand.Execute(null);
+
+        Assert.Equal("https://github.com/owner/repo/issues/1", providerLinkOpener.LastOpenedUrl);
+    }
+
+    [Fact]
+    public async Task LoadAsync_WithoutProviderUrl_LeavesHasProviderLinkFalse()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Local-only task");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var providerLinkOpener = new FakeProviderLinkOpener();
+        var viewModel = CreateViewModel(taskRepository, new FakeWorkSessionRepository(), providerLinkOpener: providerLinkOpener);
+
+        viewModel.ApplyParameter(task.Id);
+        await viewModel.LoadAsync();
+
+        Assert.False(viewModel.HasProviderLink);
+        Assert.True(viewModel.NoProviderLink);
+
+        viewModel.OpenProviderLinkCommand.Execute(null);
+
+        Assert.Null(providerLinkOpener.LastOpenedUrl);
     }
 
     [Fact]

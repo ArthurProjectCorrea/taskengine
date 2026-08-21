@@ -31,6 +31,15 @@ public sealed class TaskItem
 
     public string? ProviderId { get; private set; }
     public string? ProviderTaskId { get; private set; }
+
+    /// <summary>
+    /// Address of this task's page on the external provider (Schema-001 "Link para o provedor",
+    /// ERS-Tarefas.md/RF-012) - populated from <see cref="Application.Providers.ProviderTaskSummary.Url"/>
+    /// when known. Null for a task with no provider link yet, or when the provider doesn't expose
+    /// one for that item (e.g. a draft issue).
+    /// </summary>
+    public string? ProviderUrl { get; private set; }
+
     public DateTimeOffset CreatedAt { get; }
 
     private TaskItem(
@@ -93,13 +102,15 @@ public sealed class TaskItem
         string? providerTaskId,
         DateTimeOffset createdAt,
         string? providerStatusName = null,
-        string? priority = null)
+        string? priority = null,
+        string? providerUrl = null)
     {
         return new TaskItem(id, title, description, providerId, providerTaskId, createdAt)
         {
             Status = status,
             ProviderStatusName = providerStatusName,
             Priority = priority,
+            ProviderUrl = providerUrl,
         };
     }
 
@@ -203,6 +214,15 @@ public sealed class TaskItem
     public void SetPriority(string? priority)
     {
         Priority = priority;
+    }
+
+    /// <summary>
+    /// Records the task's page address on the external provider (Schema-001 "Link para o
+    /// provedor", RF-012), as reported by the provider client.
+    /// </summary>
+    public void SetProviderUrl(string? providerUrl)
+    {
+        ProviderUrl = providerUrl;
     }
 
     /// <summary>

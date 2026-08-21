@@ -115,6 +115,10 @@ public sealed class SqliteDatabaseInitializer
 
         // tasks.priority (Schema-001 "Prioridade") - populated from the provider's dynamic schema.
         await EnsureColumnAsync(connection, "tasks", "priority", "TEXT NULL", cancellationToken);
+
+        // tasks.provider_url (Schema-001 "Link para o provedor", RF-012) - populated from
+        // ProviderTaskSummary.Url when the provider exposes one.
+        await EnsureColumnAsync(connection, "tasks", "provider_url", "TEXT NULL", cancellationToken);
     }
 
     /// <summary>

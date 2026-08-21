@@ -192,6 +192,40 @@ public class TaskItemTests
     }
 
     [Fact]
+    public void Create_StartsWithNullProviderUrl()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        Assert.Null(task.ProviderUrl);
+    }
+
+    [Fact]
+    public void SetProviderUrl_UpdatesProviderUrl()
+    {
+        var task = TaskItem.Create("Write tests");
+
+        task.SetProviderUrl("https://github.com/owner/repo/issues/1");
+
+        Assert.Equal("https://github.com/owner/repo/issues/1", task.ProviderUrl);
+    }
+
+    [Fact]
+    public void Restore_RoundTripsProviderUrl()
+    {
+        var task = TaskItem.Restore(
+            Guid.NewGuid(),
+            "Write tests",
+            description: null,
+            TaskStatus.ToDo,
+            providerId: "github",
+            providerTaskId: "gh-1",
+            createdAt: DateTimeOffset.UtcNow,
+            providerUrl: "https://github.com/owner/repo/issues/1");
+
+        Assert.Equal("https://github.com/owner/repo/issues/1", task.ProviderUrl);
+    }
+
+    [Fact]
     public void AttachProviderReference_SetsProviderIdAndProviderTaskId()
     {
         var task = TaskItem.Create("Write tests");
