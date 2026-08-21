@@ -60,3 +60,39 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\TaskEngine.Desktop.exe"; Ic
 ; bandeja (comportamento normal de startup/autostart) - sem isso, o app só piscava e sumia,
 ; obrigando quem instalou a caçar o ícone na bandeja (área de notificação) pra abrir de fato.
 Filename: "{app}\TaskEngine.Desktop.exe"; Parameters: "/show"; Description: "Abrir o {#MyAppName} agora"; Flags: nowait postinstall skipifsilent unchecked
+
+[Code]
+// O desinstalador padrão do Inno Setup só remove os arquivos do programa (seção [Files]) -
+// nunca %LOCALAPPDATA%\TaskEngine (banco SQLite + configurações, gravados em runtime pelo app,
+// fora do escopo do instalador). Sem isso, reinstalar depois de desinstalar faz o app aparecer
+// "magicamente" já conectado ao provedor, pulando o onboarding, porque os dados antigos
+// continuam lá.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  LocalDataDir: String;
+  UserWantsDataDeleted: Boolean;
+begin
+  if CurUninstallStep <> usPostUninstall then
+    exit;
+
+  LocalDataDir := ExpandConstant('{localappdata}\TaskEngine');
+  if not DirExists(LocalDataDir) then
+    exit;
+
+  // Decisão de padrão: em desinstalação silenciosa (/SILENT, /VERYSILENT - ex. usada por
+  // automações/scripts de reinstalação), NÃO perguntamos e NÃO apagamos os dados locais por
+  // padrão - travar numa caixa de diálogo quebraria a automação, e apagar dados do usuário sem
+  // confirmação explícita é arriscado demais para ser o padrão silencioso. Só em desinstalação
+  // interativa perguntamos, com "Não" como resposta padrão (botão focado), já que apagar é
+  // irreversível.
+  if UninstallSilent() then
+    exit;
+
+  UserWantsDataDeleted := SuppressibleMsgBox(
+    'Deseja também apagar os dados locais do TaskEngine (tarefas, histórico, configurações)?' + #13#10 + #13#10 +
+    'Esta ação não pode ser desfeita.',
+    mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES;
+
+  if UserWantsDataDeleted then
+    DelTree(LocalDataDir, True, True, True);
+end;
