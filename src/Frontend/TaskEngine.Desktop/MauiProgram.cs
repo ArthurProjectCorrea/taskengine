@@ -83,11 +83,10 @@ public static class MauiProgram
         // GitHub exige client_secret na troca de código por token mesmo com PKCE, então essa etapa
         // (só ela) passa pela ponte em services/oauth-proxy/ (Cloudflare Worker), que guarda o
         // secret. Ver GitHubOAuthOptions.TokenExchangeProxyUrl para o racional completo.
-        // TODO: atualizar com a URL real depois do `wrangler deploy` (ver services/oauth-proxy/README.md).
         services.AddSingleton(new GitHubOAuthOptions(
             ClientId: "Ov23liY5GoHGRKLB1dfZ",
             Scopes: ["repo", "read:project"],
-            TokenExchangeProxyUrl: "https://taskengine-oauth-proxy.PLACEHOLDER.workers.dev"));
+            TokenExchangeProxyUrl: "https://taskengine-oauth-proxy.arthurdepaulacorrea.workers.dev"));
         services.AddSingleton<IProviderAuthenticator, GitHubOAuthAuthenticator>();
 
         // IProviderClientFactory (issue #26) substitui o registro antigo de um único
