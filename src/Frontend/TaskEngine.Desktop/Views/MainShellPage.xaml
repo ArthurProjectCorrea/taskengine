@@ -9,13 +9,24 @@
 
     <ContentPage.Resources>
         <converters:EnumEqualsConverter x:Key="EnumEqualsConverter" />
+
+        <!-- Estado padrão (não selecionado) dos botões de navegação da sidebar: transparente com
+             ícone acinzentado, em vez de herdar o roxo Primary do Style global de Button - sem isso,
+             os 3 botões ficavam permanentemente roxos e era impossível ver qual seção estava ativa
+             (o DataTrigger de cada botão só define a cor do estado *ativo*; sem um Style local
+             cobrindo o padrão, o padrão já "vencia" como roxo por conta do Style global). -->
+        <Style x:Key="SidebarNavButtonStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}" />
+        </Style>
     </ContentPage.Resources>
 
     <Grid ColumnDefinitions="56,*">
 
         <!-- Sidebar de navegação (issue #2): os 3 ícones do protótipo aprovado
-             (Dashboard/Tarefas/Configurações) - ver docs/prototipo/*.dc.html. Ícones reais (SVG do
-             protótipo) ficam para a Fase E; aqui só a mecânica de navegação precisa funcionar. -->
+             (Dashboard/Tarefas/Configurações) - ver docs/prototipo/*.dc.html. Glyphs reais via Segoe
+             Fluent Icons (fonte nativa do Windows 11, sem asset/pacote adicional - item 4): antes
+             mostrava as letras cruas "D"/"T"/"C" como placeholder nunca substituído. -->
         <VerticalStackLayout Grid.Column="0"
                              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
                              Spacing="8"
@@ -23,7 +34,11 @@
                              VerticalOptions="Start"
                              HorizontalOptions="Center">
 
-            <Button Text="D"
+            <!-- Glifos Segoe Fluent Icons: E80F (Home/Dashboard), E9D2 (BulletedList/Tarefas), E713 (Setting/Configurações). -->
+            <Button Text="&#xE80F;"
+                    FontFamily="Segoe Fluent Icons"
+                    FontSize="18"
+                    Style="{StaticResource SidebarNavButtonStyle}"
                     WidthRequest="40"
                     HeightRequest="40"
                     CornerRadius="6"
@@ -39,7 +54,10 @@
                 </Button.Triggers>
             </Button>
 
-            <Button Text="T"
+            <Button Text="&#xE9D2;"
+                    FontFamily="Segoe Fluent Icons"
+                    FontSize="18"
+                    Style="{StaticResource SidebarNavButtonStyle}"
                     WidthRequest="40"
                     HeightRequest="40"
                     CornerRadius="6"
@@ -55,7 +73,10 @@
                 </Button.Triggers>
             </Button>
 
-            <Button Text="C"
+            <Button Text="&#xE713;"
+                    FontFamily="Segoe Fluent Icons"
+                    FontSize="18"
+                    Style="{StaticResource SidebarNavButtonStyle}"
                     WidthRequest="40"
                     HeightRequest="40"
                     CornerRadius="6"
