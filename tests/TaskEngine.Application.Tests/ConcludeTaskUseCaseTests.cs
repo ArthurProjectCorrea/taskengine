@@ -13,8 +13,14 @@ public class ConcludeTaskUseCaseTests
         FakeTaskRepository taskRepository,
         FakeWorkSessionRepository workSessionRepository,
         FakeProviderClientFactory? providerClientFactory = null,
-        FakeAppSettingsStore? appSettingsStore = null) =>
-        new(taskRepository, workSessionRepository, providerClientFactory ?? new FakeProviderClientFactory(), appSettingsStore ?? new FakeAppSettingsStore());
+        FakeAppSettingsStore? appSettingsStore = null,
+        FakeMonitoredActivityRepository? monitoredActivityRepository = null) =>
+        new(
+            taskRepository,
+            workSessionRepository,
+            monitoredActivityRepository ?? new FakeMonitoredActivityRepository(),
+            providerClientFactory ?? new FakeProviderClientFactory(),
+            appSettingsStore ?? new FakeAppSettingsStore());
 
     [Fact]
     public async Task ExecuteAsync_WithSelectedActivities_ComputesHumanAndAiDurations()
@@ -189,6 +195,65 @@ public class ConcludeTaskUseCaseTests
         WorkSession persisted = workSessionRepository.Sessions.Single(s => s.Id == session.Id);
         Assert.True(persisted.Activities.Single(a => a.Id == keptId).SelectedAtConclusion);
         Assert.False(persisted.Activities.Single(a => a.Id != keptId).SelectedAtConclusion);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithMonitoredActivityNeverRecordedOnTheSession_StillComputesDuration()
+    {
+        // Real-world path: the "Concluir tarefa" checklist is built entirely from
+        // IMonitoredActivityRepository (RF-004's task-independent stream), not from
+        // WorkSession.RecordActivity (nothing calls that live yet) - so a selected id here has
+        // never been added to the session's own Activities beforehand. ConcludeTaskUseCase must
+        // still bridge it in (WorkSession.AttributeSelectedActivity) and count its duration.
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
+        var task = TaskItem.Create("Write report");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var session = WorkSession.Start(task.Id, Start);
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var monitoredActivity = new ActivityInterval(ActivitySource.Human, Start, Start.AddMinutes(25), ActivityItemType.File, "src/a.cs");
+        await monitoredActivityRepository.AddAsync(monitoredActivity, CancellationToken.None);
+
+        var useCase = CreateUseCase(taskRepository, workSessionRepository, monitoredActivityRepository: monitoredActivityRepository);
+
+        ConcludeTaskResult result = await useCase.ExecuteAsync(
+            new ConcludeTaskRequest(task.Id, new HashSet<Guid> { monitoredActivity.Id }));
+
+        Assert.Equal(TimeSpan.FromMinutes(25), result.HumanDuration);
+        Assert.Equal(TimeSpan.FromMinutes(25), result.TotalDuration);
+
+        WorkSession persisted = workSessionRepository.Sessions.Single(s => s.Id == session.Id);
+        ActivityInterval attributed = Assert.Single(persisted.Activities);
+        Assert.Equal(monitoredActivity.Id, attributed.Id);
+        Assert.True(attributed.SelectedAtConclusion);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithUnselectedMonitoredActivity_DoesNotAttributeIt()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
+        var task = TaskItem.Create("Write report");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var session = WorkSession.Start(task.Id, Start);
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var monitoredActivity = new ActivityInterval(ActivitySource.Human, Start, Start.AddMinutes(25), ActivityItemType.File, "src/a.cs");
+        await monitoredActivityRepository.AddAsync(monitoredActivity, CancellationToken.None);
+
+        var useCase = CreateUseCase(taskRepository, workSessionRepository, monitoredActivityRepository: monitoredActivityRepository);
+
+        ConcludeTaskResult result = await useCase.ExecuteAsync(new ConcludeTaskRequest(task.Id, new HashSet<Guid>()));
+
+        Assert.Equal(TimeSpan.Zero, result.HumanDuration);
+        Assert.Empty(workSessionRepository.Sessions.Single(s => s.Id == session.Id).Activities);
     }
 
     [Fact]

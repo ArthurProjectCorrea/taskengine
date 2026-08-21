@@ -132,6 +132,54 @@ public class WorkSessionTests
     }
 
     [Fact]
+    public void AttributeSelectedActivity_AddsItMarkedSelected()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        var monitored = new ActivityInterval(ActivitySource.Human, Start, Start.AddMinutes(10), ActivityItemType.File, "src/a.cs");
+
+        session.AttributeSelectedActivity(monitored);
+
+        ActivityInterval attributed = Assert.Single(session.Activities);
+        Assert.Equal(monitored.Id, attributed.Id);
+        Assert.True(attributed.SelectedAtConclusion);
+    }
+
+    [Fact]
+    public void AttributeSelectedActivity_WorksOnAnAlreadyClosedActiveSession()
+    {
+        // Conclusion attributes activity from every past Active session, not just a still-open one
+        // (e.g. an earlier work period before a pause/resume cycle).
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.End(Start.AddMinutes(30));
+        var monitored = new ActivityInterval(ActivitySource.Human, Start, Start.AddMinutes(10), ActivityItemType.File, "src/a.cs");
+
+        session.AttributeSelectedActivity(monitored);
+
+        Assert.Single(session.Activities);
+    }
+
+    [Fact]
+    public void AttributeSelectedActivity_ThrowsOnAPauseSession()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start, WorkSessionType.Pause, WorkSessionOrigin.System);
+        var monitored = new ActivityInterval(ActivitySource.Human, Start, Start.AddMinutes(10), ActivityItemType.File, "src/a.cs");
+
+        Assert.Throws<InvalidOperationException>(() => session.AttributeSelectedActivity(monitored));
+    }
+
+    [Fact]
+    public void AttributeSelectedActivity_CalledTwiceWithSameId_DoesNotDuplicate()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        var monitored = new ActivityInterval(ActivitySource.Human, Start, Start.AddMinutes(10), ActivityItemType.File, "src/a.cs");
+
+        session.AttributeSelectedActivity(monitored);
+        session.AttributeSelectedActivity(monitored);
+
+        Assert.Single(session.Activities);
+    }
+
+    [Fact]
     public void HumanAndAiDuration_SumOnlyTheirOwnSourceIntervals()
     {
         var session = WorkSession.Start(Guid.NewGuid(), Start);

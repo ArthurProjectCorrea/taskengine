@@ -21,10 +21,11 @@ public class DashboardViewModelTests
             taskRepository, workSessionRepository, workScheduleStore, unmappedTimeEntryRepository);
         var startWorkSessionUseCase = new StartWorkSessionUseCase(taskRepository, workSessionRepository);
         var pauseWorkSessionUseCase = new PauseWorkSessionUseCase(taskRepository, workSessionRepository);
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
         var concludeTaskUseCase = new ConcludeTaskUseCase(
-            taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
+            taskRepository, workSessionRepository, monitoredActivityRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
         var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
-            workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
+            workSessionRepository, monitoredActivityRepository, concludeTaskUseCase);
         var addUnmappedTimeModalViewModel = new AddUnmappedTimeModalViewModel(unmappedTimeEntryRepository);
 
         return new DashboardViewModel(

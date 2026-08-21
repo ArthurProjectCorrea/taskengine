@@ -18,6 +18,7 @@ public class ConcludeTaskModalViewModelTests
         var concludeTaskUseCase = new ConcludeTaskUseCase(
             taskRepository,
             workSessionRepository,
+            monitoredActivityRepository,
             new FakeProviderClientFactory(),
             appSettingsStore ?? new FakeAppSettingsStore());
 

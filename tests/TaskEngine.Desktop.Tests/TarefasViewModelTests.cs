@@ -38,10 +38,11 @@ public class TarefasViewModelTests
             startWorkSessionUseCase,
             endWorkSessionUseCase);
 
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
         var concludeTaskUseCase = new ConcludeTaskUseCase(
-            taskRepository, workSessionRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
+            taskRepository, workSessionRepository, monitoredActivityRepository, new FakeProviderClientFactory(), new FakeAppSettingsStore());
         var concludeTaskModalViewModel = new ConcludeTaskModalViewModel(
-            workSessionRepository, new FakeMonitoredActivityRepository(), concludeTaskUseCase);
+            workSessionRepository, monitoredActivityRepository, concludeTaskUseCase);
 
         return new TarefasViewModel(
             taskRepository,

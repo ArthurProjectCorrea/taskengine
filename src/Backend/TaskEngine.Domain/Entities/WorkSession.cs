@@ -88,6 +88,33 @@ public sealed class WorkSession
     }
 
     /// <summary>
+    /// Attributes an already-monitored activity (ERS-Monitoramento.md Schema-001,
+    /// <c>IMonitoredActivityRepository</c>) to this work session, retroactively, at task
+    /// conclusion time - the bridge between RF-004's task-independent activity stream and RF-007's
+    /// per-task selection (RN-005/RN-012). Unlike <see cref="RecordActivity"/> (used for activity
+    /// captured live while the session is open), this accepts an already-built
+    /// <see cref="ActivityInterval"/> - preserving its original <see cref="ActivityInterval.Id"/>,
+    /// since callers match against monitored-activity ids, not freshly generated ones - and is
+    /// allowed on an already-closed session, since conclusion is exactly when a past Active session
+    /// (from an earlier work period, before a pause) gets attributed.
+    /// </summary>
+    public void AttributeSelectedActivity(ActivityInterval activity)
+    {
+        if (Type != WorkSessionType.Active)
+        {
+            throw new InvalidOperationException("Cannot attribute activity to a paused work session.");
+        }
+
+        if (_activities.Any(a => a.Id == activity.Id))
+        {
+            // Already attributed (e.g. a second pass over the same period) - avoid a duplicate entry.
+            return;
+        }
+
+        _activities.Add(activity with { SelectedAtConclusion = true });
+    }
+
+    /// <summary>
     /// Rewrites which activities count as selected at task conclusion time (RF-007/RN-012), by
     /// replacing each activity whose <see cref="ActivityInterval.Id"/> is in
     /// <paramref name="selectedActivityIds"/> with a copy marked

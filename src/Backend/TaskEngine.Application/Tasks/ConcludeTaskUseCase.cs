@@ -9,9 +9,11 @@ namespace TaskEngine.Application.Tasks;
 
 /// <summary>
 /// Concludes a task with the user's selection of which activity items actually belong to it
-/// (RF-007/Schema-003, ERS-Tarefas.md): applies the selection to every active
-/// <see cref="WorkSession"/>, computes the final human/AI/total time strictly from the selected
-/// items in active periods only (RN-005/RN-012 - pause periods, see <see cref="WorkSessionType.Pause"/>,
+/// (RF-007/Schema-003, ERS-Tarefas.md): attributes each selected item from the task-independent
+/// monitored activity stream (<see cref="IMonitoredActivityRepository"/>, RF-004) onto whichever
+/// <see cref="WorkSession"/> its period falls into - the bridge <see cref="WorkSession.AttributeSelectedActivity"/>
+/// exists for - then computes the final human/AI/total time strictly from the selected items in
+/// active periods only (RN-005/RN-012 - pause periods, see <see cref="WorkSessionType.Pause"/>,
 /// never contribute), then syncs status and time to the provider (RF-009) via
 /// <see cref="ITaskProviderClient.ReportCompletionAsync"/>. <see cref="TimeIntervalMerger"/> is
 /// used twice: once per origin for <see cref="ConcludeTaskResult.HumanDuration"/>/
@@ -23,17 +25,20 @@ public sealed class ConcludeTaskUseCase
 {
     private readonly ITaskRepository _taskRepository;
     private readonly IWorkSessionRepository _workSessionRepository;
+    private readonly IMonitoredActivityRepository _monitoredActivityRepository;
     private readonly IProviderClientFactory _providerClientFactory;
     private readonly IAppSettingsStore _appSettingsStore;
 
     public ConcludeTaskUseCase(
         ITaskRepository taskRepository,
         IWorkSessionRepository workSessionRepository,
+        IMonitoredActivityRepository monitoredActivityRepository,
         IProviderClientFactory providerClientFactory,
         IAppSettingsStore appSettingsStore)
     {
         _taskRepository = taskRepository;
         _workSessionRepository = workSessionRepository;
+        _monitoredActivityRepository = monitoredActivityRepository;
         _providerClientFactory = providerClientFactory;
         _appSettingsStore = appSettingsStore;
     }
@@ -79,6 +84,7 @@ public sealed class ConcludeTaskUseCase
         {
             if (session.Type == WorkSessionType.Active)
             {
+                await AttributeMonitoredActivitiesAsync(session, request.SelectedActivityIds, cancellationToken);
                 session.ApplyActivitySelection(request.SelectedActivityIds);
                 AccumulateSelectedIntervals(session, humanIntervals, aiIntervals, allIntervals);
             }
@@ -144,6 +150,36 @@ public sealed class ConcludeTaskUseCase
         }
     }
 
+    /// <summary>
+    /// Queries <see cref="IMonitoredActivityRepository"/> for the monitored activity overlapping
+    /// <paramref name="session"/>'s own [StartedAt, EndedAt ?? now] window (RN-012 excludes pauses,
+    /// so this is only called for <see cref="WorkSessionType.Active"/> sessions) and attributes
+    /// whichever of those items are in <paramref name="selectedActivityIds"/> onto the session -
+    /// the same period-matching logic <c>ConcludeTaskModalViewModel.OpenAsync</c> uses to build the
+    /// checklist in the first place, so a selected id always resolves back to a real activity here.
+    /// </summary>
+    private async Task AttributeMonitoredActivitiesAsync(
+        WorkSession session, IReadOnlySet<Guid> selectedActivityIds, CancellationToken cancellationToken)
+    {
+        DateTimeOffset from = session.StartedAt;
+        DateTimeOffset to = session.EndedAt ?? DateTimeOffset.UtcNow;
+        if (to <= from)
+        {
+            return;
+        }
+
+        IReadOnlyList<ActivityInterval> monitored =
+            await _monitoredActivityRepository.ListByPeriodAsync(from, to, cancellationToken);
+
+        foreach (ActivityInterval activity in monitored)
+        {
+            if (selectedActivityIds.Contains(activity.Id))
+            {
+                session.AttributeSelectedActivity(activity);
+            }
+        }
+    }
+
     private static void AccumulateSelectedIntervals(
         WorkSession session, List<TimeInterval> humanIntervals, List<TimeInterval> aiIntervals, List<TimeInterval> allIntervals)
     {
@@ -171,6 +207,7 @@ public sealed class ConcludeTaskUseCase
             task.Status.ToString(),
             task.CreatedAt,
             ProviderTaskId: task.ProviderTaskId,
-            Priority: task.Priority);
+            Priority: task.Priority,
+            ProviderUrl: task.ProviderUrl);
     }
 }
