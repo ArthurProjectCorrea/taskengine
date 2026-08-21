@@ -56,4 +56,7 @@ Name: "{group}\Desinstalar {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\TaskEngine.Desktop.exe"; IconFilename: "{app}\appicon.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\TaskEngine.Desktop.exe"; Description: "Abrir o {#MyAppName} agora"; Flags: nowait postinstall skipifsilent unchecked
+; "/show" diz ao app pra abrir a janela principal imediatamente em vez de iniciar escondida na
+; bandeja (comportamento normal de startup/autostart) - sem isso, o app só piscava e sumia,
+; obrigando quem instalou a caçar o ícone na bandeja (área de notificação) pra abrir de fato.
+Filename: "{app}\TaskEngine.Desktop.exe"; Parameters: "/show"; Description: "Abrir o {#MyAppName} agora"; Flags: nowait postinstall skipifsilent unchecked

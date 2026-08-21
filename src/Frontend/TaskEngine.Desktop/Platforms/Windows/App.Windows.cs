@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace TaskEngine.Desktop;
 
 /// <summary>
@@ -22,7 +24,28 @@ public partial class App
 
         _hotKey = new Platforms.Windows.GlobalHotKey();
         _hotKey.Pressed += Platforms.Windows.MainWindowManager.Toggle;
+
+        // O instalador (releases/v1/TaskEngine.Setup.iss, seção [Run]) passa "/show" quando o
+        // usuário marca "Abrir o TaskEngine agora" ao final da instalação. Sem isso, Initialize()
+        // acima esconde a janela (comportamento correto para abertura normal/autostart) e o app
+        // apenas pisca na tela e some para a bandeja, dando a impressão de que travou.
+        if (WasLaunchedWithShowArgument())
+        {
+            Platforms.Windows.MainWindowManager.Show();
+        }
     }
+
+    /// <summary>
+    /// Verifica se o processo foi iniciado com o argumento "/show" (ou "-show"), usado pelo
+    /// instalador para pedir que a janela apareça imediatamente em vez de iniciar escondida na
+    /// bandeja. <see cref="Environment.GetCommandLineArgs"/> funciona em qualquer app .NET; o
+    /// primeiro elemento é o caminho do executável, por isso é ignorado na comparação.
+    /// </summary>
+    private static bool WasLaunchedWithShowArgument() =>
+        Environment.GetCommandLineArgs()
+            .Skip(1)
+            .Any(arg => string.Equals(arg, "/show", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(arg, "-show", StringComparison.OrdinalIgnoreCase));
 
     // OnWindowDeactivated (declarado como partial void opcional em App.xaml.cs) é deliberadamente
     // não implementado aqui: antes chamava MainWindowManager.Hide() ao perder o foco, sobra do
