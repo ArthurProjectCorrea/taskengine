@@ -159,9 +159,8 @@ public static class MauiProgram
         services.AddTransient<AddUnmappedTimeModalViewModel>();
 
         // Dashboard (issue #19): transient, unlike the shell above - a fresh instance is resolved
-        // by SectionViewFactory on every navigation into AppSection.Dashboard (same lifetime
-        // PlaceholderView already gets for the other sections), not shared across the app's
-        // lifetime like the single-window shell.
+        // by SectionViewFactory on every navigation into AppSection.Dashboard, not shared across
+        // the app's lifetime like the single-window shell.
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<DashboardPage>();
 

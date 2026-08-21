@@ -49,10 +49,10 @@ public partial class App : Microsoft.Maui.Controls.Application
     /// <see cref="OnboardingViewModel.GetAlreadyConnectedProviderIdAsync"/>), pula direto para
     /// <see cref="MainShellPage"/> (o shell com a sidebar de navegação - resolvido via DI, mesmo
     /// padrão usado abaixo para <see cref="OnboardingPage"/>), que por sua vez abre na seção
-    /// Dashboard (hoje uma <see cref="PlaceholderView"/> - a tela real é Fase E); caso contrário,
-    /// mostra <see cref="OnboardingPage"/> primeiro. Depois que o onboarding conecta um provedor
-    /// com sucesso, a navegação para o shell só acontece no próximo start - navegar
-    /// automaticamente na hora não faz parte do escopo da #2 (só o mecanismo de navegação em si).
+    /// Dashboard; caso contrário, mostra <see cref="OnboardingPage"/> primeiro. Depois que o
+    /// onboarding conecta um provedor com sucesso, a navegação para o shell só acontece no próximo
+    /// start - navegar automaticamente na hora não faz parte do escopo da #2 (só o mecanismo de
+    /// navegação em si).
     /// </summary>
     private Page ResolveStartupPage()
     {

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- Despite the file name (kept for parity with "DashboardPage" as referenced by the plan/issue
      #19), this is a ContentView, not a ContentPage - SectionViewFactory hosts every section screen
-     inside MainShellPage's SectionHost (a ContentView), which requires a View, matching
-     PlaceholderView's own base class. -->
+     inside MainShellPage's SectionHost (a ContentView), which requires a View. -->
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
