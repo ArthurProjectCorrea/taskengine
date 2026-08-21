@@ -411,12 +411,19 @@ FodyWeavers.xsd
 # é listada aqui explicitamente para deixar claro que nada dentro dela deve ser commitado.
 src/Frontend/TaskEngine.Desktop/Certs/
 
-# Exceção deliberada: releases/ guarda os artefatos de instalação distribuídos (o .msix assinado
-# e o certificado PÚBLICO .cer, sem chave privada — não confundir com Certs/.pfx acima, que nunca
-# é versionado). *.msix é ignorado globalmente por padrão (regra acima), então essas linhas
-# reabilitam só o que está dentro de releases/.
+# Exceção deliberada: releases/ guarda os artefatos de instalação distribuídos (o instalador
+# TaskEngineSetup.exe gerado via Inno Setup, o script fonte .iss e o INSTALL.md). Reabilita
+# explicitamente o que está dentro de releases/, mesmo que algum padrão acima (ex.: *.msix, de
+# quando a distribuição era via MSIX) bloqueasse esses arquivos por padrão.
 !releases/
 !releases/**
+
+# Pasta de saída do `dotnet publish` usada para gerar o instalador (releases/v1/TaskEngine.Setup.iss)
+# - artefato de build grande, nunca deve ser versionado; só o instalador final em releases/ é.
+/publish-out/
+# Pasta de saída padrão do compilador do Inno Setup (ISCC), caso algum .iss não defina OutputDir
+# explicitamente para dentro de releases/.
+/Output/
 
 ##
 ## Visual studio for Mac

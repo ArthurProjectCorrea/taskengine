@@ -29,26 +29,10 @@
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
-		<!-- Empacotamento MSIX com certificado autoassinado (uso pessoal/instalação local, sem
-		     Microsoft Store nem certificado pago — ver comentário sobre PackageCertificateKeyFile
-		     abaixo para como regenerar o certificado). -->
-		<WindowsPackageType>MSIX</WindowsPackageType>
-
-		<!-- Certificado autoassinado usado para assinar o pacote MSIX. O .pfx NÃO é versionado
-		     (chave privada) — fica em Certs/ (ignorado no .gitignore) e precisa ser gerado
-		     localmente antes do primeiro `dotnet publish -p:WindowsPackageType=MSIX`. Regenere com
-		     (PowerShell, como Administrador):
-		       $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=Arthur de Paula Correa" `
-		         -KeyUsage DigitalSignature -FriendlyName "TaskEngine Desktop (dev, autoassinado)" `
-		         -CertStoreLocation "Cert:\CurrentUser\My" `
-		         -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}Subject Type:End Entity")
-		       Export-PfxCertificate -Cert $cert -FilePath "src\Frontend\TaskEngine.Desktop\Certs\TaskEngine.Desktop.pfx" -Password (New-Object System.Security.SecureString)
-		     O Subject do certificado (CN=Arthur de Paula Correa) precisa bater exatamente com
-		     Identity/@Publisher no Package.appxmanifest. Certificado sem senha (SecureString vazia)
-		     para simplificar o build local — se preferir senha, defina PackageCertificatePassword
-		     via variável de ambiente/parâmetro de build em vez de commitá-la aqui. -->
-		<PackageCertificateKeyFile>Certs\TaskEngine.Desktop.pfx</PackageCertificateKeyFile>
-		<GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+		<!-- Sem empacotamento MSIX: distribuição via instalador .exe tradicional (Inno Setup, ver
+		     releases/v1/). MSIX autoassinado exigia importar certificado manualmente via
+		     PowerShell antes de instalar — fricção incompatível com "só clicar e instalar". -->
+		<WindowsPackageType>None</WindowsPackageType>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
