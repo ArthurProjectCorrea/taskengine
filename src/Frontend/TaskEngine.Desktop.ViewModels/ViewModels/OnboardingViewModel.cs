@@ -66,10 +66,10 @@ public sealed class OnboardingViewModel : ObservableObject
     /// </summary>
     internal static readonly IReadOnlyDictionary<string, string> ProviderIconFiles = new Dictionary<string, string>
     {
-        ["github"] = "provider_github.svg",
-        ["jira"] = "provider_jira.svg",
-        ["trello"] = "provider_trello.svg",
-        ["clickup"] = "provider_clickup.svg",
+        ["github"] = "provider_github.png",
+        ["jira"] = "provider_jira.png",
+        ["trello"] = "provider_trello.png",
+        ["clickup"] = "provider_clickup.png",
     };
 
     /// <summary>
