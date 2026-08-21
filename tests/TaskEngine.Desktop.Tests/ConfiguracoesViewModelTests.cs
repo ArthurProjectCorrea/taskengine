@@ -53,7 +53,7 @@ public class ConfiguracoesViewModelTests
             taskRepository, providerClientFactory, appSettingsStore,
             pauseWorkSessionUseCase, startWorkSessionUseCase, endWorkSessionUseCase);
         var reconnectProviderUseCase = new ReconnectProviderUseCase(
-            appSettingsStore, taskRepository, providerClientFactory, syncTasksUseCase);
+            appSettingsStore, taskRepository, workSessionRepository, providerClientFactory, syncTasksUseCase);
 
         backupService ??= new FakeBackupService();
         backupFileDialog ??= new FakeBackupFileDialog();

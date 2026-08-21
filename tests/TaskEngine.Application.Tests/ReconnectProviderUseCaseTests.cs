@@ -11,9 +11,10 @@ public class ReconnectProviderUseCaseTests
     private static ReconnectProviderUseCase CreateUseCase(
         FakeTaskRepository taskRepository,
         FakeProviderClientFactory providerClientFactory,
-        FakeAppSettingsStore appSettingsStore)
+        FakeAppSettingsStore appSettingsStore,
+        FakeWorkSessionRepository? workSessionRepository = null)
     {
-        var workSessionRepository = new FakeWorkSessionRepository();
+        workSessionRepository ??= new FakeWorkSessionRepository();
         var syncTasksUseCase = new SyncTasksUseCase(
             taskRepository,
             providerClientFactory,
@@ -22,7 +23,8 @@ public class ReconnectProviderUseCaseTests
             new StartWorkSessionUseCase(taskRepository, workSessionRepository),
             new EndWorkSessionUseCase(taskRepository, workSessionRepository));
 
-        return new ReconnectProviderUseCase(appSettingsStore, taskRepository, providerClientFactory, syncTasksUseCase);
+        return new ReconnectProviderUseCase(
+            appSettingsStore, taskRepository, workSessionRepository, providerClientFactory, syncTasksUseCase);
     }
 
     [Fact]
@@ -56,6 +58,39 @@ public class ReconnectProviderUseCaseTests
 
         TaskItem persisted = Assert.Single(taskRepository.Tasks);
         Assert.Equal(TaskStatus.Done, persisted.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PushesTheFinalTimeAlongsideStatus()
+    {
+        // CA-014.2: reconnecting must send the status *and* the final time computed at conclusion,
+        // not status only.
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Write report", providerTaskId: "gh-1", providerId: "github");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var start = new DateTimeOffset(2026, 8, 17, 9, 0, 0, TimeSpan.Zero);
+        var session = WorkSession.Start(task.Id, start);
+        session.RecordActivity(ActivitySource.Human, start, start.AddMinutes(30));
+        session.ApplyActivitySelection(new HashSet<Guid> { session.Activities[0].Id });
+        session.End(start.AddMinutes(30));
+
+        task.CompleteOffline();
+        await taskRepository.UpdateAsync(task, CancellationToken.None);
+
+        var workSessionRepository = new FakeWorkSessionRepository();
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var providerClientFactory = new FakeProviderClientFactory();
+        var appSettingsStore = new FakeAppSettingsStore();
+        var useCase = CreateUseCase(taskRepository, providerClientFactory, appSettingsStore, workSessionRepository);
+
+        await useCase.ExecuteAsync("github");
+
+        Assert.Equal("gh-1", providerClientFactory.ClientToReturn.LastReportedCompletionReference?.ExternalId);
+        Assert.Equal(TimeSpan.FromMinutes(30), providerClientFactory.ClientToReturn.LastReportedCompletionDuration);
+        Assert.Equal(TaskStatus.Done, Assert.Single(taskRepository.Tasks).Status);
     }
 
     [Fact]
