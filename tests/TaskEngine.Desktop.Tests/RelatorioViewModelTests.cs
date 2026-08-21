@@ -68,6 +68,67 @@ public class RelatorioViewModelTests
         Assert.Equal("src/b.cs", lane.Bars[1].Label);
     }
 
+    /// <summary>
+    /// Reproduction attempt for the reported "abrir Relatório crasha o app inteiro" bug. The lead
+    /// hypothesis: a task completed before the <c>WorkSession.AttributeSelectedActivity</c> clipping
+    /// fix (commit 2fd6e15) could have a selected activity whose duration is wildly disproportionate
+    /// to its work session (e.g. a file monitored for 5 days, selected into a 2h session) - and
+    /// RebuildLanes' left/width fraction math might turn that into a NaN/Infinity/out-of-range value
+    /// that crashes the native <c>AbsoluteLayout.LayoutBounds</c> binding.
+    /// <para/>
+    /// This test simulates exactly that persisted shape directly via <see cref="WorkSession.RecordActivity"/>
+    /// (which - unlike the now-fixed <c>AttributeSelectedActivity</c> - has never clipped to the
+    /// session's own window, so it faithfully reproduces the pre-fix stored data). The result:
+    /// every produced <see cref="TimelineBarItem"/> fraction stays finite and within [0, 1] even
+    /// here - RebuildLanes' overallStart/overallEnd are derived from the very same rows being
+    /// positioned, so the arithmetic is bounded by construction (see RebuildLanes' own doc comment
+    /// for the proof). That does NOT mean the crash report is wrong - it means the root cause, if
+    /// this same disproportionate-duration shape is truly involved, is not a bare division producing
+    /// a non-finite fraction. Either way, <see cref="TimelineBarItem"/>'s constructor now clamps
+    /// defensively regardless (see <c>TimelineBarItemTests</c>), so this screen can no longer pass a
+    /// non-finite value to the native binding under any input.
+    /// </summary>
+    [Fact]
+    public async Task ApplyParameter_WithDisproportionatelyLongSelectedActivity_ProducesOnlyFiniteBoundedFractions()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var workSessionRepository = new FakeWorkSessionRepository();
+        TaskItem task = TaskItem.Create("Tarefa com atividade de duração desproporcional");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var sessionStart = new DateTimeOffset(2026, 1, 10, 9, 0, 0, TimeSpan.Zero);
+        WorkSession session = WorkSession.Start(task.Id, sessionStart);
+        // Unclipped, pre-fix shape: this activity's own interval starts 5 days before the session
+        // that "selected" it even began.
+        session.RecordActivity(ActivitySource.Human, sessionStart.AddDays(-5), sessionStart.AddHours(1), ActivityItemType.File, "src/huge.cs");
+        session.RecordActivity(ActivitySource.Human, sessionStart.AddHours(1), sessionStart.AddHours(2), ActivityItemType.File, "src/normal.cs");
+        session.ApplyActivitySelection(new HashSet<Guid> { session.Activities[0].Id, session.Activities[1].Id });
+        session.End(sessionStart.AddHours(2));
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        task.Complete();
+        await taskRepository.UpdateAsync(task, CancellationToken.None);
+
+        var viewModel = CreateViewModel(taskRepository, workSessionRepository);
+        viewModel.ApplyParameter(task.Id);
+        await viewModel.LoadAsync();
+
+        Assert.True(viewModel.HasData);
+        List<TimelineBarItem> allBars = viewModel.Lanes.SelectMany(l => l.Bars).ToList();
+        Assert.NotEmpty(allBars);
+
+        foreach (TimelineBarItem bar in allBars)
+        {
+            Assert.False(double.IsNaN(bar.LeftFraction), "LeftFraction must never be NaN.");
+            Assert.False(double.IsInfinity(bar.LeftFraction), "LeftFraction must never be Infinity.");
+            Assert.False(double.IsNaN(bar.WidthFraction), "WidthFraction must never be NaN.");
+            Assert.False(double.IsInfinity(bar.WidthFraction), "WidthFraction must never be Infinity.");
+            Assert.InRange(bar.LeftFraction, 0d, 1d);
+            Assert.InRange(bar.WidthFraction, TimelineBarItem.MinVisibleWidthFraction, 1d);
+        }
+    }
+
     [Fact]
     public async Task ApplyParameter_WithOverlappingSelectedActivities_UsesSeparateLanes()
     {

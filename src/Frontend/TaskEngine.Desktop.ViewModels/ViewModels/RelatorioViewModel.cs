@@ -3,6 +3,7 @@ using System.Text;
 using TaskEngine.Application.Abstractions;
 using TaskEngine.Application.Reports;
 using TaskEngine.Desktop.Mvvm;
+using TaskEngine.Desktop.ViewModels.Formatting;
 using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Desktop.ViewModels.Reports;
 using TaskEngine.Domain.Entities;
@@ -20,12 +21,20 @@ namespace TaskEngine.Desktop.ViewModels;
 /// </summary>
 public sealed class TimelineBarItem
 {
+    /// <summary>
+    /// Floor applied to <see cref="WidthFraction"/> so a very short (or invalid/non-finite)
+    /// activity still renders as a small, visible/tappable bar instead of a zero-width sliver -
+    /// same floor <see cref="RelatorioViewModel.RebuildLanes"/> used to apply inline before this
+    /// clamping moved here (see <see cref="ClampFraction"/>'s doc comment for why).
+    /// </summary>
+    public const double MinVisibleWidthFraction = 0.015;
+
     public TimelineBarItem(string label, string durationLabel, double leftFraction, double widthFraction)
     {
         Label = label;
         DurationLabel = durationLabel;
-        LeftFraction = leftFraction;
-        WidthFraction = widthFraction;
+        LeftFraction = ClampFraction(leftFraction, floorValue: 0d);
+        WidthFraction = ClampFraction(widthFraction, floorValue: MinVisibleWidthFraction);
     }
 
     public string Label { get; }
@@ -35,6 +44,26 @@ public sealed class TimelineBarItem
     public double LeftFraction { get; }
 
     public double WidthFraction { get; }
+
+    /// <summary>
+    /// Guards against a non-finite (<see cref="double.NaN"/>/<see cref="double.IsInfinity(double)"/>)
+    /// or out-of-[0,1] fraction ever reaching <c>RelatorioPage.xaml</c>'s
+    /// <c>AbsoluteLayout.LayoutBounds</c> binding (<c>XProportional</c>/<c>WidthProportional</c>,
+    /// via <c>TimelineBarBoundsConverter</c>). WinUI's native layout code can throw an unhandled
+    /// exception for a non-finite offset/size on the UI thread - fatal to the whole process, not
+    /// just this page, and not something application-level try/catch can intercept after the fact.
+    /// <see cref="RelatorioViewModel.RebuildLanes"/>'s own left/width arithmetic is provably bounded
+    /// to [0, 1) for any two well-formed <see cref="DateTimeOffset"/> values (its own doc comment
+    /// walks through why), but this clamp exists as a last line of defense regardless - a future
+    /// change to that arithmetic, to <c>TaskActivityTimelineRow.Duration</c>, or genuinely corrupt
+    /// persisted data (e.g. rows completed before the retroactive-attribution clipping fix) must
+    /// never be able to resurrect that crash. A non-finite value floors to
+    /// <paramref name="floorValue"/> rather than propagating as-is; any other value is clamped into
+    /// [0, 1] (with <paramref name="floorValue"/> as the lower bound, so a legitimately tiny but
+    /// finite width still gets the same "stay visible" floor as an invalid one).
+    /// </summary>
+    private static double ClampFraction(double value, double floorValue) =>
+        double.IsNaN(value) || double.IsInfinity(value) ? floorValue : Math.Clamp(value, floorValue, 1d);
 }
 
 /// <summary>One non-overlapping visual "lane" (row) of the timeline - see <see cref="TimelineLaneAllocator"/>.</summary>
@@ -230,7 +259,20 @@ public sealed class RelatorioViewModel : ObservableObject, INavigationAware
     /// computing each bar's <see cref="TimelineBarItem.LeftFraction"/>/<see cref="TimelineBarItem.WidthFraction"/>
     /// relative to the overall [earliest start, latest end] span (plus an 8% trailing pad so the
     /// last bar isn't flush against the view's edge - a presentation-only detail, not a business
-    /// rule). Widths are floored to a small minimum so very short activities stay visible/tappable.
+    /// rule).
+    /// <para/>
+    /// This arithmetic is provably bounded to [0, 1) for any two well-formed <see cref="DateTimeOffset"/>
+    /// values: <c>overallStart</c>/<c>overallEnd</c> are the min/max over the very same rows being
+    /// positioned, so every row's own <c>StartedAt</c>/<c>EndedAt</c> falls inside
+    /// [overallStart, overallEnd] by construction, and <c>rawSpanSeconds</c> is floored to at least
+    /// 1 second - so a zero-width divisor is impossible even with a single, zero-duration row.
+    /// Even so, <see cref="TimelineBarItem"/>'s constructor independently clamps both fractions
+    /// (floors any NaN/Infinity, then clamps to [0, 1]) as a last line of defense - see its own doc
+    /// comment for why: <c>RelatorioPage.xaml</c>'s native <c>AbsoluteLayout.LayoutBounds</c>
+    /// binding must never receive a non-finite value, regardless of whether this particular formula
+    /// stays airtight as it evolves, or genuinely corrupt persisted data (e.g. activity rows
+    /// completed before the retroactive-attribution clipping fix, which could carry wildly
+    /// disproportionate durations) ever violates the assumption above.
     /// </summary>
     private void RebuildLanes()
     {
@@ -256,9 +298,9 @@ public sealed class RelatorioViewModel : ObservableObject, INavigationAware
             foreach (TaskActivityTimelineRow row in lane)
             {
                 var left = (row.StartedAt - overallStart).TotalSeconds / totalSeconds;
-                var width = Math.Max(0.015, row.Duration.TotalSeconds / totalSeconds);
+                var width = row.Duration.TotalSeconds / totalSeconds;
                 var label = string.IsNullOrEmpty(row.Path) ? "(sem caminho)" : row.Path;
-                bars.Add(new TimelineBarItem(label, FormatDuration(row.Duration), left, width));
+                bars.Add(new TimelineBarItem(label, DurationFormatter.Format(row.Duration), left, width));
             }
 
             Lanes.Add(new TimelineLaneItem(bars));
@@ -271,18 +313,4 @@ public sealed class RelatorioViewModel : ObservableObject, INavigationAware
             : task.ProviderId is { } providerId
                 ? task.ProviderTaskId is { } providerTaskId ? $"{providerId} · {providerTaskId}" : providerId
                 : "Tarefa local (sem provedor vinculado)";
-
-    private static string FormatDuration(TimeSpan duration)
-    {
-        var totalMinutes = (int)Math.Round(duration.TotalMinutes);
-        var hours = totalMinutes / 60;
-        var minutes = totalMinutes % 60;
-
-        if (hours <= 0)
-        {
-            return $"{minutes}min";
-        }
-
-        return minutes > 0 ? $"{hours}h {minutes}min" : $"{hours}h";
-    }
 }
