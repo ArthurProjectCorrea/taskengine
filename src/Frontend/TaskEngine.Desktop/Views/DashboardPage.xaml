@@ -20,19 +20,19 @@
         <Grid Grid.Row="0" ColumnDefinitions="*,*,*" ColumnSpacing="10">
             <Border Grid.Column="0" Padding="14,10">
                 <VerticalStackLayout Spacing="2">
-                    <Label Text="TOTAL DE TAREFAS" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Text="TOTAL DE TAREFAS" Style="{StaticResource SectionTitleStyle}" />
                     <Label Text="{Binding TotalTasksCount}" FontSize="22" FontAttributes="Bold" />
                 </VerticalStackLayout>
             </Border>
             <Border Grid.Column="1" Padding="14,10">
                 <VerticalStackLayout Spacing="2">
-                    <Label Text="TEMPO INVESTIDO HOJE" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Text="TEMPO INVESTIDO HOJE" Style="{StaticResource SectionTitleStyle}" />
                     <Label Text="{Binding TimeInvestedTodayLabel}" FontSize="22" FontAttributes="Bold" />
                 </VerticalStackLayout>
             </Border>
             <Border Grid.Column="2" Padding="14,10">
                 <VerticalStackLayout Spacing="2">
-                    <Label Text="TEMPO INVESTIDO NA SEMANA" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Text="TEMPO INVESTIDO NA SEMANA" Style="{StaticResource SectionTitleStyle}" />
                     <Label Text="{Binding TimeInvestedWeekLabel}" FontSize="22" FontAttributes="Bold" />
                 </VerticalStackLayout>
             </Border>
@@ -60,8 +60,8 @@
                                  DashboardViewModel.ChangeStatusAsync). -->
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                 <VerticalStackLayout Grid.Column="0" Spacing="1">
-                                    <Label Text="{Binding SelectedMetaLabel}" FontSize="11" TextColor="{StaticResource Gray500}" />
-                                    <Label Text="{Binding SelectedTitle}" FontSize="17" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding SelectedMetaLabel}" Style="{StaticResource CaptionStyle}" />
+                                    <Label Text="{Binding SelectedTitle}" Style="{StaticResource PageTitleStyle}" LineBreakMode="TailTruncation" />
                                 </VerticalStackLayout>
                                 <components:StatusButtonView Grid.Column="1"
                                                               WidthRequest="200"
@@ -72,7 +72,7 @@
                             <!-- Timer visual: tempo decorrido da sessão ativa, se houver. -->
                             <Border Padding="16" BackgroundColor="{StaticResource Secondary}">
                                 <VerticalStackLayout Spacing="4">
-                                    <Label Text="TEMPO DE EXECUÇÃO" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray600}" />
+                                    <Label Text="TEMPO DE EXECUÇÃO" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray600}" CharacterSpacing="0.4" />
                                     <Label Text="{Binding ElapsedLabel}" FontSize="30" FontAttributes="Bold" FontFamily="OpenSansSemibold" />
                                     <Label Text="{Binding ElapsedHint}" FontSize="12" TextColor="{StaticResource Gray600}" />
                                 </VerticalStackLayout>
@@ -123,7 +123,7 @@
             <!-- Lista lateral "Em andamento e a fazer" (RF-003/RF-005, ERS-Tarefas.md). -->
             <Border Grid.Column="1" Padding="0">
                 <Grid RowDefinitions="Auto,*">
-                    <Label Grid.Row="0" Text="Em andamento e a fazer" FontAttributes="Bold" Padding="14,10,14,4" />
+                    <Label Grid.Row="0" Text="Em andamento e a fazer" FontAttributes="Bold" FontSize="13" Padding="14,10,14,4" />
                     <CollectionView Grid.Row="1"
                                      ItemsSource="{Binding Tasks}"
                                      SelectionMode="Single"
@@ -131,8 +131,8 @@
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="viewModels:DashboardTaskListItem">
                                 <VerticalStackLayout Padding="14,10" Spacing="2">
-                                    <Label Text="{Binding Title}" FontSize="12.5" LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding StatusLabel}" FontSize="10.5" TextColor="{StaticResource Gray500}" />
+                                    <Label Text="{Binding Title}" Style="{StaticResource BodyStyle}" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding StatusLabel}" Style="{StaticResource CaptionStyle}" FontSize="10.5" />
                                 </VerticalStackLayout>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>

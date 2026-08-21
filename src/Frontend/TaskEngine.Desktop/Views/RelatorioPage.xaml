@@ -27,8 +27,8 @@
                     Padding="10,6"
                     MinimumHeightRequest="0" />
             <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
-                <Label Text="{Binding MetaLabel}" FontSize="11" TextColor="{StaticResource Gray500}" />
-                <Label Text="{Binding Title}" FontSize="17" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                <Label Text="{Binding MetaLabel}" Style="{StaticResource CaptionStyle}" FontSize="11" />
+                <Label Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" LineBreakMode="TailTruncation" />
             </VerticalStackLayout>
             <Button Grid.Column="2"
                     Text="Exportar CSV"

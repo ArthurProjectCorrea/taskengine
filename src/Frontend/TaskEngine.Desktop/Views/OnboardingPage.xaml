@@ -120,14 +120,14 @@
                 <Border StrokeShape="RoundRectangle 10"
                         Padding="16,14"
                         IsVisible="{Binding State, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Error}"
-                        Stroke="#C42B1C"
-                        BackgroundColor="#FDF3F4">
+                        Stroke="{StaticResource Danger}"
+                        BackgroundColor="{StaticResource DangerBackground}">
                     <VerticalStackLayout Spacing="4">
                         <Label Text="A conexão não foi concluída"
                                FontAttributes="Bold"
-                               TextColor="#C42B1C" />
+                               TextColor="{StaticResource Danger}" />
                         <Label Text="{Binding ErrorMessage}"
-                               TextColor="#C42B1C" />
+                               TextColor="{StaticResource Danger}" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -135,12 +135,12 @@
                 <Border StrokeShape="RoundRectangle 10"
                         Padding="16,14"
                         IsVisible="{Binding State, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Connected}"
-                        Stroke="#0F7B0F"
-                        BackgroundColor="#F1FAF1">
+                        Stroke="{StaticResource Success}"
+                        BackgroundColor="{StaticResource SuccessBackground}">
                     <Label
                         Text="{Binding ConnectedProviderId, StringFormat='Provedor &quot;{0}&quot; conectado com sucesso.'}"
                         FontAttributes="Bold"
-                        TextColor="#0F7B0F" />
+                        TextColor="{StaticResource Success}" />
                 </Border>
 
             </VerticalStackLayout>

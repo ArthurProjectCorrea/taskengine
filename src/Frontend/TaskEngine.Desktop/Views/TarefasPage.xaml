@@ -15,7 +15,7 @@
 
         <!-- Busca (RF-003/CA-003.1, client-side) + Sincronizar (RF-001/RF-002, ERS-Tarefas.md). -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <Border Grid.Column="0" Padding="10,0">
+            <Border Grid.Column="0" Padding="10,0" StrokeShape="RoundRectangle 6">
                 <Entry Placeholder="Buscar tarefa"
                        Text="{Binding SearchText, Mode=TwoWay}"
                        ReturnType="Search" />
@@ -32,7 +32,7 @@
                FontSize="12"
                Padding="10,8"
                TextColor="{StaticResource White}"
-               BackgroundColor="#C42B1C" />
+               BackgroundColor="{StaticResource Danger}" />
 
         <Border Grid.Row="3" Padding="0">
             <Grid RowDefinitions="Auto,*">
@@ -42,12 +42,12 @@
                       ColumnSpacing="8"
                       Padding="12,8"
                       BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
-                    <Label Grid.Column="0" Text="TAREFA" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
-                    <Label Grid.Column="1" Text="PROVEDOR" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
-                    <Label Grid.Column="2" Text="PRIORIDADE" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
-                    <Label Grid.Column="3" Text="STATUS" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
-                    <Label Grid.Column="4" Text="TEMPO" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
-                    <Label Grid.Column="5" Text="AÇÃO" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                    <Label Grid.Column="0" Text="TAREFA" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
+                    <Label Grid.Column="1" Text="PROVEDOR" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
+                    <Label Grid.Column="2" Text="PRIORIDADE" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
+                    <Label Grid.Column="3" Text="STATUS" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
+                    <Label Grid.Column="4" Text="TEMPO" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
+                    <Label Grid.Column="5" Text="AÇÃO" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
                 </Grid>
 
                 <CollectionView Grid.Row="1" ItemsSource="{Binding Tasks}">
@@ -102,7 +102,7 @@
 
         <!-- Paginação client-side (10 por página) quando houver mais de 10 itens filtrados. -->
         <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
-            <Label Grid.Column="0" Text="{Binding CountLabel}" FontSize="11" TextColor="{StaticResource Gray500}" VerticalOptions="Center" />
+            <Label Grid.Column="0" Text="{Binding CountLabel}" Style="{StaticResource CaptionStyle}" FontSize="11" VerticalOptions="Center" />
             <Button Grid.Column="1"
                     Text="Anterior"
                     IsVisible="{Binding ShowPagination}"

@@ -22,7 +22,7 @@
 
             <!-- ==================== Expediente (RF-002) ==================== -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="EXPEDIENTE" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Label Text="EXPEDIENTE" Style="{StaticResource SectionTitleStyle}" />
                 <Border Padding="16">
                     <VerticalStackLayout Spacing="12">
 
@@ -65,7 +65,7 @@
                                Text="{Binding ScheduleErrorMessage}"
                                FontSize="12"
                                TextColor="{StaticResource White}"
-                               BackgroundColor="#C42B1C"
+                               BackgroundColor="{StaticResource Danger}"
                                Padding="10,8" />
 
                         <Button Text="Salvar expediente"
@@ -80,7 +80,7 @@
 
             <!-- ==================== Provedores (RF-001/RF-007) ==================== -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="PROVEDORES" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Label Text="PROVEDORES" Style="{StaticResource SectionTitleStyle}" />
                 <Border Padding="16">
                     <VerticalStackLayout Spacing="10">
 
@@ -88,7 +88,7 @@
                                Text="{Binding ProviderErrorMessage}"
                                FontSize="12"
                                TextColor="{StaticResource White}"
-                               BackgroundColor="#C42B1C"
+                               BackgroundColor="{StaticResource Danger}"
                                Padding="10,8" />
 
                         <Grid IsVisible="{Binding HasConnectedProvider}" ColumnDefinitions="*,Auto" ColumnSpacing="10">
@@ -124,7 +124,7 @@
 
             <!-- ==================== Backup (RF-003/RF-004) ==================== -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="BACKUP" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Label Text="BACKUP" Style="{StaticResource SectionTitleStyle}" />
                 <Border Padding="16">
                     <VerticalStackLayout Spacing="10">
                         <HorizontalStackLayout Spacing="8">
@@ -145,20 +145,20 @@
                                FontSize="12"
                                Padding="10,8"
                                TextColor="{StaticResource White}"
-                               BackgroundColor="#0F7B0F" />
+                               BackgroundColor="{StaticResource Success}" />
                         <Label IsVisible="{Binding ShowBackupError}"
                                Text="{Binding BackupMessage}"
                                FontSize="12"
                                Padding="10,8"
                                TextColor="{StaticResource White}"
-                               BackgroundColor="#C42B1C" />
+                               BackgroundColor="{StaticResource Danger}" />
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
 
             <!-- ==================== Exportar CSV geral (RF-016) ==================== -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="EXPORTAR DADOS (CSV)" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Label Text="EXPORTAR DADOS (CSV)" Style="{StaticResource SectionTitleStyle}" />
                 <Border Padding="16">
                     <VerticalStackLayout Spacing="10">
                         <HorizontalStackLayout Spacing="6">
@@ -179,7 +179,7 @@
                                Text="{Binding CsvErrorMessage}"
                                FontSize="12"
                                TextColor="{StaticResource White}"
-                               BackgroundColor="#C42B1C"
+                               BackgroundColor="{StaticResource Danger}"
                                Padding="10,8" />
 
                         <Button Text="Exportar CSV"
@@ -194,7 +194,7 @@
 
             <!-- ==================== Sobre (RF-005/RF-006) ==================== -->
             <VerticalStackLayout Spacing="8">
-                <Label Text="SOBRE" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Label Text="SOBRE" Style="{StaticResource SectionTitleStyle}" />
                 <Border Padding="16">
                     <VerticalStackLayout Spacing="6">
                         <Label FontAttributes="Bold" FontSize="14">
@@ -231,7 +231,7 @@
 
     <!-- Overlay: confirmar desconexão do provedor (RF-007/CA-007.1) - mesmo padrão "IsVisible +
          scrim full-bleed" do ConcludeTaskModalView, sem biblioteca de popup/dialog. -->
-    <Grid IsVisible="{Binding IsDisconnectConfirmOpen}" BackgroundColor="#66000000" InputTransparent="False">
+    <Grid IsVisible="{Binding IsDisconnectConfirmOpen}" BackgroundColor="{StaticResource Scrim}" InputTransparent="False">
         <Border MaximumWidthRequest="420" Margin="24" HorizontalOptions="Center" VerticalOptions="Center" Padding="20">
             <VerticalStackLayout Spacing="14">
                 <Label Text="Desconectar provedor?" FontAttributes="Bold" FontSize="15" />
@@ -245,7 +245,7 @@
                     <Button Text="Cancelar" Command="{Binding CancelDisconnectCommand}" Padding="14,9" MinimumHeightRequest="0" />
                     <Button Text="Desconectar"
                             Command="{Binding ConfirmDisconnectCommand}"
-                            BackgroundColor="#C42B1C"
+                            BackgroundColor="{StaticResource Danger}"
                             TextColor="{StaticResource White}"
                             Padding="16,9"
                             MinimumHeightRequest="0" />
@@ -255,7 +255,7 @@
     </Grid>
 
     <!-- Overlay: confirmar importação de backup (RN-003 - sobrescreve tudo). -->
-    <Grid IsVisible="{Binding IsImportConfirmOpen}" BackgroundColor="#66000000" InputTransparent="False">
+    <Grid IsVisible="{Binding IsImportConfirmOpen}" BackgroundColor="{StaticResource Scrim}" InputTransparent="False">
         <Border MaximumWidthRequest="420" Margin="24" HorizontalOptions="Center" VerticalOptions="Center" Padding="20">
             <VerticalStackLayout Spacing="14">
                 <Label Text="Importar backup?" FontAttributes="Bold" FontSize="15" />

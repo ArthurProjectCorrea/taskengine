@@ -13,7 +13,7 @@
              IsVisible="{Binding IsOpen}"
              InputTransparent="False">
 
-    <Grid BackgroundColor="#66000000">
+    <Grid BackgroundColor="{StaticResource Scrim}">
         <Border MaximumWidthRequest="400"
                 Margin="24"
                 HorizontalOptions="Center"
@@ -35,7 +35,7 @@
                        Margin="18,4,18,0"
                        Padding="10,8"
                        TextColor="{StaticResource White}"
-                       BackgroundColor="#C42B1C" />
+                       BackgroundColor="{StaticResource Danger}" />
 
                 <VerticalStackLayout Padding="18,14,18,18" Spacing="13">
 

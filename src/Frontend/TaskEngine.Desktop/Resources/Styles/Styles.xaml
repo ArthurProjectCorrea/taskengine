@@ -12,9 +12,16 @@
         <Setter Property="SelectedIndicatorColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray100}}"/>
     </Style>
 
+    <!-- Item 5 (design pass): a single default corner radius for every card/panel Border in the app
+         (10, matching the convention OnboardingPage's provider cards already established) instead of
+         the sharp "Rectangle" default MAUI ships with - that mismatch (rounded buttons sitting inside
+         perfectly square panels) was the single biggest source of the "quebrado"/Windows-XP look
+         reported in manual testing. Individual Borders that wrap a button/input control (radius 6,
+         see ButtonCornerRadius below) or need a different treatment still override StrokeShape
+         locally - this is only the default. -->
     <Style TargetType="Border">
         <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
-        <Setter Property="StrokeShape" Value="Rectangle"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 10"/>
         <Setter Property="StrokeThickness" Value="1"/>
     </Style>
 
@@ -28,7 +35,7 @@
         <Setter Property="FontFamily" Value="OpenSansRegular"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="BorderWidth" Value="0"/>
-        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="CornerRadius" Value="6"/>
         <Setter Property="Padding" Value="14,10"/>
         <Setter Property="MinimumHeightRequest" Value="44"/>
         <Setter Property="MinimumWidthRequest" Value="44"/>
@@ -184,6 +191,40 @@
         <Setter Property="FontSize" Value="24" />
         <Setter Property="HorizontalOptions" Value="Center" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
+
+    <!-- Item 5 (design pass): centralized typography scale, replacing the ad hoc FontSize/
+         FontAttributes/TextColor combinations previously repeated inline across every page
+         (DashboardPage, TarefasPage, ConfiguracoesPage, DetalhesTarefaPage, ConcludeTaskModalView,
+         etc.) - four sizes cover every text role actually used in the app: page/section headers down
+         to small captions. -->
+
+    <!-- Page-level title (e.g. a task's own title in Dashboard/DetalhesTarefa/Relatorio headers). -->
+    <Style TargetType="Label" x:Key="PageTitleStyle">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+    </Style>
+
+    <!-- All-caps section/group label (e.g. "EXPEDIENTE", "TOTAL DE TAREFAS", table column headers). -->
+    <Style TargetType="Label" x:Key="SectionTitleStyle">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor" Value="{StaticResource Gray500}" />
+        <Setter Property="CharacterSpacing" Value="0.4" />
+    </Style>
+
+    <!-- Default readable body text for labels/values that don't need the base Label style's plain
+         14px (e.g. list rows, form field labels). -->
+    <Style TargetType="Label" x:Key="BodyStyle">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+    </Style>
+
+    <!-- Small muted helper/meta text (e.g. "Sessão aberta - contando agora.", list item subtitles). -->
+    <Style TargetType="Label" x:Key="CaptionStyle">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="TextColor" Value="{StaticResource Gray500}" />
     </Style>
 
     <Style TargetType="Picker">
