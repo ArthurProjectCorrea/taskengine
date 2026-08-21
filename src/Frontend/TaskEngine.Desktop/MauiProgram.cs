@@ -95,6 +95,12 @@ public static class MauiProgram
 
         services.AddTransient<CreateTaskUseCase>();
 
+        // RF-007 (ERS-Tarefas.md, issue #18): was missing from this composition root entirely -
+        // ConcludeTaskModalViewModel (registered below) takes ConcludeTaskUseCase as a constructor
+        // dependency, so without this registration resolving it (and therefore every screen that
+        // owns a conclude modal - Dashboard/Tarefas/DetalhesTarefa) throws at startup/navigation.
+        services.AddTransient<ConcludeTaskUseCase>();
+
         // Dashboard (issue #19): work-session lifecycle use cases + the general task report use
         // case (GenerateTaskReportUseCase, RF-016), reused as-is by DashboardViewModel for the
         // selected task's human/AI/expediente/não-mapeado split - see its own doc comment.
