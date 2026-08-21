@@ -1,12 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.ApplicationModel;
 using TaskEngine.Application.Abstractions;
+using TaskEngine.Application.Providers;
 using TaskEngine.Application.Reports;
 using TaskEngine.Application.Tasks;
 using TaskEngine.Application.WorkSessions;
 using TaskEngine.Desktop.Navigation;
 using TaskEngine.Desktop.Platforms.Windows;
 using TaskEngine.Desktop.ViewModels;
+using TaskEngine.Desktop.ViewModels.LocalBackup;
 using TaskEngine.Desktop.ViewModels.Navigation;
 using TaskEngine.Desktop.ViewModels.Reports;
 using TaskEngine.Desktop.Views;
@@ -112,6 +115,16 @@ public static class MauiProgram
         // (registered above) - not previously needed by the Dashboard.
         services.AddTransient<SyncTasksUseCase>();
 
+        // Configurações (issue #52, ERS-Configuracoes.md): provider connect/disconnect use cases
+        // (RF-001/RF-007) and local backup export/import (RF-003/RF-004, IBackupService) - neither
+        // was registered anywhere before this screen needed them. IBackupFileDialog mirrors
+        // IReportFileSaveDialog's Windows-native "Salvar como"/"Abrir" dialog approach (see
+        // WindowsBackupFileDialog's own doc comment for why it returns paths, not streams).
+        services.AddTransient<DisconnectProviderUseCase>();
+        services.AddTransient<ReconnectProviderUseCase>();
+        services.AddTransient<IBackupService, SqliteBackupService>();
+        services.AddTransient<IBackupFileDialog, WindowsBackupFileDialog>();
+
         // Monitoring module (RF-001/RF-002, ERS-Monitoramento.md, issues #12/#11). Registered as
         // singletons so the same watcher instance (and its in-memory debounce/aggregation state)
         // lives for the whole app lifetime - see Start() call in CreateMauiApp above.
@@ -169,5 +182,25 @@ public static class MauiProgram
         // AppSection.Relatorio (also fed the task id via INavigationAware.ApplyParameter).
         services.AddTransient<RelatorioViewModel>();
         services.AddTransient<RelatorioPage>();
+
+        // Configurações (issue #52, ERS-Configuracoes.md): same transient lifetime as every other
+        // section above. ConfiguracoesViewModel is the one view model in this app that isn't built
+        // purely from other DI-resolvable types - it also takes the app's own display version
+        // (RF-006 "Sobre") as a plain string, read here via MAUI Essentials' AppInfo (this project
+        // is not MAUI-free, unlike TaskEngine.Desktop.ViewModels - see that project's own .csproj
+        // comment on why AppInfo cannot be called from inside the view model itself).
+        services.AddTransient<ConfiguracoesViewModel>(sp => new ConfiguracoesViewModel(
+            sp.GetRequiredService<IWorkScheduleStore>(),
+            sp.GetRequiredService<IAppSettingsStore>(),
+            sp.GetRequiredService<ICredentialStore>(),
+            sp.GetRequiredService<IEnumerable<IProviderAuthenticator>>(),
+            sp.GetRequiredService<DisconnectProviderUseCase>(),
+            sp.GetRequiredService<ReconnectProviderUseCase>(),
+            sp.GetRequiredService<IBackupService>(),
+            sp.GetRequiredService<IBackupFileDialog>(),
+            sp.GetRequiredService<GenerateTaskReportUseCase>(),
+            sp.GetRequiredService<IReportFileSaveDialog>(),
+            AppInfo.Current.VersionString));
+        services.AddTransient<ConfiguracoesPage>();
     }
 }

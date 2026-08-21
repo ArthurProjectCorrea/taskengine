@@ -38,8 +38,11 @@ public sealed class OnboardingViewModel : ObservableObject
     /// <summary>
     /// Display names for known providers. Expand this alongside new <see cref="IProviderAuthenticator"/>
     /// registrations — there's no discovery mechanism for a human-friendly name on the port itself.
+    /// Internal (not private), same rationale as <see cref="ConnectedProviderSettingKey"/>: reused
+    /// as-is by <c>ConfiguracoesViewModel</c> (issue #52) to label the currently connected provider,
+    /// instead of duplicating this table there.
     /// </summary>
-    private static readonly IReadOnlyDictionary<string, string> ProviderDisplayNames = new Dictionary<string, string>
+    internal static readonly IReadOnlyDictionary<string, string> ProviderDisplayNames = new Dictionary<string, string>
     {
         ["github"] = "GitHub",
     };

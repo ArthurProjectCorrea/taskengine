@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- ContentView (not ContentPage) - same reason as every other section screen (SectionViewFactory/
+     MainShellPage's SectionHost require a View). Data load starts from ConfiguracoesPage.OnLoaded
+     (see code-behind), same convention as DashboardPage/TarefasPage - this screen has no navigation
+     parameter, so it does not implement INavigationAware like DetalhesTarefa/Relatorio do.
+
+     Five sections (issue #52, ERS-Configuracoes.md): Expediente (RF-002), Provedores (RF-001/
+     RF-007), Backup (RF-003/RF-004), Exportar CSV geral (RF-016) and Sobre (RF-005/RF-006).
+     Pixel-perfect fidelity to docs/prototipo/TaskEngine Configurações.dc.html is not required. -->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:TaskEngine.Desktop.ViewModels"
+             x:Class="TaskEngine.Desktop.Views.ConfiguracoesPage"
+             x:DataType="viewModels:ConfiguracoesViewModel">
+
+    <!-- Outer Grid overlays the two confirm dialogs (desconectar provedor / importar backup) on
+         top of the whole page - same "no popup/dialog library" convention as
+         ConcludeTaskModalView/AddUnmappedTimeModalView (Dashboard/Tarefas/DetalhesTarefa). -->
+    <Grid>
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="20">
+
+            <!-- ==================== Expediente (RF-002) ==================== -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="EXPEDIENTE" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+
+                        <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="4">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Início" VerticalOptions="Center" FontSize="12.5" />
+                            <TimePicker Grid.Row="0" Grid.Column="1" Time="{Binding WorkStart}" FontSize="13" />
+                            <Label Grid.Row="0" Grid.Column="2" Text="Fim" VerticalOptions="Center" FontSize="12.5" />
+                            <TimePicker Grid.Row="0" Grid.Column="3" Time="{Binding WorkEnd}" FontSize="13" />
+                        </Grid>
+
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox IsChecked="{Binding HasLunchBreak}" />
+                            <Label Text="Intervalo de almoço" VerticalOptions="Center" FontSize="12.5" />
+                        </HorizontalStackLayout>
+
+                        <Grid ColumnDefinitions="Auto,*,Auto,*"
+                              ColumnSpacing="8"
+                              IsEnabled="{Binding HasLunchBreak}">
+                            <Label Grid.Column="0" Text="Início" VerticalOptions="Center" FontSize="12.5" />
+                            <TimePicker Grid.Column="1" Time="{Binding LunchStart}" FontSize="13" />
+                            <Label Grid.Column="2" Text="Fim" VerticalOptions="Center" FontSize="12.5" />
+                            <TimePicker Grid.Column="3" Time="{Binding LunchEnd}" FontSize="13" />
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Dias de trabalho" FontSize="12.5" />
+                            <HorizontalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding WorkDays}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="viewModels:WorkDayOption">
+                                        <VerticalStackLayout Spacing="1" HorizontalOptions="Center">
+                                            <CheckBox IsChecked="{Binding IsSelected}" HorizontalOptions="Center" />
+                                            <Label Text="{Binding Label}" FontAttributes="Bold" FontSize="11" HorizontalOptions="Center" />
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+
+                        <Label IsVisible="{Binding HasScheduleError}"
+                               Text="{Binding ScheduleErrorMessage}"
+                               FontSize="12"
+                               TextColor="{StaticResource White}"
+                               BackgroundColor="#C42B1C"
+                               Padding="10,8" />
+
+                        <Button Text="Salvar expediente"
+                                Command="{Binding SaveScheduleCommand}"
+                                HorizontalOptions="Start"
+                                FontSize="12"
+                                Padding="14,9"
+                                MinimumHeightRequest="0" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ==================== Provedores (RF-001/RF-007) ==================== -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="PROVEDORES" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label IsVisible="{Binding HasProviderError}"
+                               Text="{Binding ProviderErrorMessage}"
+                               FontSize="12"
+                               TextColor="{StaticResource White}"
+                               BackgroundColor="#C42B1C"
+                               Padding="10,8" />
+
+                        <Grid IsVisible="{Binding HasConnectedProvider}" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding ConnectedProviderDisplayName}" FontAttributes="Bold" FontSize="14" />
+                                <Label Text="{Binding ProviderStatusLabel}" FontSize="12" TextColor="{StaticResource Gray500}" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="Desconectar"
+                                    IsVisible="{Binding ShowDisconnectButton}"
+                                    Command="{Binding OpenDisconnectConfirmCommand}"
+                                    FontSize="12"
+                                    Padding="12,8"
+                                    MinimumHeightRequest="0" />
+                            <Button Grid.Column="1"
+                                    Text="Reconectar"
+                                    IsVisible="{Binding ShowReconnectButton}"
+                                    Command="{Binding ReconnectCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="{StaticResource White}"
+                                    FontSize="12"
+                                    Padding="12,8"
+                                    MinimumHeightRequest="0" />
+                        </Grid>
+
+                        <Label IsVisible="{Binding NoConnectedProvider}"
+                               Text="Nenhum provedor conectado."
+                               FontSize="12.5"
+                               TextColor="{StaticResource Gray500}" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ==================== Backup (RF-003/RF-004) ==================== -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="BACKUP" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="8">
+                            <Button Text="Exportar backup"
+                                    Command="{Binding ExportBackupCommand}"
+                                    FontSize="12"
+                                    Padding="14,9"
+                                    MinimumHeightRequest="0" />
+                            <Button Text="Importar backup"
+                                    Command="{Binding OpenImportConfirmCommand}"
+                                    FontSize="12"
+                                    Padding="14,9"
+                                    MinimumHeightRequest="0" />
+                        </HorizontalStackLayout>
+
+                        <Label IsVisible="{Binding ShowBackupSuccess}"
+                               Text="{Binding BackupMessage}"
+                               FontSize="12"
+                               Padding="10,8"
+                               TextColor="{StaticResource White}"
+                               BackgroundColor="#0F7B0F" />
+                        <Label IsVisible="{Binding ShowBackupError}"
+                               Text="{Binding BackupMessage}"
+                               FontSize="12"
+                               Padding="10,8"
+                               TextColor="{StaticResource White}"
+                               BackgroundColor="#C42B1C" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ==================== Exportar CSV geral (RF-016) ==================== -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="EXPORTAR DADOS (CSV)" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox IsChecked="{Binding UsePeriodFilter}" />
+                            <Label Text="Filtrar por período" VerticalOptions="Center" FontSize="12.5" />
+                        </HorizontalStackLayout>
+
+                        <Grid ColumnDefinitions="Auto,*,Auto,*"
+                              ColumnSpacing="8"
+                              IsEnabled="{Binding UsePeriodFilter}">
+                            <Label Grid.Column="0" Text="De" VerticalOptions="Center" FontSize="12.5" />
+                            <DatePicker Grid.Column="1" Date="{Binding CsvFromDate}" FontSize="13" />
+                            <Label Grid.Column="2" Text="Até" VerticalOptions="Center" FontSize="12.5" />
+                            <DatePicker Grid.Column="3" Date="{Binding CsvToDate}" FontSize="13" />
+                        </Grid>
+
+                        <Label IsVisible="{Binding HasCsvError}"
+                               Text="{Binding CsvErrorMessage}"
+                               FontSize="12"
+                               TextColor="{StaticResource White}"
+                               BackgroundColor="#C42B1C"
+                               Padding="10,8" />
+
+                        <Button Text="Exportar CSV"
+                                Command="{Binding ExportGeneralCsvCommand}"
+                                HorizontalOptions="Start"
+                                FontSize="12"
+                                Padding="14,9"
+                                MinimumHeightRequest="0" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ==================== Sobre (RF-005/RF-006) ==================== -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="SOBRE" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="6">
+                        <Label FontAttributes="Bold" FontSize="14">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="TaskEngine · versão " />
+                                    <Span Text="{Binding AppVersionLabel}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <Label FontSize="12" TextColor="{StaticResource Gray500}">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="Usuário do sistema: " />
+                                    <Span Text="{Binding OsUserLabel}" FontAttributes="Bold" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <BoxView HeightRequest="1" Color="{StaticResource Gray300}" Margin="0,4" />
+                        <Label FontSize="12" TextColor="{StaticResource Gray600}">
+                            O TaskEngine acompanha o tempo humano e de IA investido em tarefas conectadas a
+                            provedores externos, com sincronização revisável antes do envio. Todos os dados
+                            (tarefas, histórico de tempo e configurações) ficam salvos localmente nesta
+                            máquina - não há sincronização automática entre computadores diferentes; a
+                            migração acontece apenas via backup/restauração manual (acima). Credenciais de
+                            acesso ao provedor nunca são incluídas em um backup.
+                        </Label>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+    <!-- Overlay: confirmar desconexão do provedor (RF-007/CA-007.1) - mesmo padrão "IsVisible +
+         scrim full-bleed" do ConcludeTaskModalView, sem biblioteca de popup/dialog. -->
+    <Grid IsVisible="{Binding IsDisconnectConfirmOpen}" BackgroundColor="#66000000" InputTransparent="False">
+        <Border MaximumWidthRequest="420" Margin="24" HorizontalOptions="Center" VerticalOptions="Center" Padding="20">
+            <VerticalStackLayout Spacing="14">
+                <Label Text="Desconectar provedor?" FontAttributes="Bold" FontSize="15" />
+                <Label FontSize="13" TextColor="{StaticResource Gray600}">
+                    Ao desconectar, o TaskEngine para de sincronizar tarefas deste provedor: nenhuma tarefa
+                    nova ou atualizada será importada, e as tarefas já sincronizadas não poderão mais ser
+                    concluídas por aqui até a reconexão. O tempo já registrado continua contado normalmente
+                    e fica salvo no histórico.
+                </Label>
+                <HorizontalStackLayout HorizontalOptions="End" Spacing="8">
+                    <Button Text="Cancelar" Command="{Binding CancelDisconnectCommand}" Padding="14,9" MinimumHeightRequest="0" />
+                    <Button Text="Desconectar"
+                            Command="{Binding ConfirmDisconnectCommand}"
+                            BackgroundColor="#C42B1C"
+                            TextColor="{StaticResource White}"
+                            Padding="16,9"
+                            MinimumHeightRequest="0" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+    <!-- Overlay: confirmar importação de backup (RN-003 - sobrescreve tudo). -->
+    <Grid IsVisible="{Binding IsImportConfirmOpen}" BackgroundColor="#66000000" InputTransparent="False">
+        <Border MaximumWidthRequest="420" Margin="24" HorizontalOptions="Center" VerticalOptions="Center" Padding="20">
+            <VerticalStackLayout Spacing="14">
+                <Label Text="Importar backup?" FontAttributes="Bold" FontSize="15" />
+                <Label FontSize="13" TextColor="{StaticResource Gray600}">
+                    Importar um backup substitui integralmente os dados locais atuais (tarefas, histórico
+                    de tempo e configurações) - não há mesclagem. Depois de importar, será preciso
+                    reconectar o provedor, já que credenciais nunca fazem parte de um backup.
+                </Label>
+                <HorizontalStackLayout HorizontalOptions="End" Spacing="8">
+                    <Button Text="Cancelar" Command="{Binding CancelImportCommand}" Padding="14,9" MinimumHeightRequest="0" />
+                    <Button Text="Escolher arquivo e importar"
+                            Command="{Binding ConfirmImportCommand}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="{StaticResource White}"
+                            Padding="16,9"
+                            MinimumHeightRequest="0" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+    </Grid>
+
+</ContentView>
