@@ -42,9 +42,42 @@ public class ConcludeTaskModalViewModelTests
     }
 
     [Fact]
+    public void GroupByFolder_GroupsFilesByWindowsBackslashPath_RootFilesUseSyntheticSlash()
+    {
+        var a = new ConcludeActivityItem(
+            Guid.NewGuid(), @"C:\Users\Arthur-Correa\AppData\Local\TaskEngine\a.ts", null, TimeSpan.FromMinutes(5), true, () => { });
+        var b = new ConcludeActivityItem(
+            Guid.NewGuid(), @"C:\Users\Arthur-Correa\AppData\Local\TaskEngine\b.ts", null, TimeSpan.FromMinutes(5), true, () => { });
+        var c = new ConcludeActivityItem(Guid.NewGuid(), "README.md", null, TimeSpan.FromMinutes(5), true, () => { });
+
+        IReadOnlyList<ConcludeFolderGroup> groups = ConcludeTaskModalViewModel.GroupByFolder([a, b, c]);
+
+        Assert.Equal(2, groups.Count);
+        Assert.Equal("/", groups[0].FolderPath);
+        Assert.Equal("README.md", Assert.Single(groups[0].Items).Label);
+        Assert.Equal(@"C:\Users\Arthur-Correa\AppData\Local\TaskEngine", groups[1].FolderPath);
+        Assert.Equal(2, groups[1].Items.Count);
+    }
+
+    [Fact]
     public void BuildCountLabel_FormatsSelectedOfTotal()
     {
         Assert.Equal("12 de 34 itens selecionados", ConcludeTaskModalViewModel.BuildCountLabel(12, 34));
+    }
+
+    [Fact]
+    public void ConcludeFolderGroup_StartsExpanded_AndToggleExpandCommandFlipsIt()
+    {
+        var item = new ConcludeActivityItem(Guid.NewGuid(), "a.ts", null, TimeSpan.FromMinutes(5), true, () => { });
+        var group = new ConcludeFolderGroup("/", [item]);
+
+        Assert.True(group.IsExpanded);
+
+        group.ToggleExpandCommand.Execute(null);
+        Assert.False(group.IsExpanded);
+
+        group.ToggleExpandCommand.Execute(null);
+        Assert.True(group.IsExpanded);
     }
 
     [Fact]
@@ -91,7 +124,7 @@ public class ConcludeTaskModalViewModelTests
     }
 
     [Fact]
-    public async Task OpenAsync_PreSelectsEveryItem_AndTogglingUpdatesSelectedCountLabel()
+    public async Task OpenAsync_StartsEveryItemUnselected_AndTogglingUpdatesSelectedCountLabel()
     {
         var taskRepository = new FakeTaskRepository();
         var task = TaskItem.Create("Tarefa");
@@ -114,12 +147,118 @@ public class ConcludeTaskModalViewModelTests
         var viewModel = CreateViewModel(taskRepository, workSessionRepository, monitoredActivityRepository);
         await viewModel.OpenAsync(task.Id);
 
-        Assert.Equal("2 de 2 itens selecionados", viewModel.SelectedCountLabel);
+        Assert.Equal("0 de 2 itens selecionados", viewModel.SelectedCountLabel);
+        Assert.All(viewModel.FolderGroups.SelectMany(g => g.Items).Concat(viewModel.BrowserItems), i => Assert.False(i.IsSelected));
 
         ConcludeActivityItem fileItem = viewModel.FolderGroups.Single().Items.Single();
-        fileItem.IsSelected = false;
+        fileItem.IsSelected = true;
 
         Assert.Equal("1 de 2 itens selecionados", viewModel.SelectedCountLabel);
+    }
+
+    [Fact]
+    public async Task OpenAsync_GroupsFilesByWindowsBackslashPath_NotJustForwardSlash()
+    {
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Tarefa");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var workSessionRepository = new FakeWorkSessionRepository();
+        WorkSession session = WorkSession.Start(task.Id, DateTimeOffset.UtcNow.AddHours(-1), WorkSessionType.Active);
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        await monitoredActivityRepository.AddAsync(
+            new ActivityInterval(
+                ActivitySource.Human, now.AddMinutes(-30), now.AddMinutes(-25), ActivityItemType.File,
+                @"C:\Users\Arthur-Correa\AppData\Local\TaskEngine\a.ts"),
+            CancellationToken.None);
+        await monitoredActivityRepository.AddAsync(
+            new ActivityInterval(
+                ActivitySource.Human, now.AddMinutes(-20), now.AddMinutes(-15), ActivityItemType.File,
+                @"C:\Users\Arthur-Correa\AppData\Local\TaskEngine\b.ts"),
+            CancellationToken.None);
+
+        var viewModel = CreateViewModel(taskRepository, workSessionRepository, monitoredActivityRepository);
+        await viewModel.OpenAsync(task.Id);
+
+        ConcludeFolderGroup group = Assert.Single(viewModel.FolderGroups);
+        Assert.Equal(@"C:\Users\Arthur-Correa\AppData\Local\TaskEngine", group.FolderPath);
+        Assert.Equal(2, group.Items.Count);
+    }
+
+    [Fact]
+    public async Task OpenAsync_ClipsDurationToEachSessionWindow_AndSumsAcrossOverlappingSessions()
+    {
+        // Item 3d: the raw ActivityInterval.Duration can be much larger than the portion that
+        // actually overlaps the session(s) it's attributed to - the displayed duration must be
+        // clipped the same way WorkSession.RecordActivity already clips it on the backend side,
+        // and summed when the same activity id overlaps more than one active session.
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Tarefa");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var workSessionRepository = new FakeWorkSessionRepository();
+        DateTimeOffset baseTime = DateTimeOffset.UtcNow.AddHours(-3);
+        WorkSession firstSession = WorkSession.Start(task.Id, baseTime, WorkSessionType.Active);
+        firstSession.End(baseTime.AddMinutes(10));
+        WorkSession secondSession = WorkSession.Start(task.Id, baseTime.AddMinutes(20), WorkSessionType.Active);
+        secondSession.End(baseTime.AddMinutes(30));
+        await workSessionRepository.AddAsync(firstSession, CancellationToken.None);
+        await workSessionRepository.AddAsync(secondSession, CancellationToken.None);
+
+        // Raw interval spans from 5 minutes before the first session to 5 minutes into the second
+        // one (40 minutes raw) - only [0,10] and [20,30] (20 minutes total) actually overlap active
+        // session windows.
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
+        await monitoredActivityRepository.AddAsync(
+            new ActivityInterval(
+                ActivitySource.Human, baseTime.AddMinutes(-5), baseTime.AddMinutes(35), ActivityItemType.File, "src/a.ts"),
+            CancellationToken.None);
+
+        var viewModel = CreateViewModel(taskRepository, workSessionRepository, monitoredActivityRepository);
+        await viewModel.OpenAsync(task.Id);
+
+        ConcludeActivityItem item = viewModel.FolderGroups.Single().Items.Single();
+        Assert.Equal("20min", item.DurationLabel);
+    }
+
+    [Fact]
+    public async Task OpenAsync_DropsItemsWhoseClippedDurationIsZero()
+    {
+        // Item 3e: an activity interval that only touches the very edge of the session window (or
+        // doesn't really overlap once clipped) shouldn't show up as a 0min/0seg row.
+        var taskRepository = new FakeTaskRepository();
+        var task = TaskItem.Create("Tarefa");
+        task.Start();
+        await taskRepository.AddAsync(task, CancellationToken.None);
+
+        var workSessionRepository = new FakeWorkSessionRepository();
+        DateTimeOffset baseTime = DateTimeOffset.UtcNow.AddHours(-1);
+        WorkSession session = WorkSession.Start(task.Id, baseTime, WorkSessionType.Active);
+        session.End(baseTime.AddMinutes(30));
+        await workSessionRepository.AddAsync(session, CancellationToken.None);
+
+        var monitoredActivityRepository = new FakeMonitoredActivityRepository();
+        // Entirely before the session window - clips to zero.
+        await monitoredActivityRepository.AddAsync(
+            new ActivityInterval(
+                ActivitySource.Human, baseTime.AddMinutes(-10), baseTime, ActivityItemType.File, "src/before.ts"),
+            CancellationToken.None);
+        // Genuinely overlaps - should remain.
+        await monitoredActivityRepository.AddAsync(
+            new ActivityInterval(
+                ActivitySource.Human, baseTime.AddMinutes(5), baseTime.AddMinutes(10), ActivityItemType.File, "src/kept.ts"),
+            CancellationToken.None);
+
+        var viewModel = CreateViewModel(taskRepository, workSessionRepository, monitoredActivityRepository);
+        await viewModel.OpenAsync(task.Id);
+
+        ConcludeActivityItem item = viewModel.FolderGroups.Single().Items.Single();
+        Assert.Equal("src/kept.ts", item.Label);
     }
 
     [Fact]

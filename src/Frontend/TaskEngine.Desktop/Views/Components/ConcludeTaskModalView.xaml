@@ -15,7 +15,7 @@
              IsVisible="{Binding IsOpen}"
              InputTransparent="False">
 
-    <Grid BackgroundColor="#66000000">
+    <Grid BackgroundColor="{StaticResource Scrim}">
         <Border MaximumWidthRequest="560"
                 MaximumHeightRequest="560"
                 Margin="24"
@@ -39,9 +39,9 @@
                        Margin="18,4,18,0"
                        Padding="10,8"
                        TextColor="{StaticResource White}"
-                       BackgroundColor="#C42B1C" />
+                       BackgroundColor="{StaticResource Danger}" />
 
-                <Border Grid.Row="2" Margin="18,10,18,4" Padding="10,0">
+                <Border Grid.Row="2" Margin="18,10,18,4" Padding="10,0" StrokeShape="RoundRectangle 6">
                     <Entry Placeholder="Buscar arquivo ou link" Text="{Binding SearchText, Mode=TwoWay}" />
                 </Border>
 
@@ -60,21 +60,32 @@
                                    TextColor="{StaticResource Gray500}" />
 
                             <VerticalStackLayout Spacing="2">
-                                <Label Text="Arquivos alterados" FontAttributes="Bold" FontSize="10.5" TextColor="{StaticResource Gray500}" />
+                                <Label Text="Arquivos alterados" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
                                 <VerticalStackLayout BindableLayout.ItemsSource="{Binding FolderGroups}" Spacing="8">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="viewModels:ConcludeFolderGroup">
                                             <VerticalStackLayout Spacing="1">
-                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                                                    <Grid.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding ToggleExpandCommand}" />
+                                                    </Grid.GestureRecognizers>
                                                     <CheckBox Grid.Column="0" IsChecked="{Binding AllSelected, Mode=TwoWay}" />
                                                     <Label Grid.Column="1"
+                                                           Text="{Binding ChevronGlyph}"
+                                                           FontFamily="Segoe Fluent Icons"
+                                                           FontSize="10"
+                                                           VerticalOptions="Center"
+                                                           TextColor="{StaticResource Gray500}" />
+                                                    <Label Grid.Column="2"
                                                            Text="{Binding FolderPath}"
                                                            FontAttributes="Bold"
                                                            FontSize="12"
                                                            VerticalOptions="Center"
                                                            LineBreakMode="TailTruncation" />
                                                 </Grid>
-                                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Margin="30,0,0,0">
+                                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}"
+                                                                     IsVisible="{Binding IsExpanded}"
+                                                                     Margin="30,0,0,0">
                                                     <BindableLayout.ItemTemplate>
                                                         <DataTemplate x:DataType="viewModels:ConcludeActivityItem">
                                                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Padding="0,3">
@@ -100,7 +111,7 @@
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Spacing="2">
-                                <Label Text="Navegadores e links acessados" FontAttributes="Bold" FontSize="10.5" TextColor="{StaticResource Gray500}" />
+                                <Label Text="Navegadores e links acessados" Style="{StaticResource SectionTitleStyle}" FontSize="10.5" />
                                 <VerticalStackLayout BindableLayout.ItemsSource="{Binding BrowserItems}">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="viewModels:ConcludeActivityItem">

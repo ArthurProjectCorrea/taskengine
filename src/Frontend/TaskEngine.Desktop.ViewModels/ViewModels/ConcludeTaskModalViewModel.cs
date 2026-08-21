@@ -3,6 +3,7 @@ using TaskEngine.Application.Abstractions;
 using TaskEngine.Application.Providers;
 using TaskEngine.Application.Tasks;
 using TaskEngine.Desktop.Mvvm;
+using TaskEngine.Desktop.ViewModels.Formatting;
 using TaskEngine.Domain.Entities;
 
 namespace TaskEngine.Desktop.ViewModels;
@@ -24,7 +25,7 @@ public sealed class ConcludeActivityItem : ObservableObject
         Id = id;
         Label = label;
         Url = url;
-        DurationLabel = ConcludeTaskModalViewModel.FormatDuration(duration);
+        DurationLabel = DurationFormatter.Format(duration);
         _isSelected = isSelected;
         _onSelectionChanged = onSelectionChanged;
     }
@@ -58,11 +59,17 @@ public sealed class ConcludeActivityItem : ObservableObject
 /// </summary>
 public sealed class ConcludeFolderGroup : ObservableObject
 {
+    private bool _isExpanded = true;
+
     public ConcludeFolderGroup(string folderPath, IReadOnlyList<ConcludeActivityItem> items)
     {
         FolderPath = folderPath;
         Items = items;
+        ToggleExpandCommand = new RelayCommand(_ => IsExpanded = !IsExpanded);
     }
+
+    /// <summary>Bound to the group header's tap gesture (see ConcludeTaskModalView.xaml) to collapse/expand <see cref="IsExpanded"/>.</summary>
+    public RelayCommand ToggleExpandCommand { get; }
 
     public string FolderPath { get; }
 
@@ -80,6 +87,30 @@ public sealed class ConcludeFolderGroup : ObservableObject
             }
         }
     }
+
+    /// <summary>
+    /// Whether this group's items are shown. Defaults to expanded (true) - most sessions only
+    /// touch a handful of folders, so collapsing everything by default would hide the checklist
+    /// the user needs to review before confirming. Toggled by clicking the group's header.
+    /// </summary>
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (SetProperty(ref _isExpanded, value))
+            {
+                OnPropertyChanged(nameof(ChevronGlyph));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Segoe Fluent Icons glyph for the group header's expand/collapse indicator - chevron-down
+    /// (U+E70D) while expanded, chevron-right (U+E76C) while collapsed, the same convention
+    /// Windows Explorer's own tree view uses.
+    /// </summary>
+    public string ChevronGlyph => IsExpanded ? "" : "";
 
     /// <summary>Called by the owning view model after any item's selection changes, so this folder's header checkbox reflects the new "all selected" state.</summary>
     public void NotifySelectionChanged() => OnPropertyChanged(nameof(AllSelected));
@@ -201,7 +232,17 @@ public sealed class ConcludeTaskModalViewModel : ObservableObject
     /// overlapping any of the task's *active* work-session periods. RN-012 excludes pauses - each
     /// Active session's own [StartedAt, EndedAt ?? now] window is queried separately rather than one
     /// overall min..max span, so a gap covered only by a pause period is never included. Every item
-    /// starts pre-selected, matching docs/prototipo/TaskEngine Dashboard.dc.html's own default.
+    /// starts unselected - the user opts in to what was actually worked on, rather than having to
+    /// opt out of everything that happened to be open during the session.
+    ///
+    /// The duration shown per item is clamped to each session's own window (same fix already
+    /// applied on the backend side for the human/AI totals, see <c>WorkSession.RecordActivity</c>'s
+    /// own doc comment) rather than the activity's raw <see cref="ActivityInterval.Duration"/> -
+    /// otherwise an interval that only barely overlaps the session window would still show its full
+    /// (much longer) raw duration. Because the same activity id can overlap more than one session in
+    /// the same day, the clipped durations are summed across sessions rather than the last one
+    /// silently overwriting the others. Items whose total clipped duration rounds down to zero are
+    /// dropped entirely - nothing useful to review or select there.
     /// </summary>
     public async Task OpenAsync(Guid taskId, CancellationToken cancellationToken = default)
     {
@@ -214,7 +255,7 @@ public sealed class ConcludeTaskModalViewModel : ObservableObject
 
         IReadOnlyList<WorkSession> sessions = await _workSessionRepository.ListByTaskIdAsync(taskId, cancellationToken);
 
-        var byId = new Dictionary<Guid, ActivityInterval>();
+        var byId = new Dictionary<Guid, (ActivityInterval Activity, TimeSpan ClippedDuration)>();
         foreach (WorkSession session in sessions.Where(s => s.Type == WorkSessionType.Active))
         {
             DateTimeOffset from = session.StartedAt;
@@ -228,22 +269,31 @@ public sealed class ConcludeTaskModalViewModel : ObservableObject
                 await _monitoredActivityRepository.ListByPeriodAsync(from, to, cancellationToken);
             foreach (ActivityInterval activity in activities)
             {
-                byId[activity.Id] = activity;
+                DateTimeOffset clippedStart = activity.StartedAt < from ? from : activity.StartedAt;
+                DateTimeOffset clippedEnd = activity.EndedAt > to ? to : activity.EndedAt;
+                TimeSpan clippedDuration = clippedEnd > clippedStart ? clippedEnd - clippedStart : TimeSpan.Zero;
+
+                TimeSpan previousDuration = byId.TryGetValue(activity.Id, out var existing)
+                    ? existing.ClippedDuration
+                    : TimeSpan.Zero;
+                byId[activity.Id] = (activity, previousDuration + clippedDuration);
             }
         }
 
         _allFileItems = byId.Values
-            .Where(a => a.Type != ActivityItemType.Browser)
-            .OrderBy(a => a.Path, StringComparer.OrdinalIgnoreCase)
-            .Select(a => new ConcludeActivityItem(
-                a.Id, a.Path ?? "(sem caminho)", url: null, a.Duration, isSelected: true, RecalculateSelection))
+            .Where(entry => entry.Activity.Type != ActivityItemType.Browser && entry.ClippedDuration > TimeSpan.Zero)
+            .OrderBy(entry => entry.Activity.Path, StringComparer.OrdinalIgnoreCase)
+            .Select(entry => new ConcludeActivityItem(
+                entry.Activity.Id, entry.Activity.Path ?? "(sem caminho)", url: null, entry.ClippedDuration,
+                isSelected: false, RecalculateSelection))
             .ToList();
 
         _allBrowserItems = byId.Values
-            .Where(a => a.Type == ActivityItemType.Browser)
-            .OrderBy(a => a.Path, StringComparer.OrdinalIgnoreCase)
-            .Select(a => new ConcludeActivityItem(
-                a.Id, a.Path ?? "(endereço desconhecido)", a.Path, a.Duration, isSelected: true, RecalculateSelection))
+            .Where(entry => entry.Activity.Type == ActivityItemType.Browser && entry.ClippedDuration > TimeSpan.Zero)
+            .OrderBy(entry => entry.Activity.Path, StringComparer.OrdinalIgnoreCase)
+            .Select(entry => new ConcludeActivityItem(
+                entry.Activity.Id, entry.Activity.Path ?? "(endereço desconhecido)", entry.Activity.Path,
+                entry.ClippedDuration, isSelected: false, RecalculateSelection))
             .ToList();
 
         IsBusy = false;
@@ -334,26 +384,18 @@ public sealed class ConcludeTaskModalViewModel : ObservableObject
             .ToList();
     }
 
+    /// <summary>
+    /// Real Windows file paths (e.g. <c>C:\Users\...\a.ts</c>) use backslash, not forward slash -
+    /// only checking '/' left every local file bucketed under the synthetic root group "/" with no
+    /// real segmentation. Both separators are checked (whichever appears last wins) so a stray
+    /// forward slash - e.g. if a browser-like path ever ends up here - still groups sensibly.
+    /// </summary>
     public static string GetFolderPath(ConcludeActivityItem item)
     {
         var path = item.Label;
-        var lastSeparator = path.LastIndexOf('/');
+        var lastSeparator = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
         return lastSeparator >= 0 ? path[..lastSeparator] : "/";
     }
 
     public static string BuildCountLabel(int selected, int total) => $"{selected} de {total} itens selecionados";
-
-    public static string FormatDuration(TimeSpan duration)
-    {
-        var totalMinutes = (int)Math.Round(duration.TotalMinutes);
-        var hours = totalMinutes / 60;
-        var minutes = totalMinutes % 60;
-
-        if (hours <= 0)
-        {
-            return $"{minutes}min";
-        }
-
-        return minutes > 0 ? $"{hours}h {minutes}min" : $"{hours}h";
-    }
 }
