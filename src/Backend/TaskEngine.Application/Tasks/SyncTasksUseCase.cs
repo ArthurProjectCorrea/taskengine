@@ -24,7 +24,6 @@ public sealed class SyncTasksUseCase
     private readonly ITaskRepository _taskRepository;
     private readonly IProviderClientFactory _providerClientFactory;
     private readonly IAppSettingsStore _appSettingsStore;
-    private readonly PauseWorkSessionUseCase _pauseWorkSessionUseCase;
     private readonly StartWorkSessionUseCase _startWorkSessionUseCase;
     private readonly EndWorkSessionUseCase _endWorkSessionUseCase;
 
@@ -32,14 +31,12 @@ public sealed class SyncTasksUseCase
         ITaskRepository taskRepository,
         IProviderClientFactory providerClientFactory,
         IAppSettingsStore appSettingsStore,
-        PauseWorkSessionUseCase pauseWorkSessionUseCase,
         StartWorkSessionUseCase startWorkSessionUseCase,
         EndWorkSessionUseCase endWorkSessionUseCase)
     {
         _taskRepository = taskRepository;
         _providerClientFactory = providerClientFactory;
         _appSettingsStore = appSettingsStore;
-        _pauseWorkSessionUseCase = pauseWorkSessionUseCase;
         _startWorkSessionUseCase = startWorkSessionUseCase;
         _endWorkSessionUseCase = endWorkSessionUseCase;
     }
@@ -171,12 +168,15 @@ public sealed class SyncTasksUseCase
             return;
         }
 
-        // RN-011: any status other than in-progress/done pauses tracking, no special-casing by
-        // name - only applies once a task has actually been started (CA-015.2 mirrors CA-015.1).
-        if (task.Status == TaskStatus.InProgress)
-        {
-            await _pauseWorkSessionUseCase.ExecuteAsync(task.Id, WorkSessionOrigin.Provider, cancellationToken);
-        }
+        // RN-011 ("qualquer status que não seja em-andamento/concluído pausa o rastreamento") only
+        // makes sense for a provider whose status vocabulary can actually express "in progress" as
+        // a distinct, positive signal (e.g. a Projects v2 Status column). GitHubIssuesClient can't
+        // - a plain Issue is only ever open or closed, so IsInProgress is permanently false there
+        // by design (see its doc comment). Auto-pausing here on every sync would silently revert
+        // any locally-started task the moment the user clicks "Sincronizar", since GitHub never
+        // confirms "in progress" to begin with. Pausing therefore stays a purely local/manual
+        // action (via the status dropdown) unless/until a provider that can genuinely report
+        // "in progress" exists - do not resurrect this branch without that signal.
     }
 
     private async Task<DateTimeOffset> GetOrEstablishConnectedAtAsync(string providerId, CancellationToken cancellationToken)

@@ -21,7 +21,6 @@ public class SyncTasksUseCaseTests
             taskRepository,
             providerClientFactory,
             appSettingsStore,
-            new PauseWorkSessionUseCase(taskRepository, workSessionRepository),
             new StartWorkSessionUseCase(taskRepository, workSessionRepository),
             new EndWorkSessionUseCase(taskRepository, workSessionRepository));
     }
@@ -181,8 +180,16 @@ public class SyncTasksUseCaseTests
         Assert.Single(taskRepository.Tasks);
     }
 
+    /// <summary>
+    /// GitHubIssuesClient can never report <c>IsInProgress</c> (plain Issues are only open/closed
+    /// - see its doc comment), so a remote status that is neither in-progress nor done must NOT
+    /// auto-pause a locally in-progress task. Auto-pausing here used to be RN-011's behavior back
+    /// when the provider was Projects v2 (a real "Blocked"/"Backlog" signal existed); with Issues,
+    /// that would silently revert every in-progress task to Paused on every "Sincronizar" click,
+    /// which is exactly the regression this test guards against.
+    /// </summary>
     [Fact]
-    public async Task ExecuteAsync_WithInProgressTaskThatBecomesBlockedOnProvider_PausesTracking()
+    public async Task ExecuteAsync_WithInProgressTaskThatIsNeitherInProgressNorDoneOnProvider_KeepsTrackingActive()
     {
         var taskRepository = new FakeTaskRepository();
         var workSessionRepository = new FakeWorkSessionRepository();
@@ -195,16 +202,15 @@ public class SyncTasksUseCaseTests
         var providerClientFactory = new FakeProviderClientFactory();
         providerClientFactory.ClientToReturn.AssignedTasksToReturn =
         [
-            new ProviderTaskSummary("gh-1", "Write report", null, "Blocked", false, false, Now, null, null),
+            new ProviderTaskSummary("gh-1", "Write report", null, "open", false, false, Now, null, null),
         ];
         var appSettingsStore = new FakeAppSettingsStore();
         var useCase = CreateUseCase(taskRepository, providerClientFactory, appSettingsStore, workSessionRepository);
 
         IReadOnlyList<TaskDto> result = await useCase.ExecuteAsync("github");
 
-        Assert.Equal(TaskStatus.Paused.ToString(), Assert.Single(result).Status);
-        WorkSession pauseSession = workSessionRepository.Sessions.Single(s => s.Type == WorkSessionType.Pause);
-        Assert.Equal(WorkSessionOrigin.Provider, pauseSession.Origin);
+        Assert.Equal(TaskStatus.InProgress.ToString(), Assert.Single(result).Status);
+        Assert.DoesNotContain(workSessionRepository.Sessions, s => s.Type == WorkSessionType.Pause);
     }
 
     [Fact]

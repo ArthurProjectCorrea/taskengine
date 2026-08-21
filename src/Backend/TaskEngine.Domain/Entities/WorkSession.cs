@@ -98,6 +98,17 @@ public sealed class WorkSession
     /// allowed on an already-closed session, since conclusion is exactly when a past Active session
     /// (from an earlier work period, before a pause) gets attributed.
     /// </summary>
+    /// <remarks>
+    /// The caller finds candidates via an <em>overlap</em> query (any part of the activity falls
+    /// inside this session's window - RF-004/CA-004.1 needs that to support retroactive
+    /// association of activity that predates the task). But the activity's own
+    /// <see cref="ActivityInterval.StartedAt"/>/<see cref="ActivityInterval.EndedAt"/> can span far
+    /// outside that window (e.g. a browser tab left open for days, or a file also touched by other
+    /// tasks) - storing it unclipped would credit the session with time it never actually covered
+    /// (a 2h task attributing a 5-day-old file's full lifetime). Clip to
+    /// [<see cref="StartedAt"/>, <see cref="EndedAt"/> ?? now] before storing, so only the portion
+    /// that genuinely falls within this session's own active period is ever counted.
+    /// </remarks>
     public void AttributeSelectedActivity(ActivityInterval activity)
     {
         if (Type != WorkSessionType.Active)
@@ -111,7 +122,21 @@ public sealed class WorkSession
             return;
         }
 
-        _activities.Add(activity with { SelectedAtConclusion = true });
+        DateTimeOffset windowEnd = EndedAt ?? DateTimeOffset.UtcNow;
+        DateTimeOffset clippedStart = activity.StartedAt < StartedAt ? StartedAt : activity.StartedAt;
+        DateTimeOffset clippedEnd = activity.EndedAt > windowEnd ? windowEnd : activity.EndedAt;
+
+        if (clippedEnd <= clippedStart)
+        {
+            // The overlap query guarantees some overlap existed, but clipping can still collapse
+            // it to nothing at the boundary (e.g. activity ends exactly at StartedAt) - contributes
+            // no time, so there's nothing to attribute.
+            return;
+        }
+
+        _activities.Add(new ActivityInterval(
+            activity.Source, clippedStart, clippedEnd, activity.Type, activity.Path,
+            selectedAtConclusion: true, id: activity.Id));
     }
 
     /// <summary>

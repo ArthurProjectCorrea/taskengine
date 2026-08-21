@@ -19,7 +19,6 @@ public class ReconnectProviderUseCaseTests
             taskRepository,
             providerClientFactory,
             appSettingsStore,
-            new PauseWorkSessionUseCase(taskRepository, workSessionRepository),
             new StartWorkSessionUseCase(taskRepository, workSessionRepository),
             new EndWorkSessionUseCase(taskRepository, workSessionRepository));
 

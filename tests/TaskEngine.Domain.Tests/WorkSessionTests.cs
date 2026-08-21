@@ -179,6 +179,75 @@ public class WorkSessionTests
         Assert.Single(session.Activities);
     }
 
+    /// <summary>
+    /// Regression test: a monitored activity found via an overlap query (RF-004/CA-004.1) can span
+    /// far outside the session's own window (e.g. a file also touched days before this task even
+    /// started). Attributing it unclipped used to credit the session with the activity's full
+    /// lifetime instead of just the portion that actually happened during this session - a 2-hour
+    /// task could end up "concluding" with 5 days of duration if it selected a long-lived file.
+    /// </summary>
+    [Fact]
+    public void AttributeSelectedActivity_ActivityStartsBeforeSession_ClipsToSessionStart()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.End(Start.AddHours(2));
+        var monitored = new ActivityInterval(
+            ActivitySource.Human, Start.AddDays(-5), Start.AddHours(1), ActivityItemType.File, "src/a.cs");
+
+        session.AttributeSelectedActivity(monitored);
+
+        ActivityInterval attributed = Assert.Single(session.Activities);
+        Assert.Equal(Start, attributed.StartedAt);
+        Assert.Equal(Start.AddHours(1), attributed.EndedAt);
+        Assert.Equal(monitored.Id, attributed.Id);
+    }
+
+    [Fact]
+    public void AttributeSelectedActivity_ActivityEndsAfterSession_ClipsToSessionEnd()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.End(Start.AddHours(2));
+        var monitored = new ActivityInterval(
+            ActivitySource.Human, Start.AddMinutes(30), Start.AddDays(5), ActivityItemType.File, "src/a.cs");
+
+        session.AttributeSelectedActivity(monitored);
+
+        ActivityInterval attributed = Assert.Single(session.Activities);
+        Assert.Equal(Start.AddMinutes(30), attributed.StartedAt);
+        Assert.Equal(Start.AddHours(2), attributed.EndedAt);
+    }
+
+    [Fact]
+    public void AttributeSelectedActivity_ActivityEntirelyWithinSession_IsNotClipped()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        session.End(Start.AddHours(2));
+        var monitored = new ActivityInterval(
+            ActivitySource.Human, Start.AddMinutes(10), Start.AddMinutes(40), ActivityItemType.File, "src/a.cs");
+
+        session.AttributeSelectedActivity(monitored);
+
+        ActivityInterval attributed = Assert.Single(session.Activities);
+        Assert.Equal(monitored.StartedAt, attributed.StartedAt);
+        Assert.Equal(monitored.EndedAt, attributed.EndedAt);
+    }
+
+    [Fact]
+    public void AttributeSelectedActivity_OpenSession_ClipsToNowNotToDefault()
+    {
+        var session = WorkSession.Start(Guid.NewGuid(), Start);
+        var now = Start.AddMinutes(20);
+        var monitored = new ActivityInterval(
+            ActivitySource.Human, Start.AddMinutes(-90), now.AddDays(1), ActivityItemType.File, "src/a.cs");
+
+        session.AttributeSelectedActivity(monitored);
+
+        ActivityInterval attributed = Assert.Single(session.Activities);
+        Assert.Equal(Start, attributed.StartedAt);
+        Assert.True(attributed.EndedAt <= DateTimeOffset.UtcNow);
+        Assert.True(attributed.EndedAt >= now);
+    }
+
     [Fact]
     public void HumanAndAiDuration_SumOnlyTheirOwnSourceIntervals()
     {

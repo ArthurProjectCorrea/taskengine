@@ -34,7 +34,6 @@ public class TarefasViewModelTests
             taskRepository,
             providerClientFactory,
             appSettingsStore,
-            pauseWorkSessionUseCase,
             startWorkSessionUseCase,
             endWorkSessionUseCase);
 
