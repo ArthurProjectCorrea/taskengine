@@ -17,7 +17,7 @@
 ;   "C:\Users\<usuario>\AppData\Local\Programs\Inno Setup 6\ISCC.exe" releases\v1\TaskEngine.Setup.iss
 
 #define MyAppName "TaskEngine"
-#define MyAppVersion "1.0.0.1"
+#define MyAppVersion "1.0.0.2"
 #define MyAppPublisher "Arthur de Paula Correa"
 #define MyPublishDir "..\..\publish-out"
 

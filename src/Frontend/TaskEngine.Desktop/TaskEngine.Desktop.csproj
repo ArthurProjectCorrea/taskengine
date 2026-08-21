@@ -27,7 +27,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>1</ApplicationVersion>
+		<ApplicationVersion>2</ApplicationVersion>
 
 		<!-- Sem empacotamento MSIX: distribuição via instalador .exe tradicional (Inno Setup, ver
 		     releases/v1/). MSIX autoassinado exigia importar certificado manualmente via
